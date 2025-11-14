@@ -10,13 +10,11 @@
             class="flex items-center justify-between h-16 px-4 border-b border-gray-200"
         >
             <div v-if="!isCollapsed" class="flex items-center gap-3">
-                <i class="fas fa-chart-line text-2xl text-blue-600"></i>
-                <span class="font-semibold text-lg text-gray-800"
-                    >CANZIM FinTrack</span
-                >
+                <img :src="logoPath" alt="CANZIM Logo" class="h-10 w-auto" />
+                <span class="font-semibold text-lg text-gray-800"></span>
             </div>
             <div v-else class="flex items-center justify-center w-full">
-                <i class="fas fa-chart-line text-2xl text-blue-600"></i>
+                <img :src="logoPath" alt="CANZIM Logo" class="h-8 w-auto" />
             </div>
         </div>
 
@@ -35,7 +33,7 @@
         </button>
 
         <!-- Navigation Menu -->
-        <nav class="overflow-y-auto h-[calc(100vh-4rem)] py-4">
+        <nav class="overflow-y-auto h-[calc(100vh-8rem)] py-4">
             <div class="space-y-1 px-3">
                 <!-- Dashboard Menu Item -->
                 <a
@@ -226,6 +224,24 @@
                         >
                     </a>
 
+                    <!-- Activity Logs -->
+                    <a
+                        v-if="canAccessActivityLogs"
+                        href="/dashboard/activity-logs"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                            isActive('/dashboard/activity-logs')
+                                ? 'bg-blue-50 text-blue-700'
+                                : 'text-gray-700 hover:bg-gray-50',
+                        ]"
+                        :title="isCollapsed ? 'Activity Logs' : ''"
+                    >
+                        <i class="fas fa-history w-5 text-center"></i>
+                        <span v-if="!isCollapsed" class="font-medium"
+                            >Activity Logs</span
+                        >
+                    </a>
+
                     <!-- Documents -->
                     <a
                         v-if="canAccessDocuments"
@@ -306,6 +322,16 @@
                 </div>
             </div>
         </nav>
+
+        <!-- Footer -->
+        <div
+            class="absolute bottom-0 left-0 right-0 h-12 flex items-center justify-center border-t border-gray-200 bg-white px-4"
+        >
+            <p v-if="!isCollapsed" class="text-xs text-gray-500 text-center">
+                &copy; 2025 CAN-Zimbabwe.
+            </p>
+            <p v-else class="text-xs text-gray-500 text-center">&copy;</p>
+        </div>
     </aside>
 </template>
 
@@ -324,6 +350,7 @@ const props = defineProps({
 // State
 const authStore = useAuthStore();
 const isCollapsed = ref(false);
+const logoPath = "/images/logo/canzim_logo.png";
 
 // Get current path for active state
 const currentPath = ref(window.location.pathname);
@@ -403,6 +430,8 @@ const canAccessReports = computed(
 );
 
 const canAccessUsers = computed(() => isProgramsManager.value);
+
+const canAccessActivityLogs = computed(() => isProgramsManager.value);
 
 const canAccessDocuments = computed(
     () => isProgramsManager.value || isProjectOfficer.value,

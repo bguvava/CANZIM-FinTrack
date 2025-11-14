@@ -20,6 +20,9 @@ import "@fortawesome/fontawesome-free/css/all.css";
 // Import pages
 import LandingPage from "./pages/LandingPage.vue";
 import Dashboard from "./pages/Dashboard.vue";
+import Users from "./pages/Users.vue";
+import ActivityLogs from "./pages/ActivityLogs.vue";
+import Profile from "./pages/Profile.vue";
 
 // Import stores
 import { useAuthStore } from "./stores/authStore";
@@ -73,6 +76,72 @@ if (dashboardElement) {
 
     // Mount Dashboard
     dashboardApp.mount("#dashboard-app");
+
+    // Initialize auth store
+    const authStore = useAuthStore();
+    authStore.initializeAuth();
+}
+
+// Check if users element exists
+const usersElement = document.getElementById("users-app");
+
+if (usersElement) {
+    // Create Vue app instance for Users
+    const usersApp = createApp(Users);
+
+    // Register Pinia
+    usersApp.use(pinia);
+
+    // Make SweetAlert2 globally available
+    usersApp.config.globalProperties.$swal = canzimSwal;
+    usersApp.config.globalProperties.$toast = Toast;
+
+    // Mount Users
+    usersApp.mount("#users-app");
+
+    // Initialize auth store
+    const authStore = useAuthStore();
+    authStore.initializeAuth();
+}
+
+// Check if activity logs element exists
+const activityLogsElement = document.getElementById("activity-logs-app");
+
+if (activityLogsElement) {
+    // Create Vue app instance for Activity Logs
+    const activityLogsApp = createApp(ActivityLogs);
+
+    // Register Pinia
+    activityLogsApp.use(pinia);
+
+    // Make SweetAlert2 globally available
+    activityLogsApp.config.globalProperties.$swal = canzimSwal;
+    activityLogsApp.config.globalProperties.$toast = Toast;
+
+    // Mount Activity Logs
+    activityLogsApp.mount("#activity-logs-app");
+
+    // Initialize auth store
+    const authStore = useAuthStore();
+    authStore.initializeAuth();
+}
+
+// Check if profile element exists
+const profileElement = document.getElementById("profile-app");
+
+if (profileElement) {
+    // Create Vue app instance for Profile
+    const profileApp = createApp(Profile);
+
+    // Register Pinia
+    profileApp.use(pinia);
+
+    // Make SweetAlert2 globally available
+    profileApp.config.globalProperties.$swal = canzimSwal;
+    profileApp.config.globalProperties.$toast = Toast;
+
+    // Mount Profile
+    profileApp.mount("#profile-app");
 
     // Initialize auth store
     const authStore = useAuthStore();

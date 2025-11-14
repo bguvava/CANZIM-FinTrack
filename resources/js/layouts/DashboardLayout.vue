@@ -205,9 +205,19 @@
             </div>
 
             <!-- Main Content Area -->
-            <main class="p-6">
+            <main class="p-6 pb-16">
                 <slot></slot>
             </main>
+
+            <!-- Footer -->
+            <footer
+                class="fixed bottom-0 right-0 bg-white border-t border-gray-200 px-6 py-3 transition-all duration-300"
+                :class="sidebarCollapsed ? 'left-16' : 'left-64'"
+            >
+                <p class="text-xs text-gray-500 text-center">
+                    All rights reserved. Developed with ❤️ by bguvava.
+                </p>
+            </footer>
         </div>
     </div>
 </template>

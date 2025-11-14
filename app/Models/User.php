@@ -23,6 +23,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $name
  * @property string $email
  * @property string|null $phone_number
+ * @property string|null $avatar_path
+ * @property string|null $office_location
  * @property string $password
  * @property string $status
  * @property int $failed_login_attempts
@@ -50,8 +52,11 @@ class User extends Authenticatable
         'name',
         'email',
         'phone_number',
+        'avatar_path',
+        'office_location',
         'password',
         'status',
+        'email_verified_at',
     ];
 
     /**
@@ -95,6 +100,14 @@ class User extends Authenticatable
     public function auditTrails(): HasMany
     {
         return $this->hasMany(AuditTrail::class);
+    }
+
+    /**
+     * Get the activity logs for the user
+     */
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
     }
 
     /**
@@ -175,5 +188,30 @@ class User extends Authenticatable
     public function verifyPassword(string $password): bool
     {
         return Hash::check($password, $this->password);
+    }
+
+    /**
+     * Get user initials for avatar
+     */
+    public function getInitials(): string
+    {
+        $parts = explode(' ', $this->name);
+        if (count($parts) >= 2) {
+            return strtoupper(substr($parts[0], 0, 1).substr($parts[1], 0, 1));
+        }
+
+        return strtoupper(substr($this->name, 0, 2));
+    }
+
+    /**
+     * Get avatar URL
+     */
+    public function getAvatarUrl(): string
+    {
+        if ($this->avatar_path && file_exists(storage_path('app/public/'.$this->avatar_path))) {
+            return asset('storage/'.$this->avatar_path);
+        }
+
+        return '';
     }
 }

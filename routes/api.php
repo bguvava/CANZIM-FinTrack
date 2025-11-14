@@ -12,7 +12,9 @@ declare(strict_types=1);
  * @see https://laravel.com/docs/12.x/sanctum
  */
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -77,8 +79,42 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     | - Purchase order routes (/api/v1/purchase-orders)
     | - Donor routes (/api/v1/donors)
     | - Report routes (/api/v1/reports)
-    | - User management routes (/api/v1/users)
     | - Document routes (/api/v1/documents)
     |
     */
+
+    // User Management Routes (Module 4)
+    Route::prefix('users')->group(function () {
+        // User CRUD operations
+        Route::get('/', [UserController::class, 'index'])->name('api.users.index');
+        Route::post('/', [UserController::class, 'store'])->name('api.users.store');
+        Route::get('/{user}', [UserController::class, 'show'])->name('api.users.show');
+        Route::put('/{user}', [UserController::class, 'update'])->name('api.users.update');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('api.users.destroy');
+
+        // User status management
+        Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('api.users.deactivate');
+        Route::post('/{user}/activate', [UserController::class, 'activate'])->name('api.users.activate');
+
+        // Helper endpoints
+        Route::get('/roles/list', [UserController::class, 'roles'])->name('api.users.roles');
+        Route::get('/locations/list', [UserController::class, 'officeLocations'])->name('api.users.locations');
+
+        // User activity logs
+        Route::get('/{user}/activity', [ActivityLogController::class, 'userActivity'])->name('api.users.activity');
+    });
+
+    // User Profile Routes
+    Route::prefix('profile')->group(function () {
+        Route::get('/', [UserController::class, 'profile'])->name('api.profile.show');
+        Route::put('/', [UserController::class, 'updateProfile'])->name('api.profile.update');
+        Route::post('/change-password', [UserController::class, 'changePassword'])->name('api.profile.change-password');
+        Route::post('/avatar', [UserController::class, 'uploadAvatar'])->name('api.profile.avatar');
+    });
+
+    // Activity Logs Routes (Programs Manager only)
+    Route::prefix('activity-logs')->group(function () {
+        Route::get('/', [ActivityLogController::class, 'index'])->name('api.activity-logs.index');
+        Route::post('/bulk-delete', [ActivityLogController::class, 'bulkDelete'])->name('api.activity-logs.bulk-delete');
+    });
 });

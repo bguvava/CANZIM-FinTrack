@@ -1,42 +1,48 @@
 <template>
     <div
-        class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50"
+        class="h-screen overflow-hidden bg-linear-to-br from-blue-900 via-blue-800 to-blue-900"
     >
         <!-- Landing Page Container -->
-        <div class="relative flex min-h-screen flex-col">
+        <div class="relative flex h-screen flex-col">
             <!-- Header -->
-            <header class="w-full px-4 py-6 sm:px-6 lg:px-8">
-                <div class="mx-auto max-w-7xl">
+            <header class="w-full px-4 py-4 sm:px-6 lg:px-8">
+                <div class="mx-auto max-w-7xl flex items-center gap-3">
                     <img
                         :src="logoPath"
                         alt="CANZIM Logo"
-                        class="h-16 w-auto animate-fade-in sm:h-20"
+                        class="h-12 w-auto animate-fade-in sm:h-14"
                     />
+                    <div>
+                        <h1 class="text-xl font-bold text-white sm:text-2xl">
+                            CANZIM FinTrack
+                        </h1>
+                        <p class="text-xs text-blue-100 sm:text-sm">
+                            Financial Management Simplified
+                        </p>
+                    </div>
                 </div>
             </header>
 
             <!-- Main Content -->
             <main
-                class="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+                class="flex flex-1 items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden"
             >
                 <div class="w-full max-w-6xl">
-                    <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+                    <div class="grid gap-6 lg:grid-cols-2 lg:gap-10">
                         <!-- Hero Section -->
                         <div
-                            class="flex flex-col justify-center space-y-6 animate-fade-in-up"
+                            class="flex flex-col justify-center space-y-4 animate-fade-in-up"
                         >
                             <h1
-                                class="text-4xl font-bold text-gray-900 sm:text-5xl lg:text-6xl"
+                                class="text-3xl font-bold text-white sm:text-4xl lg:text-5xl"
                             >
-                                CANZIM
-                                <span class="text-blue-800">FinTrack</span>
+                                Welcome to
+                                <span class="text-blue-300"
+                                    >CANZIM FinTrack</span
+                                >
                             </h1>
 
-                            <p class="text-xl text-gray-700 sm:text-2xl">
-                                Financial Management Simplified
-                            </p>
-
-                            <p class="text-lg text-gray-600">
+                            <p class="text-base text-blue-100 sm:text-lg">
                                 Comprehensive financial management and
                                 accounting system for Climate Action Network
                                 Zimbabwe. Track budgets, manage expenses,
@@ -45,21 +51,21 @@
                             </p>
 
                             <!-- Features Grid -->
-                            <div class="grid grid-cols-2 gap-4 pt-4">
+                            <div class="grid grid-cols-2 gap-3 pt-3">
                                 <div
                                     v-for="(feature, index) in features"
                                     :key="index"
-                                    class="flex items-start space-x-3 animate-fade-in-up"
+                                    class="flex items-start space-x-2 animate-fade-in-up"
                                     :style="{
                                         animationDelay: `${(index + 1) * 100}ms`,
                                     }"
                                 >
                                     <i
                                         :class="feature.icon"
-                                        class="text-blue-800 mt-1"
+                                        class="text-blue-300 mt-0.5 text-sm"
                                     ></i>
                                     <span
-                                        class="text-sm text-gray-700 font-medium"
+                                        class="text-xs text-blue-100 font-medium sm:text-sm"
                                         >{{ feature.name }}</span
                                     >
                                 </div>
@@ -73,10 +79,10 @@
                         >
                             <div class="w-full max-w-md">
                                 <div
-                                    class="rounded-2xl bg-white p-8 shadow-xl ring-1 ring-gray-200 transition-transform duration-300 hover:scale-105"
+                                    class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-blue-300/20 backdrop-blur-sm sm:p-8"
                                 >
                                     <h2
-                                        class="mb-6 text-center text-2xl font-bold text-gray-900"
+                                        class="mb-4 text-center text-xl font-bold text-gray-900 sm:text-2xl"
                                     >
                                         Sign In to Your Account
                                     </h2>
@@ -99,33 +105,14 @@
             </main>
 
             <!-- Footer -->
-            <footer class="w-full px-4 py-6 sm:px-6 lg:px-8">
+            <footer
+                class="w-full px-4 py-3 sm:px-6 lg:px-8 border-t border-blue-700/30"
+            >
                 <div class="mx-auto max-w-7xl">
-                    <div
-                        class="flex flex-col items-center space-y-4 text-center"
-                    >
-                        <p class="text-sm text-gray-600">
-                            <strong>Climate Action Network Zimbabwe</strong>
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            Financial Management & Accounting System
-                        </p>
-                        <p class="text-xs text-gray-500">
-                            Developed with ❤️ by
-                            <a
-                                href="https://bguvava.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-blue-800 hover:text-blue-900 transition-colors duration-150"
-                            >
-                                bguvava (bguvava.com)
-                            </a>
-                        </p>
-                        <p class="text-xs text-gray-400">
-                            © {{ currentYear }} Climate Action Network
-                            Zimbabwe. All rights reserved.
-                        </p>
-                    </div>
+                    <p class="text-center text-xs text-blue-200 sm:text-sm">
+                        © {{ currentYear }} Climate Action Network Zimbabwe.
+                        All rights reserved. Developed with ❤️ by bguvava.
+                    </p>
                 </div>
             </footer>
         </div>
@@ -136,9 +123,13 @@
 import { ref, computed } from "vue";
 import LoginForm from "../components/LoginForm.vue";
 import { canzimSwal } from "../plugins/sweetalert";
+import { useAuthStore } from "../stores/authStore";
+
+// Initialize auth store
+const authStore = useAuthStore();
 
 // Logo path
-const logoPath = "/images/logo/canzim_logo.png";
+const logoPath = "/images/logo/canzim_white.png";
 
 // Current year for copyright
 const currentYear = computed(() => new Date().getFullYear());
@@ -194,8 +185,6 @@ function showForgotPassword() {
         .then(async (result) => {
             if (result.isConfirmed) {
                 // Handle password reset request
-                const { useAuthStore } = await import("../stores/authStore");
-                const authStore = useAuthStore();
                 await authStore.forgotPassword(result.value);
             }
         });

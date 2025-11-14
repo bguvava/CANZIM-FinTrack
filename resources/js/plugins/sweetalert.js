@@ -74,18 +74,19 @@ export const Toast = Swal.mixin({
 });
 
 /**
- * Confirmation Dialog Helper
- * Used for destructive actions (delete, archive, cancel)
+ * Confirm Action Helper
  *
- * @param {string} title - Dialog title
- * @param {string} text - Dialog message
- * @param {string} confirmText - Confirm button text
- * @returns {Promise<boolean>} - True if confirmed, false if cancelled
+ * @param {string} title - Confirmation dialog title
+ * @param {string} text - Confirmation dialog message
+ * @param {string} confirmText - Confirm button text (can include HTML)
+ * @param {string} cancelText - Cancel button text (can include HTML)
+ * @returns {Promise<boolean>} - True if confirmed
  */
 export const confirmAction = async (
-    title = "Are you sure?",
-    text = "This action cannot be undone.",
-    confirmText = "Yes, proceed",
+    title,
+    text,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
 ) => {
     const result = await canzimSwal.fire({
         title,
@@ -93,7 +94,7 @@ export const confirmAction = async (
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: confirmText,
-        cancelButtonText: "Cancel",
+        cancelButtonText: cancelText,
         reverseButtons: true,
         focusCancel: true,
     });
@@ -212,7 +213,8 @@ export const confirmLogout = async () => {
     return await confirmAction(
         "Confirm Logout",
         "Are you sure you want to logout?",
-        "Logout",
+        '<i class="fas fa-sign-out-alt mr-2"></i>Logout',
+        '<i class="fas fa-times mr-2"></i>Cancel',
     );
 };
 
