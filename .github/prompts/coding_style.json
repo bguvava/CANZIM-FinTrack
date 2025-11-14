@@ -1,0 +1,399 @@
+{
+  "project": "CANZIM FinTrack",
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-13",
+  
+  "general": {
+    "indentation": "4 spaces",
+    "lineLength": 120,
+    "encoding": "UTF-8",
+    "lineEndings": "LF (Unix)",
+    "trailingWhitespace": "remove",
+    "finalNewline": true
+  },
+  
+  "php": {
+    "standard": "PSR-12",
+    "version": "8.2+",
+    "strictTypes": true,
+    "typeHints": {
+      "required": true,
+      "returnTypes": "always declare",
+      "propertyTypes": "always declare (PHP 7.4+)"
+    },
+    "namingConventions": {
+      "classes": "PascalCase",
+      "methods": "camelCase",
+      "functions": "camelCase",
+      "constants": "UPPER_SNAKE_CASE",
+      "variables": "camelCase",
+      "properties": "camelCase"
+    },
+    "documentation": {
+      "required": true,
+      "style": "PHPDoc",
+      "blocks": [
+        "All classes must have @package and description",
+        "All methods must have @param, @return, @throws",
+        "Complex logic must have inline comments"
+      ]
+    },
+    "laravel": {
+      "controllers": {
+        "naming": "PascalCase + Controller suffix",
+        "location": "app/Http/Controllers",
+        "methods": "RESTful naming (index, show, store, update, destroy)",
+        "validation": "Use FormRequest classes",
+        "responses": "Always return JSON for API endpoints"
+      },
+      "models": {
+        "naming": "Singular PascalCase",
+        "location": "app/Models",
+        "fillable": "Always define $fillable or $guarded",
+        "relationships": "Use type hints and return types",
+        "scopes": "Prefix with 'scope' (scopeActive)",
+        "accessors": "Use attribute casting when possible"
+      },
+      "migrations": {
+        "naming": "descriptive_snake_case with timestamp",
+        "structure": "Up and down methods required",
+        "foreignKeys": "Use constrained() method",
+        "indexes": "Add for frequently queried columns"
+      },
+      "routes": {
+        "apiRoutes": "Prefix with /api/v1",
+        "naming": "Use route names with dot notation",
+        "grouping": "Group by module/resource",
+        "middleware": "Apply at route or group level"
+      },
+      "services": {
+        "naming": "PascalCase + Service suffix",
+        "location": "app/Services",
+        "responsibility": "Business logic only",
+        "injectionRequired": true
+      },
+      "repositories": {
+        "naming": "PascalCase + Repository suffix",
+        "location": "app/Repositories",
+        "interface": "Define contract interface",
+        "binding": "Bind in service provider"
+      }
+    }
+  },
+  
+  "javascript": {
+    "standard": "ESLint + Prettier",
+    "version": "ES2022+",
+    "framework": "Vue.js 3.x Composition API",
+    "namingConventions": {
+      "components": "PascalCase",
+      "composables": "camelCase with 'use' prefix",
+      "constants": "UPPER_SNAKE_CASE",
+      "variables": "camelCase",
+      "functions": "camelCase",
+      "files": {
+        "components": "PascalCase.vue",
+        "composables": "useComposableName.js",
+        "utilities": "camelCase.js",
+        "stores": "camelCase.js"
+      }
+    },
+    "vue": {
+      "scriptSetup": "Prefer <script setup> syntax",
+      "componentStructure": [
+        "1. Imports",
+        "2. Props definition",
+        "3. Emits definition",
+        "4. Composables",
+        "5. Reactive state",
+        "6. Computed properties",
+        "7. Methods/Functions",
+        "8. Lifecycle hooks",
+        "9. Watchers"
+      ],
+      "props": {
+        "definition": "Use defineProps with TypeScript or runtime validation",
+        "naming": "camelCase in script, kebab-case in template"
+      },
+      "emits": {
+        "definition": "Always use defineEmits",
+        "naming": "kebab-case (update:modelValue, item-selected)"
+      },
+      "templates": {
+        "multilineAttributes": "One attribute per line when > 3 attributes",
+        "vForKey": "Always use :key with v-for",
+        "vIfVsVShow": "v-if for conditional rendering, v-show for toggling"
+      }
+    },
+    "pinia": {
+      "storeNaming": "camelCase with 'Store' suffix",
+      "location": "resources/js/stores",
+      "structure": [
+        "1. Define state",
+        "2. Define getters",
+        "3. Define actions"
+      ],
+      "composition": "Use Composition API style (setup stores)"
+    },
+    "documentation": {
+      "required": "For complex functions only",
+      "style": "JSDoc",
+      "blocks": "@param, @returns, @description"
+    }
+  },
+  
+  "css": {
+    "framework": "TailwindCSS 3.x (Primary)",
+    "methodology": "Utility-first approach",
+    "customComponents": {
+      "naming": "BEM (Block__Element--Modifier)",
+      "location": "resources/css/components",
+      "usage": "Only when Tailwind utilities are insufficient"
+    },
+    "classOrder": [
+      "Layout (display, position)",
+      "Box Model (margin, padding, width, height)",
+      "Typography (font, text)",
+      "Visual (background, border, shadow)",
+      "Misc (cursor, transform, transition)"
+    ],
+    "responsiveDesign": {
+      "mobileFirst": true,
+      "breakpoints": {
+        "sm": "640px",
+        "md": "768px",
+        "lg": "1024px",
+        "xl": "1280px",
+        "2xl": "1536px"
+      }
+    },
+    "colors": {
+      "primary": "#1E40AF",
+      "secondary": "#2563EB",
+      "accent": "#60A5FA",
+      "dark": "#1E3A8A",
+      "usage": "Use Tailwind color classes (bg-blue-800, text-blue-600)"
+    }
+  },
+  
+  "database": {
+    "namingConventions": {
+      "tables": "plural_snake_case (users, project_budgets)",
+      "columns": "snake_case",
+      "primaryKeys": "id (auto-increment)",
+      "foreignKeys": "singular_table_name_id (user_id, project_id)",
+      "pivotTables": "singular_table1_singular_table2 (project_user)",
+      "indexes": "idx_table_column",
+      "uniqueIndexes": "unique_table_column"
+    },
+    "migrations": {
+      "structure": [
+        "1. Create table with primary key",
+        "2. Add columns with types and constraints",
+        "3. Add foreign keys with cascades",
+        "4. Add indexes",
+        "5. Add timestamps (created_at, updated_at)"
+      ],
+      "columnTypes": {
+        "ids": "bigIncrements() or foreignId()",
+        "strings": "string() with length",
+        "text": "text() or longText()",
+        "numbers": "integer(), decimal(), float()",
+        "dates": "date(), datetime(), timestamp()",
+        "booleans": "boolean() with default",
+        "json": "json() for structured data"
+      },
+      "softDeletes": "Use softDeletes() for audit trail"
+    }
+  },
+  
+  "fileStructure": {
+    "backend": {
+      "controllers": "app/Http/Controllers/{Module}Controller.php",
+      "models": "app/Models/{ModelName}.php",
+      "services": "app/Services/{Module}Service.php",
+      "repositories": "app/Repositories/{Module}Repository.php",
+      "requests": "app/Http/Requests/{Module}/{Action}Request.php",
+      "resources": "app/Http/Resources/{ModelName}Resource.php",
+      "migrations": "database/migrations/{timestamp}_{description}.php",
+      "seeders": "database/seeders/{TableName}Seeder.php",
+      "factories": "database/factories/{ModelName}Factory.php"
+    },
+    "frontend": {
+      "pages": "resources/js/pages/{Module}/{PageName}.vue",
+      "components": "resources/js/components/{Module}/{ComponentName}.vue",
+      "layouts": "resources/js/layouts/{LayoutName}.vue",
+      "composables": "resources/js/composables/use{ComposableName}.js",
+      "stores": "resources/js/stores/{storeName}.js",
+      "utilities": "resources/js/utils/{utilityName}.js",
+      "services": "resources/js/services/{serviceName}.js"
+    },
+    "tests": {
+      "feature": "tests/Feature/{Module}/{FeatureName}Test.php",
+      "unit": "tests/Unit/{Module}/{UnitName}Test.php",
+      "frontend": "tests/Frontend/{Component}/{ComponentName}.spec.js"
+    },
+    "documentation": {
+      "modules": "docs/{module_name}/README.md",
+      "api": "docs/api/{endpoint}.md",
+      "setup": "docs/setup/installation.md"
+    }
+  },
+  
+  "commenting": {
+    "php": {
+      "singleLine": "// for brief explanations",
+      "multiLine": "/* */ for longer explanations",
+      "docBlocks": "/** */ for classes, methods, properties",
+      "todo": "// TODO: description (for pending work)",
+      "fixme": "// FIXME: description (for known issues)"
+    },
+    "javascript": {
+      "singleLine": "// for brief explanations",
+      "multiLine": "/* */ for longer explanations",
+      "jsdoc": "/** */ for complex functions",
+      "todo": "// TODO: description",
+      "fixme": "// FIXME: description"
+    },
+    "bestPractices": [
+      "Comment WHY, not WHAT (code should be self-explanatory)",
+      "Keep comments up-to-date with code changes",
+      "Remove commented-out code before committing",
+      "Use descriptive variable/function names to reduce need for comments"
+    ]
+  },
+  
+  "errorHandling": {
+    "php": {
+      "exceptions": "Use typed exceptions (ValidationException, ModelNotFoundException)",
+      "tryBatch": "Wrap external API calls and risky operations",
+      "logging": "Log all exceptions with context",
+      "userMessages": "Return user-friendly messages, log technical details"
+    },
+    "javascript": {
+      "asyncAwait": "Use try-catch with async/await",
+      "promises": "Use .catch() for promise chains",
+      "userFeedback": "Show SweetAlert2 for user-facing errors",
+      "console": "Log errors to console in development"
+    }
+  },
+  
+  "validation": {
+    "backend": {
+      "method": "Use FormRequest classes",
+      "location": "app/Http/Requests/{Module}",
+      "rules": "Define in rules() method",
+      "messages": "Custom messages in messages() method",
+      "authorization": "Use authorize() method for permissions"
+    },
+    "frontend": {
+      "method": "Validate before API calls",
+      "display": "Show inline error messages",
+      "required": "Mark required fields visually (*)",
+      "realtime": "Validate on blur for better UX"
+    }
+  },
+  
+  "apiResponses": {
+    "structure": {
+      "success": {
+        "status": "success",
+        "data": {},
+        "message": "Optional success message"
+      },
+      "error": {
+        "status": "error",
+        "message": "User-friendly error message",
+        "errors": {}
+      }
+    },
+    "httpCodes": {
+      "200": "OK - Successful GET, PUT, PATCH",
+      "201": "Created - Successful POST",
+      "204": "No Content - Successful DELETE",
+      "400": "Bad Request - Validation errors",
+      "401": "Unauthorized - Authentication required",
+      "403": "Forbidden - Insufficient permissions",
+      "404": "Not Found - Resource doesn't exist",
+      "422": "Unprocessable Entity - Validation failed",
+      "500": "Internal Server Error - Server error"
+    }
+  },
+  
+  "security": {
+    "inputValidation": "Validate all user inputs on backend",
+    "sqlInjection": "Use Eloquent ORM, never raw queries with user input",
+    "xss": "Escape all output, use {{ }} not {!! !!} in Blade",
+    "csrf": "CSRF tokens required for all state-changing requests",
+    "authentication": "Use Laravel Sanctum tokens",
+    "authorization": "Check permissions before actions",
+    "passwords": "Hash with bcrypt, min 8 characters",
+    "sensitiveData": "Never log passwords, tokens, or PII"
+  },
+  
+  "performance": {
+    "database": {
+      "eagerLoading": "Use with() to prevent N+1 queries",
+      "indexing": "Index foreign keys and frequently queried columns",
+      "pagination": "Paginate large result sets",
+      "chunking": "Use chunk() for large data processing"
+    },
+    "frontend": {
+      "lazyLoading": "Lazy load routes and heavy components",
+      "caching": "Cache API responses when appropriate",
+      "debouncing": "Debounce search inputs and frequent events",
+      "imageOptimization": "Compress images, use appropriate formats"
+    },
+    "caching": {
+      "redis": "Cache frequently accessed data",
+      "ttl": "Set appropriate time-to-live",
+      "tags": "Use cache tags for group invalidation",
+      "queries": "Cache expensive database queries"
+    }
+  },
+  
+  "testing": {
+    "coverage": "100% required (not 98%)",
+    "structure": {
+      "arrange": "Set up test data",
+      "act": "Execute the action",
+      "assert": "Verify the outcome"
+    },
+    "naming": {
+      "method": "test_it_does_something_under_condition",
+      "descriptive": true,
+      "underscores": "Use for readability"
+    },
+    "backend": {
+      "framework": "PHPUnit or Pest",
+      "feature": "Test user workflows and API endpoints",
+      "unit": "Test individual methods and classes",
+      "database": "Use RefreshDatabase trait"
+    },
+    "frontend": {
+      "framework": "Vitest",
+      "components": "Test props, emits, rendering",
+      "stores": "Test state mutations and actions",
+      "mocking": "Mock API calls"
+    }
+  },
+  
+  "gitCommits": {
+    "format": "Conventional Commits",
+    "types": {
+      "feat": "New feature",
+      "fix": "Bug fix",
+      "docs": "Documentation changes",
+      "style": "Code style changes (formatting)",
+      "refactor": "Code refactoring",
+      "test": "Test additions or changes",
+      "chore": "Build process or auxiliary tool changes"
+    },
+    "structure": "type(scope): subject",
+    "examples": [
+      "feat(expenses): add expense approval workflow",
+      "fix(dashboard): correct KPI calculation for budget variance",
+      "docs(api): update authentication endpoint documentation"
+    ]
+  }
+}

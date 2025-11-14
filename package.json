@@ -1,0 +1,35 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.1.17",
+        "@vue/test-utils": "^2.4.6",
+        "autoprefixer": "^10.4.22",
+        "axios": "^1.13.2",
+        "concurrently": "^9.0.1",
+        "eslint": "^9.39.1",
+        "eslint-plugin-vue": "^10.5.1",
+        "happy-dom": "^20.0.10",
+        "laravel-vite-plugin": "^2.0.0",
+        "postcss": "^8.5.6",
+        "prettier": "^3.6.2",
+        "tailwindcss": "^4.1.17",
+        "vite": "^7.0.7",
+        "vitest": "^4.0.9"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^7.1.0",
+        "@vitejs/plugin-vue": "^6.0.1",
+        "alpinejs": "^3.15.1",
+        "chart.js": "^4.5.1",
+        "pinia": "^3.0.4",
+        "sweetalert2": "^11.26.3",
+        "vee-validate": "^4.15.1",
+        "vue": "^3.5.24"
+    }
+}

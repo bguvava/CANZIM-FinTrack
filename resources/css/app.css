@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* CANZIM FinTrack Custom Animations */
+@import "./animations.css";
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans:
+        "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+
+    /* CANZIM Brand Colors */
+    --color-canzim-primary: #1e40af;
+    --color-canzim-secondary: #2563eb;
+    --color-canzim-accent: #60a5fa;
+    --color-canzim-dark: #1e3a8a;
+
+    /* Animation Durations */
+    --animate-fast: 150ms;
+    --animate-base: 200ms;
+    --animate-medium: 250ms;
+    --animate-slow: 300ms;
+    --animate-slower: 400ms;
+}
