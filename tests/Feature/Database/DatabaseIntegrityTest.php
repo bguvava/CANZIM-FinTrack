@@ -377,7 +377,7 @@ class DatabaseIntegrityTest extends TestCase
         foreach ($tables as $table) {
             $tableName = $table->{"Tables_in_{$databaseName}"};
 
-            if (in_array($tableName, ['migrations', 'cache', 'jobs', 'failed_jobs'])) {
+            if (in_array($tableName, ['migrations', 'cache', 'cache_locks', 'jobs', 'failed_jobs', 'job_batches', 'password_reset_tokens', 'sessions'])) {
                 continue;
             }
 

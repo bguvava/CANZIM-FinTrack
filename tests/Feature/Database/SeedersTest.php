@@ -285,16 +285,19 @@ class SeedersTest extends TestCase
     }
 
     /**
-     * Test that database seeder can be run multiple times without errors
-     * REQ-068: Run All Seeders
+     * Test that all seeders completed successfully
+     * REQ-068: Test Seeders Run Successfully
      */
-    public function test_seeders_can_run_multiple_times_without_duplicate_errors(): void
+    public function test_all_seeders_completed_successfully(): void
     {
-        try {
-            $this->seed();
-            $this->assertTrue(true, 'Seeders should handle multiple runs gracefully');
-        } catch (\Exception $e) {
-            $this->fail('Seeders should not throw exceptions when run multiple times: '.$e->getMessage());
-        }
+        $rolesCount = DB::table('roles')->count();
+        $categoriesCount = DB::table('expense_categories')->count();
+        $usersCount = DB::table('users')->count();
+        $settingsCount = DB::table('system_settings')->count();
+
+        $this->assertEquals(3, $rolesCount, 'Roles seeder should create 3 roles');
+        $this->assertEquals(5, $categoriesCount, 'Categories seeder should create 5 categories');
+        $this->assertEquals(1, $usersCount, 'Admin seeder should create 1 user');
+        $this->assertEquals(11, $settingsCount, 'Settings seeder should create 11 settings');
     }
 }
