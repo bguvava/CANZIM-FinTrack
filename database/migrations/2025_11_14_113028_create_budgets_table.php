@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('project_id');
             $table->index('fiscal_year');

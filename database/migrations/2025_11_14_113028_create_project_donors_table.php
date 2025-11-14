@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('funding_period_end')->nullable();
             $table->boolean('is_restricted')->default(false);
             $table->timestamps();
-            
+
             // Indexes
             $table->index('project_id');
             $table->index('donor_id');

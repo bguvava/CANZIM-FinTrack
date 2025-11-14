@@ -7,31 +7,51 @@ php artisan serve
 cd C:\xampp\htdocs\CANZIM
 npm run dev
 ---
-Programs Manager: programs@canzim.test / programs123
-Finance Officer: finance@canzim.test / finance123
-Project Officer: project@canzim.test / project123
-Data Entry Clerk: dataentry@canzim.test / dataentry123
-Admin: admin@canzim.org.zw / password123
+php artisan migrate:fresh --seed
 
-+++++++++++++++++++++++++++++
-+++++++++++++++++++++++++++++
-# 1. Create GitHub repository named "CANZIM-FinTrack" (private)
-# 2. Then run these commands:
 
-cd C:\xampp\htdocs\CANZIM
-git remote add origin https://github.com/bguvava/CANZIM-FinTrack.git
-git push -u origin main
+
+#### 1. **Test Users Created** 
+| Role | Email | Password | Access Level |
+|------|-------|----------|--------------|
+| **Programs Manager** | `programs-manager@test.com` | `password123` | Full system access |
+| **Finance Officer** | `finance-officer@test.com` | `password123` | Financial modules only |
+| **Project Officer** | `project-officer@test.com` | `password123` | Project modules only |
+
+**Additional Admin User:**
+- **Email:** `admin@canzim.org.zw`
+- **Password:** `canzim@2025`
+- **Role:** Programs Manager (full access)
+
+
+#### **Role-Based Navigation**
+The sidebar menu will show different items based on the logged-in user's role:
+
+**Programs Manager sees:**
+- Dashboard, Projects, Budgets, Expenses, Cash Flow, Purchase Orders, Donors, Reports, Users, Documents, Settings, Profile, Logout
+
+**Finance Officer sees:**
+- Dashboard, Projects, Budgets, Expenses, Cash Flow, Purchase Orders, Donors, Reports, Profile, Logout
+
+**Project Officer sees:**
+- Dashboard, Projects, Expenses, Documents, Profile, Logout
+
 ---
-…or create a new repository on the command line
-echo "# CANZIM-FinTrack" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/bguvava/CANZIM-FinTrack.git
-git push -u origin main
----
-…or push an existing repository from the command line
-git remote add origin https://github.com/bguvava/CANZIM-FinTrack.git
-git branch -M main
-git push -u origin main
+Dashboard (All Roles)
+├── Financial Section
+│   ├── Projects (PM, FO, PO)
+│   ├── Budgets (PM, FO)
+│   ├── Expenses (PM, FO, PO) [with badge]
+│   ├── Cash Flow (PM, FO)
+│   ├── Purchase Orders (PM, FO)
+│   └── Donors (PM, FO)
+├── Management Section
+│   ├── Reports (PM, FO)
+│   ├── Users (PM only)
+│   └── Documents (PM, PO)
+└── System Section
+    ├── Profile (All)
+    ├── Settings (PM only)
+    └── Logout (All)
+
+

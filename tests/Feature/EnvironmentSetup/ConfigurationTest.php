@@ -17,8 +17,6 @@ class ConfigurationTest extends TestCase
 {
     /**
      * Test application name is correctly configured
-     *
-     * @return void
      */
     public function test_application_name_is_configured(): void
     {
@@ -29,8 +27,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test database configuration is correct
-     *
-     * @return void
      */
     public function test_database_configuration_is_correct(): void
     {
@@ -40,8 +36,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test session timeout is 5 minutes
-     *
-     * @return void
      */
     public function test_session_timeout_is_five_minutes(): void
     {
@@ -52,8 +46,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test session driver is database (or array in testing)
-     *
-     * @return void
      */
     public function test_session_driver_is_database(): void
     {
@@ -68,8 +60,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test CORS configuration exists
-     *
-     * @return void
      */
     public function test_cors_configuration_exists(): void
     {
@@ -83,8 +73,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test CORS allows localhost origins
-     *
-     * @return void
      */
     public function test_cors_allows_localhost_origins(): void
     {
@@ -97,8 +85,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test cache driver is configured
-     *
-     * @return void
      */
     public function test_cache_driver_is_configured(): void
     {
@@ -109,8 +95,6 @@ class ConfigurationTest extends TestCase
 
     /**
      * Test queue driver is configured
-     *
-     * @return void
      */
     public function test_queue_driver_is_configured(): void
     {

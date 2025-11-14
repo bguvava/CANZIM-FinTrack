@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('uploaded_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index(['documentable_type', 'documentable_id']);
             $table->index('uploaded_by');

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('current_balance', 15, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             // Indexes
             $table->index('account_number');
             $table->index('is_active');

@@ -17,8 +17,6 @@ class DependenciesTest extends TestCase
 {
     /**
      * Test Laravel is installed
-     *
-     * @return void
      */
     public function test_laravel_is_installed(): void
     {
@@ -30,8 +28,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test Laravel Sanctum is installed
-     *
-     * @return void
      */
     public function test_sanctum_is_installed(): void
     {
@@ -40,8 +36,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test DomPDF is installed
-     *
-     * @return void
      */
     public function test_dompdf_is_installed(): void
     {
@@ -50,8 +44,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test Intervention Image is installed
-     *
-     * @return void
      */
     public function test_intervention_image_is_installed(): void
     {
@@ -61,8 +53,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test required directories exist
-     *
-     * @return void
      */
     public function test_required_directories_exist(): void
     {
@@ -87,8 +77,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test logo files exist
-     *
-     * @return void
      */
     public function test_logo_files_exist(): void
     {
@@ -98,8 +86,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test animation CSS file exists
-     *
-     * @return void
      */
     public function test_animation_css_exists(): void
     {
@@ -108,8 +94,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test SweetAlert2 plugin file exists
-     *
-     * @return void
      */
     public function test_sweetalert_plugin_exists(): void
     {
@@ -118,8 +102,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test API routes file exists
-     *
-     * @return void
      */
     public function test_api_routes_file_exists(): void
     {
@@ -128,8 +110,6 @@ class DependenciesTest extends TestCase
 
     /**
      * Test CORS config file exists
-     *
-     * @return void
      */
     public function test_cors_config_exists(): void
     {

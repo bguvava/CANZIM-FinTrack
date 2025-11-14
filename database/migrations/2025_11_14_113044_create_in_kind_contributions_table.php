@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('category')->nullable();
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
+
             // Indexes
             $table->index('project_id');
             $table->index('donor_id');

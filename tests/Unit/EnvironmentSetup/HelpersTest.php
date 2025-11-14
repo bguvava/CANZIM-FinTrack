@@ -17,8 +17,6 @@ class HelpersTest extends TestCase
 {
     /**
      * Test PHP version is 8.2 or higher
-     *
-     * @return void
      */
     public function test_php_version_is_8_2_or_higher(): void
     {
@@ -29,8 +27,6 @@ class HelpersTest extends TestCase
 
     /**
      * Test required PHP extensions are loaded
-     *
-     * @return void
      */
     public function test_required_php_extensions_are_loaded(): void
     {
@@ -54,8 +50,6 @@ class HelpersTest extends TestCase
 
     /**
      * Test bcrypt rounds configuration
-     *
-     * @return void
      */
     public function test_bcrypt_rounds_configuration(): void
     {

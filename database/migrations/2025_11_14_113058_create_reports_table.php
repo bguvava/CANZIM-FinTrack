@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('generated_by')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['pending', 'processing', 'completed', 'failed'])->default('pending');
             $table->timestamps();
-            
+
             // Indexes
             $table->index('report_type');
             $table->index('generated_by');

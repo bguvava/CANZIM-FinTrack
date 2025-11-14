@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
-            
+
             // Indexes
             $table->index('po_number');
             $table->index('project_id');

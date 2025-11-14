@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('code');
             $table->index('status');

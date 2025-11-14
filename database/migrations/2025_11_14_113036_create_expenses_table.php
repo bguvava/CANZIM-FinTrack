@@ -30,7 +30,7 @@ return new class extends Migration
             $table->text('rejection_reason')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('project_id');
             $table->index('category_id');

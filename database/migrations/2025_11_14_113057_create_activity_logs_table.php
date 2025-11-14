@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('description');
             $table->json('properties')->nullable();
             $table->timestamp('created_at');
-            
+
             // Indexes
             $table->index('user_id');
             $table->index('activity_type');

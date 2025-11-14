@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('role_id')->nullable()->after('password')->constrained('roles')->onDelete('set null');
             $table->string('office_location')->nullable()->after('role_id');
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->after('office_location');
-            
+
             // Indexes
             $table->index('role_id');
             $table->index('status');

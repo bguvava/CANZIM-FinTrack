@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('funding_total', 15, 2)->default(0);
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('name');
             $table->index('email');

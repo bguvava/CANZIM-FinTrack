@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('comment');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index(['commentable_type', 'commentable_id']);
             $table->index('user_id');

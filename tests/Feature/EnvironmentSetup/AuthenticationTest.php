@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\EnvironmentSetup;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 /**
  * Authentication Test
@@ -22,8 +22,6 @@ class AuthenticationTest extends TestCase
 
     /**
      * Test Sanctum middleware is registered
-     *
-     * @return void
      */
     public function test_sanctum_middleware_is_registered(): void
     {
@@ -32,8 +30,6 @@ class AuthenticationTest extends TestCase
 
     /**
      * Test authenticated user can access protected API routes
-     *
-     * @return void
      */
     public function test_authenticated_user_can_access_protected_routes(): void
     {
@@ -59,8 +55,6 @@ class AuthenticationTest extends TestCase
 
     /**
      * Test unauthenticated user cannot access protected routes
-     *
-     * @return void
      */
     public function test_unauthenticated_user_cannot_access_protected_routes(): void
     {
@@ -71,8 +65,6 @@ class AuthenticationTest extends TestCase
 
     /**
      * Test user can logout and token is revoked
-     *
-     * @return void
      */
     public function test_user_can_logout_and_token_is_revoked(): void
     {
@@ -81,7 +73,7 @@ class AuthenticationTest extends TestCase
         Sanctum::actingAs($user);
 
         // Logout
-        $response = $this->postJson('/api/v1/logout');
+        $response = $this->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson([

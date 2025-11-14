@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\EnvironmentSetup;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * API Routes Test
@@ -18,8 +17,6 @@ class ApiRoutesTest extends TestCase
 {
     /**
      * Test API health check endpoint
-     *
-     * @return void
      */
     public function test_api_health_check_endpoint(): void
     {
@@ -40,8 +37,6 @@ class ApiRoutesTest extends TestCase
 
     /**
      * Test API returns JSON format
-     *
-     * @return void
      */
     public function test_api_returns_json_format(): void
     {
@@ -52,8 +47,6 @@ class ApiRoutesTest extends TestCase
 
     /**
      * Test API base path is accessible
-     *
-     * @return void
      */
     public function test_api_base_path_is_accessible(): void
     {

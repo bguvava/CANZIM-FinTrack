@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('type')->default('string');
             $table->text('description')->nullable();
             $table->timestamps();
-            
+
             // Indexes
             $table->index('key');
         });

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('file_type');
             $table->unsignedInteger('file_size');
             $table->timestamp('created_at');
-            
+
             // Indexes
             $table->index('comment_id');
         });

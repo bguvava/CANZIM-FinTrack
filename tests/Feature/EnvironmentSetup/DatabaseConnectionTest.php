@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\EnvironmentSetup;
 
-use Tests\TestCase;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 /**
  * Database Connection Test
@@ -19,8 +19,6 @@ class DatabaseConnectionTest extends TestCase
 {
     /**
      * Test database connection is successful
-     *
-     * @return void
      */
     public function test_database_connection_is_successful(): void
     {
@@ -38,8 +36,6 @@ class DatabaseConnectionTest extends TestCase
 
     /**
      * Test database name is correct
-     *
-     * @return void
      */
     public function test_database_name_is_correct(): void
     {
@@ -50,8 +46,6 @@ class DatabaseConnectionTest extends TestCase
 
     /**
      * Test database tables exist
-     *
-     * @return void
      */
     public function test_database_tables_exist(): void
     {

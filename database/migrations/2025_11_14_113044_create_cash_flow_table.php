@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('balance_after', 15, 2)->default(0);
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
+
             // Indexes
             $table->index('transaction_date');
             $table->index('type');

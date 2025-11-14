@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('spent_amount', 15, 2)->default(0);
             $table->decimal('remaining_amount', 15, 2)->default(0);
             $table->timestamps();
-            
+
             // Indexes
             $table->index('budget_id');
             $table->index('category');
