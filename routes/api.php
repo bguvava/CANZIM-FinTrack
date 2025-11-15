@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     | - Document routes (/api/v1/documents)
     |
     */
+
+    // Dashboard Routes (Module 5)
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/', [DashboardController::class, 'index'])->name('api.dashboard.index');
+        Route::get('/notifications', [DashboardController::class, 'notifications'])->name('api.dashboard.notifications');
+        Route::post('/notifications/{notification}/read', [DashboardController::class, 'markNotificationRead'])->name('api.dashboard.notifications.read');
+    });
 
     // User Management Routes (Module 4)
     Route::prefix('users')->group(function () {
