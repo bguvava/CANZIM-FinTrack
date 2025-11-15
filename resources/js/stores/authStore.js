@@ -322,6 +322,46 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     /**
+     * Check if user has specific permission
+     * For now, this is role-based. Can be extended for granular permissions.
+     */
+    function hasPermission(permission) {
+        // Programs Manager has all permissions
+        if (isProgramsManager.value) {
+            return true;
+        }
+
+        // Permission mappings by role
+        const rolePermissions = {
+            "finance-officer": [
+                "view-projects",
+                "view-budgets",
+                "manage-budgets",
+                "view-expenses",
+                "review-expenses",
+                "approve-expenses",
+                "view-cash-flow",
+                "manage-cash-flow",
+                "view-purchase-orders",
+                "manage-purchase-orders",
+                "view-vendors",
+                "manage-vendors",
+                "view-donors",
+                "view-reports",
+            ],
+            "project-officer": [
+                "view-projects",
+                "view-expenses",
+                "submit-expenses",
+                "view-documents",
+            ],
+        };
+
+        const userPermissions = rolePermissions[userRole.value] || [];
+        return userPermissions.includes(permission);
+    }
+
+    /**
      * Check if user is Programs Manager
      */
     const isProgramsManager = computed(() => hasRole("programs-manager"));
@@ -361,5 +401,6 @@ export const useAuthStore = defineStore("auth", () => {
         fetchProfile,
         updateActivity,
         hasRole,
+        hasPermission,
     };
 });

@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             TestUsersSeeder::class,
             SystemSettingsSeeder::class,
+            DonorSeeder::class,
+            ProjectSeeder::class,
         ]);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\ExpenseCategory;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ExpenseCategoriesSeeder extends Seeder
 {
@@ -14,47 +14,65 @@ class ExpenseCategoriesSeeder extends Seeder
     {
         $categories = [
             [
-                'name' => 'Travel',
-                'slug' => 'travel',
-                'description' => 'Travel expenses including transportation, accommodation, and per diem',
+                'name' => 'Travel & Transportation',
+                'code' => 'TRAVEL',
+                'description' => 'Expenses related to travel, transportation, accommodation, and per diems',
                 'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'sort_order' => 1,
             ],
             [
-                'name' => 'Staff Salaries',
-                'slug' => 'staff-salaries',
-                'description' => 'Employee salaries, wages, and related compensation',
+                'name' => 'Salaries & Benefits',
+                'code' => 'SALARY',
+                'description' => 'Staff salaries, wages, and employee benefits',
                 'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'sort_order' => 2,
             ],
             [
-                'name' => 'Procurement/Supplies',
-                'slug' => 'procurement-supplies',
-                'description' => 'Office supplies, equipment, and procurement of goods',
+                'name' => 'Procurement & Supplies',
+                'code' => 'PROCURE',
+                'description' => 'Office supplies, equipment, and procurement expenses',
                 'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'sort_order' => 3,
             ],
             [
-                'name' => 'Consultants/Contractors',
-                'slug' => 'consultants-contractors',
-                'description' => 'External consultants, contractors, and professional services',
+                'name' => 'Consultants & Professional Fees',
+                'code' => 'CONSULT',
+                'description' => 'Consultant fees, professional services, and expert payments',
                 'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'sort_order' => 4,
             ],
             [
-                'name' => 'Other',
-                'slug' => 'other',
-                'description' => 'Miscellaneous expenses not covered by other categories',
+                'name' => 'Training & Workshops',
+                'code' => 'TRAINING',
+                'description' => 'Training programs, workshops, seminars, and capacity building',
                 'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'sort_order' => 5,
+            ],
+            [
+                'name' => 'Communication & IT',
+                'code' => 'COMMS',
+                'description' => 'Communication costs, internet, phone, IT services',
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
+            [
+                'name' => 'Utilities & Rent',
+                'code' => 'UTILITIES',
+                'description' => 'Rent, electricity, water, and other utility expenses',
+                'is_active' => true,
+                'sort_order' => 7,
+            ],
+            [
+                'name' => 'Other Expenses',
+                'code' => 'OTHER',
+                'description' => 'Miscellaneous expenses not covered in other categories',
+                'is_active' => true,
+                'sort_order' => 8,
             ],
         ];
 
-        DB::table('expense_categories')->insert($categories);
+        foreach ($categories as $category) {
+            ExpenseCategory::create($category);
+        }
     }
 }

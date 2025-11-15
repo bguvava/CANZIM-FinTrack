@@ -13,18 +13,23 @@ return new class extends Migration
     {
         Schema::create('vendors', function (Blueprint $table) {
             $table->id();
+            $table->string('vendor_code')->unique();
             $table->string('name');
             $table->string('contact_person')->nullable();
-            $table->string('email')->nullable();
+            $table->string('email')->unique();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
             $table->string('tax_id')->nullable();
+            $table->string('payment_terms')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes
+            $table->index('vendor_code');
             $table->index('name');
             $table->index('email');
+            $table->index('is_active');
         });
     }
 

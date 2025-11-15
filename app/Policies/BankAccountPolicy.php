@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\BankAccount;
+use App\Models\User;
+
+class BankAccountPolicy
+{
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        return in_array($user->role->slug, ['finance-officer', 'programs-manager', 'executive-director']);
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, BankAccount $bankAccount): bool
+    {
+        return in_array($user->role->slug, ['finance-officer', 'programs-manager', 'executive-director']);
+    }
+
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(User $user): bool
+    {
+        return $user->role->slug === 'finance-officer';
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, BankAccount $bankAccount): bool
+    {
+        return $user->role->slug === 'finance-officer';
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, BankAccount $bankAccount): bool
+    {
+        // Bank accounts should not be deletable, only deactivatable
+        return false;
+    }
+
+    /**
+     * Determine whether the user can deactivate the bank account.
+     */
+    public function deactivate(User $user, BankAccount $bankAccount): bool
+    {
+        return $user->role->slug === 'finance-officer';
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, BankAccount $bankAccount): bool
+    {
+        return $user->role->slug === 'finance-officer';
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user, BankAccount $bankAccount): bool
+    {
+        return false;
+    }
+}

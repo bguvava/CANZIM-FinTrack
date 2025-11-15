@@ -9,7 +9,11 @@ npm run dev
 ---
 php artisan migrate:fresh --seed
 
-
+php artisan view:clear; php artisan cache:clear; php artisan config:clear; php artisan route:clear
+======
+- Add one test user for each role so that i can test the login system. Use the same passord(password123). keep these test users consistent throught the system development and all migrations in the follwing stages. 
+- Build and run the system
+======
 
 #### 1. **Test Users Created** 
 | Role | Email | Password | Access Level |

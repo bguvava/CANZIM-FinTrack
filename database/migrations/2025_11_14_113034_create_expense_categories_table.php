@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('expense_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
+            $table->string('name', 100);
+            $table->string('code', 20)->unique();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->integer('sort_order')->default(0);
             $table->timestamps();
 
             // Indexes
-            $table->index('slug');
             $table->index('is_active');
         });
     }

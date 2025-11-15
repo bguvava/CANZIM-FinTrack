@@ -62,7 +62,11 @@
                     />
                     <KPICard
                         title="Pending Approvals"
-                        :value="kpis.pending_approvals || 0"
+                        :value="
+                            (typeof kpis.pending_approvals === 'object'
+                                ? kpis.pending_approvals?.count
+                                : kpis.pending_approvals) || 0
+                        "
                         icon="clock"
                         color="yellow"
                         description="Awaiting your review"

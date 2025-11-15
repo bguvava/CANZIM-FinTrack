@@ -13,6 +13,8 @@ declare(strict_types=1);
  */
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
@@ -110,6 +112,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         // User activity logs
         Route::get('/{user}/activity', [ActivityLogController::class, 'userActivity'])->name('api.users.activity');
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('api.users.activity-logs');
     });
 
     // User Profile Routes
@@ -124,5 +127,121 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::prefix('activity-logs')->group(function () {
         Route::get('/', [ActivityLogController::class, 'index'])->name('api.activity-logs.index');
         Route::post('/bulk-delete', [ActivityLogController::class, 'bulkDelete'])->name('api.activity-logs.bulk-delete');
+    });
+
+    // Project Management Routes (Module 6)
+    Route::prefix('projects')->group(function () {
+        Route::get('/', [ProjectController::class, 'index'])->name('api.projects.index');
+        Route::post('/', [ProjectController::class, 'store'])->name('api.projects.store');
+        Route::get('/statistics', [ProjectController::class, 'statistics'])->name('api.projects.statistics');
+        Route::get('/{project}', [ProjectController::class, 'show'])->name('api.projects.show');
+        Route::put('/{project}', [ProjectController::class, 'update'])->name('api.projects.update');
+        Route::delete('/{project}', [ProjectController::class, 'destroy'])->name('api.projects.destroy');
+        Route::post('/{project}/archive', [ProjectController::class, 'archive'])->name('api.projects.archive');
+        Route::post('/{project}/report', [ProjectController::class, 'generateReport'])->name('api.projects.report');
+
+        // Budget routes for a specific project
+        Route::get('/{project}/budgets', [BudgetController::class, 'index'])->name('api.projects.budgets.index');
+    });
+
+    // Budget Management Routes (Module 6)
+    Route::prefix('budgets')->group(function () {
+        Route::get('/', [BudgetController::class, 'index'])->name('api.budgets.index');
+        Route::post('/', [BudgetController::class, 'store'])->name('api.budgets.store');
+        Route::get('/categories', [BudgetController::class, 'categories'])->name('api.budgets.categories');
+        Route::get('/{budget}', [BudgetController::class, 'show'])->name('api.budgets.show');
+        Route::post('/{budget}/approve', [BudgetController::class, 'approve'])->name('api.budgets.approve');
+
+        // Budget reallocation routes
+        Route::post('/reallocations', [BudgetController::class, 'requestReallocation'])->name('api.budgets.reallocations.request');
+        Route::post('/reallocations/{reallocation}/approve', [BudgetController::class, 'approveReallocation'])->name('api.budgets.reallocations.approve');
+    });
+
+    // Donor Management Routes
+    Route::prefix('donors')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\DonorController::class, 'index'])->name('api.donors.index');
+        Route::post('/', [\App\Http\Controllers\Api\DonorController::class, 'store'])->name('api.donors.store');
+        Route::get('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'show'])->name('api.donors.show');
+        Route::put('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'update'])->name('api.donors.update');
+        Route::delete('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'destroy'])->name('api.donors.destroy');
+    });
+
+    // Expense Management Routes (Module 7)
+    Route::prefix('expenses')->group(function () {
+        // Helper endpoints
+        Route::get('/categories', [\App\Http\Controllers\Api\ExpenseController::class, 'categories'])->name('api.expenses.categories');
+        Route::get('/pending-review', [\App\Http\Controllers\Api\ExpenseController::class, 'pendingReview'])->name('api.expenses.pending-review');
+        Route::get('/pending-approval', [\App\Http\Controllers\Api\ExpenseController::class, 'pendingApproval'])->name('api.expenses.pending-approval');
+
+        // Resource routes
+        Route::get('/', [\App\Http\Controllers\Api\ExpenseController::class, 'index'])->name('api.expenses.index');
+        Route::post('/', [\App\Http\Controllers\Api\ExpenseController::class, 'store'])->name('api.expenses.store');
+        Route::get('/{expense}', [\App\Http\Controllers\Api\ExpenseController::class, 'show'])->name('api.expenses.show');
+        Route::put('/{expense}', [\App\Http\Controllers\Api\ExpenseController::class, 'update'])->name('api.expenses.update');
+        Route::delete('/{expense}', [\App\Http\Controllers\Api\ExpenseController::class, 'destroy'])->name('api.expenses.destroy');
+
+        // Workflow routes
+        Route::post('/{expense}/submit', [\App\Http\Controllers\Api\ExpenseController::class, 'submit'])->name('api.expenses.submit');
+        Route::post('/{expense}/review', [\App\Http\Controllers\Api\ExpenseController::class, 'review'])->name('api.expenses.review');
+        Route::post('/{expense}/approve', [\App\Http\Controllers\Api\ExpenseController::class, 'approve'])->name('api.expenses.approve');
+        Route::post('/{expense}/mark-paid', [\App\Http\Controllers\Api\ExpenseController::class, 'markAsPaid'])->name('api.expenses.mark-paid');
+    });
+
+    // Bank Account Management Routes (Module 8)
+    Route::prefix('bank-accounts')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\BankAccountController::class, 'index'])->name('api.bank-accounts.index');
+        Route::post('/', [\App\Http\Controllers\Api\BankAccountController::class, 'store'])->name('api.bank-accounts.store');
+        Route::get('/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'show'])->name('api.bank-accounts.show');
+        Route::put('/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'update'])->name('api.bank-accounts.update');
+        Route::post('/{bankAccount}/deactivate', [\App\Http\Controllers\Api\BankAccountController::class, 'deactivate'])->name('api.bank-accounts.deactivate');
+        Route::post('/{bankAccount}/activate', [\App\Http\Controllers\Api\BankAccountController::class, 'activate'])->name('api.bank-accounts.activate');
+        Route::get('/{bankAccount}/summary', [\App\Http\Controllers\Api\BankAccountController::class, 'summary'])->name('api.bank-accounts.summary');
+    });
+
+    // Cash Flow Management Routes (Module 8)
+    Route::prefix('cash-flows')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\CashFlowController::class, 'index'])->name('api.cash-flows.index');
+        Route::post('/inflow', [\App\Http\Controllers\Api\CashFlowController::class, 'storeInflow'])->name('api.cash-flows.inflow');
+        Route::post('/outflow', [\App\Http\Controllers\Api\CashFlowController::class, 'storeOutflow'])->name('api.cash-flows.outflow');
+        Route::get('/statistics', [\App\Http\Controllers\Api\CashFlowController::class, 'statistics'])->name('api.cash-flows.statistics');
+        Route::get('/projections', [\App\Http\Controllers\Api\CashFlowController::class, 'projections'])->name('api.cash-flows.projections');
+        Route::post('/export-statement', [\App\Http\Controllers\Api\CashFlowController::class, 'exportStatement'])->name('api.cash-flows.export-statement');
+        Route::post('/export-reconciliation/{bankAccount}', [\App\Http\Controllers\Api\CashFlowController::class, 'exportReconciliation'])->name('api.cash-flows.export-reconciliation');
+        Route::get('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'show'])->name('api.cash-flows.show');
+        Route::put('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'update'])->name('api.cash-flows.update');
+        Route::post('/{cashFlow}/reconcile', [\App\Http\Controllers\Api\CashFlowController::class, 'reconcile'])->name('api.cash-flows.reconcile');
+        Route::delete('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'destroy'])->name('api.cash-flows.destroy');
+    });
+
+    // Purchase Order Management Routes (Module 8)
+    Route::prefix('purchase-orders')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'index'])->name('api.purchase-orders.index');
+        Route::post('/', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'store'])->name('api.purchase-orders.store');
+        Route::get('/statistics', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'statistics'])->name('api.purchase-orders.statistics');
+        Route::post('/export-vendor-payment-status', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportVendorPaymentStatus'])->name('api.purchase-orders.export-vendor-payment-status');
+        Route::get('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'show'])->name('api.purchase-orders.show');
+        Route::put('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'update'])->name('api.purchase-orders.update');
+        Route::delete('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'destroy'])->name('api.purchase-orders.destroy');
+
+        // Workflow routes
+        Route::post('/{purchaseOrder}/submit', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'submit'])->name('api.purchase-orders.submit');
+        Route::post('/{purchaseOrder}/approve', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'approve'])->name('api.purchase-orders.approve');
+        Route::post('/{purchaseOrder}/reject', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'reject'])->name('api.purchase-orders.reject');
+        Route::post('/{purchaseOrder}/receive', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'receive'])->name('api.purchase-orders.receive');
+        Route::post('/{purchaseOrder}/complete', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'complete'])->name('api.purchase-orders.complete');
+        Route::post('/{purchaseOrder}/cancel', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'cancel'])->name('api.purchase-orders.cancel');
+        Route::post('/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportPDF'])->name('api.purchase-orders.export-pdf');
+    });
+
+    // Vendor Management Routes (Module 8)
+    Route::prefix('vendors')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\VendorController::class, 'index'])->name('api.vendors.index');
+        Route::post('/', [\App\Http\Controllers\Api\VendorController::class, 'store'])->name('api.vendors.store');
+        Route::get('/{vendor}', [\App\Http\Controllers\Api\VendorController::class, 'show'])->name('api.vendors.show');
+        Route::put('/{vendor}', [\App\Http\Controllers\Api\VendorController::class, 'update'])->name('api.vendors.update');
+        Route::delete('/{vendor}', [\App\Http\Controllers\Api\VendorController::class, 'destroy'])->name('api.vendors.destroy');
+        Route::post('/{vendor}/deactivate', [\App\Http\Controllers\Api\VendorController::class, 'deactivate'])->name('api.vendors.deactivate');
+        Route::post('/{vendor}/activate', [\App\Http\Controllers\Api\VendorController::class, 'activate'])->name('api.vendors.activate');
+        Route::get('/{vendor}/summary', [\App\Http\Controllers\Api\VendorController::class, 'summary'])->name('api.vendors.summary');
     });
 });

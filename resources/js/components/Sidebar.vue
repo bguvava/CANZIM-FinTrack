@@ -66,16 +66,16 @@
                     <!-- Projects -->
                     <a
                         v-if="canAccessProjects"
-                        href="/dashboard/projects"
+                        href="/projects"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/projects')
+                            isActive('/projects')
                                 ? 'bg-blue-50 text-blue-700'
                                 : 'text-gray-700 hover:bg-gray-50',
                         ]"
                         :title="isCollapsed ? 'Projects' : ''"
                     >
-                        <i class="fas fa-project-diagram w-5 text-center"></i>
+                        <i class="fas fa-folder w-5 text-center"></i>
                         <span v-if="!isCollapsed" class="font-medium"
                             >Projects</span
                         >
@@ -84,80 +84,231 @@
                     <!-- Budgets -->
                     <a
                         v-if="canAccessBudgets"
-                        href="/dashboard/budgets"
+                        href="/budgets"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/budgets')
+                            isActive('/budgets')
                                 ? 'bg-blue-50 text-blue-700'
                                 : 'text-gray-700 hover:bg-gray-50',
                         ]"
                         :title="isCollapsed ? 'Budgets' : ''"
                     >
-                        <i class="fas fa-wallet w-5 text-center"></i>
+                        <i class="fas fa-calculator w-5 text-center"></i>
                         <span v-if="!isCollapsed" class="font-medium"
                             >Budgets</span
                         >
                     </a>
 
                     <!-- Expenses -->
-                    <a
-                        v-if="canAccessExpenses"
-                        href="/dashboard/expenses"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/expenses')
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-50',
-                        ]"
-                        :title="isCollapsed ? 'Expenses' : ''"
-                    >
-                        <i class="fas fa-receipt w-5 text-center"></i>
-                        <span v-if="!isCollapsed" class="font-medium"
-                            >Expenses</span
+                    <div v-if="canAccessExpenses">
+                        <a
+                            href="/expenses"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                                isActive('/expenses')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-700 hover:bg-gray-50',
+                            ]"
+                            :title="isCollapsed ? 'Expenses' : ''"
                         >
-                        <span
-                            v-if="!isCollapsed && pendingExpensesCount > 0"
-                            class="ml-auto bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            <i class="fas fa-receipt w-5 text-center"></i>
+                            <span v-if="!isCollapsed" class="font-medium"
+                                >Expenses</span
+                            >
+                            <span
+                                v-if="!isCollapsed && pendingExpensesCount > 0"
+                                class="ml-auto bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
+                                {{ pendingExpensesCount }}
+                            </span>
+                        </a>
+
+                        <!-- Pending Review Submenu (Finance Officer) -->
+                        <a
+                            v-if="canReviewExpenses && !isCollapsed"
+                            href="/expenses/pending-review"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/expenses/pending-review')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
                         >
-                            {{ pendingExpensesCount }}
-                        </span>
-                    </a>
+                            <i
+                                class="fas fa-clipboard-check w-4 text-center"
+                            ></i>
+                            <span class="font-medium">Pending Review</span>
+                            <span
+                                v-if="financeOfficerPending > 0"
+                                class="ml-auto bg-yellow-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
+                                {{ financeOfficerPending }}
+                            </span>
+                        </a>
+
+                        <!-- Pending Approval Submenu (Programs Manager) -->
+                        <a
+                            v-if="canApproveExpenses && !isCollapsed"
+                            href="/expenses/pending-approval"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/expenses/pending-approval')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-check-double w-4 text-center"></i>
+                            <span class="font-medium">Pending Approval</span>
+                            <span
+                                v-if="programsManagerPending > 0"
+                                class="ml-auto bg-purple-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
+                                {{ programsManagerPending }}
+                            </span>
+                        </a>
+                    </div>
 
                     <!-- Cash Flow -->
-                    <a
-                        v-if="canAccessCashFlow"
-                        href="/dashboard/cash-flow"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/cash-flow')
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-50',
-                        ]"
-                        :title="isCollapsed ? 'Cash Flow' : ''"
-                    >
-                        <i class="fas fa-money-bill-wave w-5 text-center"></i>
-                        <span v-if="!isCollapsed" class="font-medium"
-                            >Cash Flow</span
+                    <div v-if="canAccessCashFlow">
+                        <a
+                            href="/cash-flow"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                                isActive('/cash-flow')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-700 hover:bg-gray-50',
+                            ]"
+                            :title="isCollapsed ? 'Cash Flow' : ''"
                         >
-                    </a>
+                            <i
+                                class="fas fa-money-bill-wave w-5 text-center"
+                            ></i>
+                            <span v-if="!isCollapsed" class="font-medium"
+                                >Cash Flow</span
+                            >
+                        </a>
+
+                        <!-- Bank Accounts Submenu -->
+                        <a
+                            v-if="!isCollapsed"
+                            href="/cash-flow/bank-accounts"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/cash-flow/bank-accounts')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-university w-4 text-center"></i>
+                            <span class="font-medium">Bank Accounts</span>
+                        </a>
+
+                        <!-- Transactions Submenu -->
+                        <a
+                            v-if="!isCollapsed"
+                            href="/cash-flow/transactions"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/cash-flow/transactions')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-exchange-alt w-4 text-center"></i>
+                            <span class="font-medium">Transactions</span>
+                        </a>
+
+                        <!-- Projections Submenu -->
+                        <a
+                            v-if="!isCollapsed"
+                            href="/cash-flow/projections"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/cash-flow/projections')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-chart-line w-4 text-center"></i>
+                            <span class="font-medium">Projections</span>
+                        </a>
+                    </div>
 
                     <!-- Purchase Orders -->
-                    <a
-                        v-if="canAccessPurchaseOrders"
-                        href="/dashboard/purchase-orders"
-                        :class="[
-                            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/purchase-orders')
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-50',
-                        ]"
-                        :title="isCollapsed ? 'Purchase Orders' : ''"
-                    >
-                        <i class="fas fa-file-invoice w-5 text-center"></i>
-                        <span v-if="!isCollapsed" class="font-medium"
-                            >Purchase Orders</span
+                    <div v-if="canAccessPurchaseOrders">
+                        <a
+                            href="/purchase-orders"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                                isActive('/purchase-orders')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-700 hover:bg-gray-50',
+                            ]"
+                            :title="isCollapsed ? 'Purchase Orders' : ''"
                         >
-                    </a>
+                            <i class="fas fa-file-invoice w-5 text-center"></i>
+                            <span v-if="!isCollapsed" class="font-medium"
+                                >Purchase Orders</span
+                            >
+                            <span
+                                v-if="!isCollapsed && pendingPoCount > 0"
+                                class="ml-auto bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
+                                {{ pendingPoCount }}
+                            </span>
+                        </a>
+
+                        <!-- Vendors Submenu -->
+                        <a
+                            v-if="!isCollapsed"
+                            href="/purchase-orders/vendors"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/purchase-orders/vendors')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-store w-4 text-center"></i>
+                            <span class="font-medium">Vendors</span>
+                        </a>
+
+                        <!-- Pending Approval Submenu (Programs Manager) -->
+                        <a
+                            v-if="isProgramsManager && !isCollapsed"
+                            href="/purchase-orders/pending-approval"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/purchase-orders/pending-approval')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-check-circle w-4 text-center"></i>
+                            <span class="font-medium">Pending Approval</span>
+                            <span
+                                v-if="pendingPoCount > 0"
+                                class="ml-auto bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                            >
+                                {{ pendingPoCount }}
+                            </span>
+                        </a>
+
+                        <!-- Receiving Submenu (Finance Officer) -->
+                        <a
+                            v-if="isFinanceOfficer && !isCollapsed"
+                            href="/purchase-orders/receiving"
+                            :class="[
+                                'flex items-center gap-3 px-3 py-2 ml-6 rounded-lg transition-colors text-sm',
+                                isActive('/purchase-orders/receiving')
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50',
+                            ]"
+                        >
+                            <i class="fas fa-box-open w-4 text-center"></i>
+                            <span class="font-medium">Receiving</span>
+                        </a>
+                    </div>
 
                     <!-- Donors -->
                     <a
@@ -345,6 +496,18 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    financeOfficerPending: {
+        type: Number,
+        default: 0,
+    },
+    programsManagerPending: {
+        type: Number,
+        default: 0,
+    },
+    pendingPoCount: {
+        type: Number,
+        default: 0,
+    },
 });
 
 // State
@@ -405,6 +568,10 @@ const canAccessExpenses = computed(
         isFinanceOfficer.value ||
         isProjectOfficer.value,
 );
+
+const canReviewExpenses = computed(() => isFinanceOfficer.value);
+
+const canApproveExpenses = computed(() => isProgramsManager.value);
 
 const canAccessCashFlow = computed(
     () => isProgramsManager.value || isFinanceOfficer.value,

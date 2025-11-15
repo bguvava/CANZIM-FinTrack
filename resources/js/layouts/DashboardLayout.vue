@@ -1,7 +1,10 @@
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- Sidebar -->
-        <Sidebar :pending-expenses-count="pendingExpensesCount" />
+        <Sidebar
+            :pending-expenses-count="pendingExpensesCount"
+            :pending-po-count="pendingPOCount"
+        />
 
         <!-- Main Content Area -->
         <div
@@ -225,10 +228,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "../stores/authStore";
+import { usePurchaseOrderStore } from "../stores/purchaseOrderStore";
 import Sidebar from "../components/Sidebar.vue";
 
 // Auth Store
 const authStore = useAuthStore();
+const purchaseOrderStore = usePurchaseOrderStore();
 
 // State
 const searchQuery = ref("");
@@ -236,6 +241,7 @@ const showNotifications = ref(false);
 const showUserMenu = ref(false);
 const sidebarCollapsed = ref(false);
 const pendingExpensesCount = ref(0);
+const pendingPOCount = ref(0);
 const notificationCount = ref(0);
 const notifications = ref([]);
 const breadcrumbs = ref([]);
@@ -339,11 +345,22 @@ const handleKeyboardShortcuts = (event) => {
     }
 };
 
+// Fetch pending PO count
+const fetchPendingPOCount = async () => {
+    try {
+        await purchaseOrderStore.fetchPurchaseOrders();
+        pendingPOCount.value = purchaseOrderStore.pendingApprovalCount;
+    } catch (error) {
+        console.error("Error fetching pending PO count:", error);
+    }
+};
+
 // Lifecycle hooks
 onMounted(() => {
     initializeSidebarState();
     const cleanupWatcher = watchSidebarState();
     generateBreadcrumbs();
+    fetchPendingPOCount();
 
     document.addEventListener("click", handleClickOutside);
     document.addEventListener("keydown", handleKeyboardShortcuts);

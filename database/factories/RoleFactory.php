@@ -32,7 +32,7 @@ class RoleFactory extends Factory
                 'Finance Officer',
                 'Project Officer',
             ]),
-            'slug' => fn(array $attributes) => \Illuminate\Support\Str::slug($attributes['name']),
+            'slug' => fn (array $attributes) => \Illuminate\Support\Str::slug($attributes['name']),
             'description' => $this->faker->sentence(),
         ];
     }
@@ -42,7 +42,7 @@ class RoleFactory extends Factory
      */
     public function programsManager(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'name' => 'Programs Manager',
             'slug' => 'programs-manager',
         ]);
@@ -53,7 +53,7 @@ class RoleFactory extends Factory
      */
     public function financeOfficer(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'name' => 'Finance Officer',
             'slug' => 'finance-officer',
         ]);
@@ -64,7 +64,7 @@ class RoleFactory extends Factory
      */
     public function projectOfficer(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'name' => 'Project Officer',
             'slug' => 'project-officer',
         ]);
