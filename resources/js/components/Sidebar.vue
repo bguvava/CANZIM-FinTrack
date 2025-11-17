@@ -313,16 +313,16 @@
                     <!-- Donors -->
                     <a
                         v-if="canAccessDonors"
-                        href="/dashboard/donors"
+                        href="/donors"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/donors')
+                            isActive('/donors')
                                 ? 'bg-blue-50 text-blue-700'
                                 : 'text-gray-700 hover:bg-gray-50',
                         ]"
                         :title="isCollapsed ? 'Donors' : ''"
                     >
-                        <i class="fas fa-handshake w-5 text-center"></i>
+                        <i class="fas fa-hands-helping w-5 text-center"></i>
                         <span v-if="!isCollapsed" class="font-medium"
                             >Donors</span
                         >

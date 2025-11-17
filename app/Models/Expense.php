@@ -268,6 +268,6 @@ class Expense extends Model
      */
     public function getReceiptUrlAttribute(): ?string
     {
-        return $this->receipt_path ? asset('storage/' . $this->receipt_path) : null;
+        return $this->receipt_path ? asset('storage/'.$this->receipt_path) : null;
     }
 }

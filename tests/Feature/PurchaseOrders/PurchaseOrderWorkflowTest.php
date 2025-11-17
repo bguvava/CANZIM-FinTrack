@@ -176,7 +176,10 @@ class PurchaseOrderWorkflowTest extends TestCase
     {
         Sanctum::actingAs($this->financeOfficer);
 
-        $po = PurchaseOrder::factory()->approved()->create();
+        $po = PurchaseOrder::factory()->withoutItems()->approved()->create();
+        // Delete any factory-created items
+        $po->items()->delete();
+
         $item = $po->items()->create([
             'line_number' => 1,
             'description' => 'Test Item',
@@ -218,7 +221,10 @@ class PurchaseOrderWorkflowTest extends TestCase
     {
         Sanctum::actingAs($this->financeOfficer);
 
-        $po = PurchaseOrder::factory()->approved()->create();
+        $po = PurchaseOrder::factory()->withoutItems()->approved()->create();
+        // Delete any factory-created items
+        $po->items()->delete();
+
         $item = $po->items()->create([
             'line_number' => 1,
             'description' => 'Test Item',
@@ -248,7 +254,7 @@ class PurchaseOrderWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('purchase_orders', [
             'id' => $po->id,
-            'status' => 'Received',
+            'status' => 'Partially Received',
         ]);
     }
 

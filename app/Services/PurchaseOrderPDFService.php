@@ -61,6 +61,31 @@ class PurchaseOrderPDFService
     }
 
     /**
+     * Generate Purchase Orders List PDF.
+     */
+    public function generatePurchaseOrdersListPDF(array $filters = []): string
+    {
+        $data = $this->preparePurchaseOrdersListData($filters);
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pdf.purchase-orders-list', $data)
+            ->setPaper('a4', 'landscape')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
+
+        // Generate filename
+        $filename = $this->generatePOListFilename();
+
+        // Store PDF
+        $pdfContent = $pdf->output();
+        Storage::disk('local')->put("reports/purchase-orders/{$filename}", $pdfContent);
+
+        return $filename;
+    }
+
+    /**
      * Prepare purchase order data for PDF.
      */
     protected function preparePurchaseOrderData(PurchaseOrder $purchaseOrder): array
@@ -209,6 +234,59 @@ class PurchaseOrderPDFService
             'vendor-payment-status-%s.pdf',
             now()->format('Ymd-His')
         );
+    }
+
+    /**
+     * Generate filename for purchase orders list PDF.
+     */
+    protected function generatePOListFilename(): string
+    {
+        return sprintf(
+            'purchase-orders-list-%s.pdf',
+            now()->format('Ymd-His')
+        );
+    }
+
+    /**
+     * Prepare purchase orders list data for PDF.
+     */
+    protected function preparePurchaseOrdersListData(array $filters): array
+    {
+        $status = $filters['status'] ?? null;
+        $dateFrom = $filters['start_date'] ?? null;
+        $dateTo = $filters['end_date'] ?? null;
+
+        // Build query
+        $query = PurchaseOrder::with(['vendor', 'project', 'items', 'creator', 'approver']);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($dateFrom) {
+            $query->where('order_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->where('order_date', '<=', $dateTo);
+        }
+
+        $purchaseOrders = $query->orderBy('order_date', 'desc')->get();
+
+        // Calculate totals
+        $totalAmount = $purchaseOrders->sum('total_amount');
+        $poCount = $purchaseOrders->count();
+
+        return [
+            'purchase_orders' => $purchaseOrders,
+            'total_amount' => $totalAmount,
+            'po_count' => $poCount,
+            'date_from' => $dateFrom ? Carbon::parse($dateFrom)->format('d M Y') : 'Beginning',
+            'date_to' => $dateTo ? Carbon::parse($dateTo)->format('d M Y') : 'Today',
+            'status_filter' => $status ? ucfirst($status) : 'All',
+            'generated_at' => now()->format('d M Y H:i:s'),
+            'generated_by' => auth()->user(),
+        ];
     }
 
     /**

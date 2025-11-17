@@ -3,7 +3,6 @@
 namespace Tests\Feature\CashFlow;
 
 use App\Models\BankAccount;
-use App\Models\CashFlow;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

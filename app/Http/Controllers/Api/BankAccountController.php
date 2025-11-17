@@ -40,7 +40,18 @@ class BankAccountController extends Controller
 
         $accounts = $query->paginate($request->get('per_page', 15));
 
-        return response()->json($accounts);
+        return response()->json([
+            'status' => 'success',
+            'data' => $accounts->items(),
+            'meta' => [
+                'current_page' => $accounts->currentPage(),
+                'from' => $accounts->firstItem(),
+                'last_page' => $accounts->lastPage(),
+                'per_page' => $accounts->perPage(),
+                'to' => $accounts->lastItem(),
+                'total' => $accounts->total(),
+            ],
+        ]);
     }
 
     /**

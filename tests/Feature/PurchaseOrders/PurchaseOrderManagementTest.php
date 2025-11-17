@@ -4,7 +4,6 @@ namespace Tests\Feature\PurchaseOrders;
 
 use App\Models\Project;
 use App\Models\PurchaseOrder;
-use App\Models\PurchaseOrderItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Vendor;

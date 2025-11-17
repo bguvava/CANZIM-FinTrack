@@ -151,14 +151,15 @@ class PurchaseOrderController extends Controller
             $submittedPO = $this->purchaseOrderService->submitForApproval($purchaseOrder);
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Purchase order submitted for approval',
-                'purchase_order' => $submittedPO,
+                'data' => $submittedPO,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error submitting purchase order',
-                'error' => $e->getMessage(),
-            ], 500);
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -173,14 +174,15 @@ class PurchaseOrderController extends Controller
             $approvedPO = $this->purchaseOrderService->approvePurchaseOrder($purchaseOrder);
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Purchase order approved successfully',
-                'purchase_order' => $approvedPO,
+                'data' => $approvedPO,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error approving purchase order',
-                'error' => $e->getMessage(),
-            ], 500);
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -202,11 +204,13 @@ class PurchaseOrderController extends Controller
             );
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Purchase order rejected',
-                'purchase_order' => $rejectedPO,
+                'data' => $rejectedPO,
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error rejecting purchase order',
                 'error' => $e->getMessage(),
             ], 500);
@@ -227,11 +231,13 @@ class PurchaseOrderController extends Controller
             );
 
             return response()->json([
-                'message' => 'Items marked as received successfully',
-                'purchase_order' => $updatedPO->load(['items']),
+                'status' => 'success',
+                'message' => 'Items marked as received',
+                'data' => $updatedPO->load(['items']),
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error marking items as received',
                 'error' => $e->getMessage(),
             ], 500);
@@ -249,11 +255,13 @@ class PurchaseOrderController extends Controller
             $completedPO = $this->purchaseOrderService->completePurchaseOrder($purchaseOrder);
 
             return response()->json([
-                'message' => 'Purchase order completed successfully',
-                'purchase_order' => $completedPO,
+                'status' => 'success',
+                'message' => 'Purchase order marked as completed',
+                'data' => $completedPO,
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error completing purchase order',
                 'error' => $e->getMessage(),
             ], 500);
@@ -268,24 +276,25 @@ class PurchaseOrderController extends Controller
         $this->authorize('cancel', $purchaseOrder);
 
         $validated = $request->validate([
-            'reason' => 'required|string|max:1000',
+            'cancellation_reason' => 'required|string|max:1000',
         ]);
 
         try {
             $cancelledPO = $this->purchaseOrderService->cancelPurchaseOrder(
                 $purchaseOrder,
-                $validated['reason']
+                $validated['cancellation_reason']
             );
 
             return response()->json([
-                'message' => 'Purchase order cancelled successfully',
-                'purchase_order' => $cancelledPO,
+                'status' => 'success',
+                'message' => 'Purchase order cancelled',
+                'data' => $cancelledPO,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error cancelling purchase order',
-                'error' => $e->getMessage(),
-            ], 500);
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 
@@ -382,5 +391,53 @@ class PurchaseOrderController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Export purchase orders list to PDF.
+     */
+    public function exportListPDF(Request $request): BinaryFileResponse|JsonResponse
+    {
+        $this->authorize('viewAny', PurchaseOrder::class);
+
+        try {
+            $validated = $request->validate([
+                'status' => 'nullable|in:draft,pending,approved,received,completed,rejected,cancelled',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+            ]);
+
+            $filename = $this->pdfService->generatePurchaseOrdersListPDF($validated);
+            $filePath = $this->pdfService->getReportDownloadPath($filename);
+
+            return response()->download($filePath, $filename, [
+                'Content-Type' => 'application/pdf',
+            ])->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error generating purchase orders list PDF',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get expenses linked to a purchase order.
+     */
+    public function getExpenses(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $this->authorize('view', $purchaseOrder);
+
+        $expenses = $purchaseOrder->expenses()
+            ->select('id', 'amount', 'description', 'expense_date', 'status')
+            ->get();
+
+        $totalExpenses = $expenses->sum('amount');
+
+        return response()->json([
+            'status' => 'success',
+            'expenses' => $expenses,
+            'total_expenses' => $totalExpenses,
+        ]);
     }
 }

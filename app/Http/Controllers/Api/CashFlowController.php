@@ -7,6 +7,7 @@ use App\Http\Requests\StoreInflowRequest;
 use App\Http\Requests\StoreOutflowRequest;
 use App\Models\BankAccount;
 use App\Models\CashFlow;
+use App\Models\Expense;
 use App\Services\CashFlowPDFService;
 use App\Services\CashFlowService;
 use Illuminate\Http\JsonResponse;
@@ -66,7 +67,18 @@ class CashFlowController extends Controller
 
         $cashFlows = $query->paginate($request->get('per_page', 15));
 
-        return response()->json($cashFlows);
+        return response()->json([
+            'status' => 'success',
+            'data' => $cashFlows->items(),
+            'meta' => [
+                'current_page' => $cashFlows->currentPage(),
+                'from' => $cashFlows->firstItem(),
+                'last_page' => $cashFlows->lastPage(),
+                'per_page' => $cashFlows->perPage(),
+                'to' => $cashFlows->lastItem(),
+                'total' => $cashFlows->total(),
+            ],
+        ]);
     }
 
     /**
@@ -80,11 +92,13 @@ class CashFlowController extends Controller
             $cashFlow = $this->cashFlowService->recordInflow($request->validated());
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Cash inflow recorded successfully',
-                'cash_flow' => $cashFlow->load(['bankAccount', 'project', 'donor']),
+                'data' => $cashFlow->load(['bankAccount', 'project', 'donor']),
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error recording cash inflow',
                 'error' => $e->getMessage(),
             ], 500);
@@ -102,11 +116,19 @@ class CashFlowController extends Controller
             $cashFlow = $this->cashFlowService->recordOutflow($request->validated());
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Cash outflow recorded successfully',
-                'cash_flow' => $cashFlow->load(['bankAccount', 'project', 'expense']),
+                'data' => $cashFlow->load(['bankAccount', 'project', 'expense']),
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Insufficient bank account balance',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error recording cash outflow',
                 'error' => $e->getMessage(),
             ], 500);
@@ -122,7 +144,10 @@ class CashFlowController extends Controller
 
         $cashFlow->load(['bankAccount', 'project', 'donor', 'expense', 'creator', 'reconciler']);
 
-        return response()->json($cashFlow);
+        return response()->json([
+            'status' => 'success',
+            'data' => $cashFlow,
+        ]);
     }
 
     /**
@@ -140,12 +165,18 @@ class CashFlowController extends Controller
 
             $cashFlow->update($validated);
 
+            $message = $cashFlow->type === 'inflow'
+                ? 'Inflow transaction updated successfully'
+                : 'Outflow transaction updated successfully';
+
             return response()->json([
-                'message' => 'Cash flow updated successfully',
-                'cash_flow' => $cashFlow->load(['bankAccount', 'project']),
+                'status' => 'success',
+                'message' => $message,
+                'data' => $cashFlow->load(['bankAccount', 'project']),
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error updating cash flow',
                 'error' => $e->getMessage(),
             ], 500);
@@ -155,20 +186,56 @@ class CashFlowController extends Controller
     /**
      * Reconcile a cash flow transaction.
      */
-    public function reconcile(CashFlow $cashFlow): JsonResponse
+    public function reconcile(Request $request, CashFlow $cashFlow): JsonResponse
     {
         $this->authorize('reconcile', $cashFlow);
 
+        $validated = $request->validate([
+            'reconciliation_date' => 'required|date',
+        ]);
+
         try {
-            $reconciledCashFlow = $this->cashFlowService->reconcile($cashFlow->id);
+            $reconciledCashFlow = $this->cashFlowService->reconcile($cashFlow->id, $validated['reconciliation_date']);
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Transaction reconciled successfully',
-                'cash_flow' => $reconciledCashFlow,
+                'data' => $reconciledCashFlow,
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error reconciling transaction',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Unreconcile a cash flow transaction.
+     */
+    public function unreconcile(CashFlow $cashFlow): JsonResponse
+    {
+        // Check if user has permission (same as reconcile permission)
+        if (! auth()->user()->role || auth()->user()->role->slug !== 'finance-officer') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        try {
+            $unreconciledCashFlow = $this->cashFlowService->unreconcile($cashFlow->id);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Transaction unreconciled successfully',
+                'data' => $unreconciledCashFlow,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error unreconciling transaction',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -182,19 +249,72 @@ class CashFlowController extends Controller
         $this->authorize('viewProjections', CashFlow::class);
 
         $validated = $request->validate([
-            'bank_account_id' => 'required|exists:bank_accounts,id',
-            'months' => 'sometimes|integer|min:1|max:12',
+            'bank_account_id' => 'nullable|exists:bank_accounts,id',
+            'days' => 'sometimes|integer|min:1|max:365',
         ]);
 
         try {
-            $projections = $this->cashFlowService->calculateProjection(
-                $validated['bank_account_id'],
-                $validated['months'] ?? 3
-            );
+            $days = (int) ($validated['days'] ?? 30);
+            $bankAccountId = $validated['bank_account_id'] ?? null;
 
-            return response()->json($projections);
+            // Calculate current balance
+            if ($bankAccountId) {
+                $bankAccount = BankAccount::findOrFail($bankAccountId);
+                $currentBalance = $bankAccount->current_balance;
+            } else {
+                $currentBalance = BankAccount::sum('current_balance');
+            }
+
+            // Get expected inflows (scheduled future cash inflows)
+            $endDate = now()->addDays($days);
+            $expectedInflowsQuery = CashFlow::where('type', 'inflow')
+                ->where('transaction_date', '>', now())
+                ->where('transaction_date', '<=', $endDate);
+
+            if ($bankAccountId) {
+                $expectedInflowsQuery->where('bank_account_id', $bankAccountId);
+            }
+
+            $expectedInflows = $expectedInflowsQuery->get()->map(function ($inflow) {
+                return [
+                    'date' => $inflow->transaction_date->format('Y-m-d'),
+                    'amount' => $inflow->amount,
+                    'description' => $inflow->description ?? 'Cash inflow',
+                ];
+            });
+
+            // Get expected outflows (future expenses)
+            $expectedOutflowsQuery = Expense::where('expense_date', '>', now())
+                ->where('expense_date', '<=', $endDate)
+                ->where('status', '!=', 'rejected');
+
+            $expectedOutflows = $expectedOutflowsQuery->get()->map(function ($expense) {
+                return [
+                    'date' => $expense->expense_date->format('Y-m-d'),
+                    'amount' => $expense->amount,
+                    'description' => $expense->description ?? 'Expense',
+                ];
+            });
+
+            $totalExpectedInflows = $expectedInflows->sum('amount');
+            $totalExpectedOutflows = $expectedOutflows->sum('amount');
+            $projectedBalance = $currentBalance + $totalExpectedInflows - $totalExpectedOutflows;
+
+            $result = [
+                'current_balance' => $currentBalance,
+                'projected_balance' => $projectedBalance,
+                'expected_inflows' => $expectedInflows,
+                'expected_outflows' => $expectedOutflows,
+            ];
+
+            if ($projectedBalance < 0) {
+                $result['warning'] = 'Projected balance will be negative';
+            }
+
+            return response()->json($result);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error calculating projections',
                 'error' => $e->getMessage(),
             ], 500);
@@ -227,7 +347,10 @@ class CashFlowController extends Controller
                 ->get(),
         ];
 
-        return response()->json($stats);
+        return response()->json([
+            'status' => 'success',
+            'data' => $stats,
+        ]);
     }
 
     /**
@@ -241,10 +364,12 @@ class CashFlowController extends Controller
             $cashFlow->delete();
 
             return response()->json([
-                'message' => 'Cash flow deleted successfully',
+                'status' => 'success',
+                'message' => 'Cash flow transaction deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error deleting cash flow',
                 'error' => $e->getMessage(),
             ], 500);
@@ -258,13 +383,13 @@ class CashFlowController extends Controller
     {
         $this->authorize('viewAny', CashFlow::class);
 
-        try {
-            $validated = $request->validate([
-                'date_from' => 'nullable|date',
-                'date_to' => 'nullable|date|after_or_equal:date_from',
-                'bank_account_id' => 'nullable|exists:bank_accounts,id',
-            ]);
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'bank_account_id' => 'nullable|exists:bank_accounts,id',
+        ]);
 
+        try {
             $filename = $this->pdfService->generateCashFlowStatement($validated);
             $filePath = $this->pdfService->getReportDownloadPath($filename);
 
@@ -273,6 +398,7 @@ class CashFlowController extends Controller
             ])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error generating cash flow statement',
                 'error' => $e->getMessage(),
             ], 500);
@@ -286,12 +412,12 @@ class CashFlowController extends Controller
     {
         $this->authorize('viewAny', CashFlow::class);
 
-        try {
-            $validated = $request->validate([
-                'date_from' => 'nullable|date',
-                'date_to' => 'nullable|date|after_or_equal:date_from',
-            ]);
+        $validated = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
 
+        try {
             $filename = $this->pdfService->generateReconciliationReport($bankAccount, $validated);
             $filePath = $this->pdfService->getReportDownloadPath($filename);
 
@@ -300,6 +426,7 @@ class CashFlowController extends Controller
             ])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error generating reconciliation report',
                 'error' => $e->getMessage(),
             ], 500);

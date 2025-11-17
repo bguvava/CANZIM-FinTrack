@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Project;
+use App\Models\PurchaseOrderItem;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -12,6 +13,24 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class PurchaseOrderFactory extends Factory
 {
+    private bool $shouldCreateItems = true;
+
+    /**
+     * Configure the model factory.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function ($purchaseOrder) {
+            // Create at least one item for the purchase order by default
+            // Skip if withoutItems was called
+            if ($this->shouldCreateItems) {
+                PurchaseOrderItem::factory()->count(3)->create([
+                    'purchase_order_id' => $purchaseOrder->id,
+                ]);
+            }
+        });
+    }
+
     /**
      * Define the model's default state.
      *
@@ -140,5 +159,16 @@ class PurchaseOrderFactory extends Factory
                 'completed_at' => fake()->dateTimeBetween($deliveredAt, 'now'),
             ];
         });
+    }
+
+    /**
+     * Indicate that the PO should not have items created automatically.
+     * Items can be manually created after the PO is created.
+     */
+    public function withoutItems(): static
+    {
+        $this->shouldCreateItems = false;
+
+        return $this->state(fn (array $attributes) => []);
     }
 }

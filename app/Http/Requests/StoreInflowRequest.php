@@ -24,7 +24,7 @@ class StoreInflowRequest extends FormRequest
         return [
             'bank_account_id' => ['required', 'exists:bank_accounts,id'],
             'project_id' => ['nullable', 'exists:projects,id'],
-            'donor_id' => ['nullable', 'exists:donors,id'],
+            'donor_id' => ['required', 'exists:donors,id'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -41,6 +41,7 @@ class StoreInflowRequest extends FormRequest
             'bank_account_id.required' => 'Bank account is required',
             'bank_account_id.exists' => 'Selected bank account does not exist',
             'project_id.exists' => 'Selected project does not exist',
+            'donor_id.required' => 'Donor is required',
             'donor_id.exists' => 'Selected donor does not exist',
             'transaction_date.required' => 'Transaction date is required',
             'transaction_date.before_or_equal' => 'Transaction date cannot be in the future',

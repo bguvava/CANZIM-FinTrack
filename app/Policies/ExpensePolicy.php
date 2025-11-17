@@ -108,6 +108,15 @@ class ExpensePolicy
     }
 
     /**
+     * Determine whether the user can link/unlink purchase orders.
+     */
+    public function linkPurchaseOrder(User $user, Expense $expense): bool
+    {
+        // Only finance officers can link POs
+        return $user->role->slug === 'finance-officer';
+    }
+
+    /**
      * Determine whether the user can restore the model.
      */
     public function restore(User $user, Expense $expense): bool

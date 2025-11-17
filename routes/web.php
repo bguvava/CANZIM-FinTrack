@@ -128,6 +128,6 @@ Route::get('/dashboard/settings', function () {
 })->name('settings');
 
 // Donors route (requires authentication - Programs Manager, Finance Officer)
-Route::get('/dashboard/donors', function () {
+Route::get('/donors', function () {
     return view('donors');
 })->name('donors');

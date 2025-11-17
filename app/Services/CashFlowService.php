@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Models\BankAccount;
 use App\Models\CashFlow;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class CashFlowService
 {
@@ -57,7 +59,9 @@ class CashFlowService
 
             // Validate sufficient balance
             if ($balanceAfter < 0) {
-                throw new \Exception('Insufficient balance in bank account.');
+                $validator = Validator::make([], []);
+                $validator->errors()->add('amount', 'Insufficient bank account balance');
+                throw new ValidationException($validator);
             }
 
             // Create cash flow record
@@ -86,7 +90,7 @@ class CashFlowService
     /**
      * Reconcile a cash flow transaction.
      */
-    public function reconcile(int $cashFlowId): CashFlow
+    public function reconcile(int $cashFlowId, ?string $reconciliationDate = null): CashFlow
     {
         $cashFlow = CashFlow::findOrFail($cashFlowId);
 
@@ -96,8 +100,28 @@ class CashFlowService
 
         $cashFlow->update([
             'is_reconciled' => true,
-            'reconciled_at' => now(),
+            'reconciled_at' => $reconciliationDate ? now()->parse($reconciliationDate) : now(),
             'reconciled_by' => auth()->id(),
+        ]);
+
+        return $cashFlow->fresh();
+    }
+
+    /**
+     * Unreconcile a cash flow transaction.
+     */
+    public function unreconcile(int $cashFlowId): CashFlow
+    {
+        $cashFlow = CashFlow::findOrFail($cashFlowId);
+
+        if (! $cashFlow->is_reconciled) {
+            throw new \Exception('Transaction is not reconciled.');
+        }
+
+        $cashFlow->update([
+            'is_reconciled' => false,
+            'reconciled_at' => null,
+            'reconciled_by' => null,
         ]);
 
         return $cashFlow->fresh();

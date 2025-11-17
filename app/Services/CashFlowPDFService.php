@@ -65,8 +65,8 @@ class CashFlowPDFService
      */
     protected function prepareCashFlowStatementData(array $filters): array
     {
-        $dateFrom = $filters['date_from'] ?? null;
-        $dateTo = $filters['date_to'] ?? null;
+        $dateFrom = $filters['start_date'] ?? null;
+        $dateTo = $filters['end_date'] ?? null;
         $bankAccountId = $filters['bank_account_id'] ?? null;
 
         // Build query
@@ -121,7 +121,7 @@ class CashFlowPDFService
             'net_cash_flow' => $netCashFlow,
             'closing_balance' => $closingBalance,
             'generated_at' => now()->format('d M Y H:i:s'),
-            'generated_by' => auth()->user(),
+            'generated_by' => auth()->user() ?? (object) ['name' => 'System'],
         ];
     }
 
@@ -130,28 +130,28 @@ class CashFlowPDFService
      */
     protected function prepareReconciliationData(BankAccount $bankAccount, array $filters): array
     {
-        $dateFrom = $filters['date_from'] ?? null;
-        $dateTo = $filters['date_to'] ?? null;
+        $dateFrom = $filters['start_date'] ?? null;
+        $dateTo = $filters['end_date'] ?? null;
 
         // Get reconciled transactions
         $query = CashFlow::where('bank_account_id', $bankAccount->id)
             ->where('is_reconciled', true)
             ->with(['project', 'donor', 'expense'])
-            ->orderBy('reconciliation_date', 'desc');
+            ->orderBy('reconciled_at', 'desc');
 
         if ($dateFrom) {
-            $query->where('reconciliation_date', '>=', $dateFrom);
+            $query->where('reconciled_at', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $query->where('reconciliation_date', '<=', $dateTo);
+            $query->where('reconciled_at', '<=', $dateTo);
         }
 
         $reconciledTransactions = $query->get();
 
         // Group by reconciliation date
         $reconciliationGroups = $reconciledTransactions->groupBy(function ($transaction) {
-            return Carbon::parse($transaction->reconciliation_date)->format('Y-m-d');
+            return Carbon::parse($transaction->reconciled_at)->format('Y-m-d');
         });
 
         // Calculate totals
@@ -169,7 +169,7 @@ class CashFlowPDFService
             'total_outflows' => $totalOutflows,
             'system_balance' => $bankAccount->current_balance,
             'generated_at' => now()->format('d M Y H:i:s'),
-            'generated_by' => auth()->user(),
+            'generated_by' => auth()->user() ?? (object) ['name' => 'System'],
         ];
     }
 
@@ -193,8 +193,8 @@ class CashFlowPDFService
      */
     protected function generateCashFlowFilename(array $filters): string
     {
-        $dateFrom = $filters['date_from'] ?? 'beginning';
-        $dateTo = $filters['date_to'] ?? 'today';
+        $dateFrom = $filters['start_date'] ?? 'beginning';
+        $dateTo = $filters['end_date'] ?? 'today';
 
         if ($dateFrom !== 'beginning') {
             $dateFrom = Carbon::parse($dateFrom)->format('Ymd');

@@ -70,6 +70,22 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | - Bank Account Routes (/api/v1/bank-accounts)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('bank-accounts')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\BankAccountController::class, 'index'])->name('api.bank-accounts.index');
+        Route::post('/', [\App\Http\Controllers\Api\BankAccountController::class, 'store'])->name('api.bank-accounts.store');
+        Route::get('/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'show'])->name('api.bank-accounts.show');
+        Route::put('/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'update'])->name('api.bank-accounts.update');
+        Route::post('/{bankAccount}/deactivate', [\App\Http\Controllers\Api\BankAccountController::class, 'deactivate'])->name('api.bank-accounts.deactivate');
+        Route::post('/{bankAccount}/activate', [\App\Http\Controllers\Api\BankAccountController::class, 'activate'])->name('api.bank-accounts.activate');
+        Route::get('/{bankAccount}/reconciliation-report-pdf', [\App\Http\Controllers\Api\CashFlowController::class, 'exportReconciliation'])->name('api.bank-accounts.reconciliation-report-pdf');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Module Routes (To be implemented in subsequent modules)
     |--------------------------------------------------------------------------
     |
@@ -157,14 +173,32 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/reallocations/{reallocation}/approve', [BudgetController::class, 'approveReallocation'])->name('api.budgets.reallocations.approve');
     });
 
-    // Donor Management Routes
+    // Donor Management Routes (Module 9)
     Route::prefix('donors')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\DonorController::class, 'index'])->name('api.donors.index');
         Route::post('/', [\App\Http\Controllers\Api\DonorController::class, 'store'])->name('api.donors.store');
+        Route::get('/statistics', [\App\Http\Controllers\Api\DonorController::class, 'statistics'])->name('api.donors.statistics');
+        Route::get('/chart-data', [\App\Http\Controllers\Api\DonorController::class, 'chartData'])->name('api.donors.chart-data');
         Route::get('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'show'])->name('api.donors.show');
         Route::put('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'update'])->name('api.donors.update');
         Route::delete('/{donor}', [\App\Http\Controllers\Api\DonorController::class, 'destroy'])->name('api.donors.destroy');
+        Route::post('/{id}/restore', [\App\Http\Controllers\Api\DonorController::class, 'restore'])->name('api.donors.restore');
+
+        // Project assignment routes
+        Route::post('/{donor}/assign-project', [\App\Http\Controllers\Api\DonorController::class, 'assignToProject'])->name('api.donors.assign-project');
+        Route::delete('/{donor}/projects/{project}', [\App\Http\Controllers\Api\DonorController::class, 'removeFromProject'])->name('api.donors.remove-project');
+        Route::get('/{donor}/funding-summary', [\App\Http\Controllers\Api\DonorController::class, 'fundingSummary'])->name('api.donors.funding-summary');
+        Route::post('/{donor}/toggle-status', [\App\Http\Controllers\Api\DonorController::class, 'toggleStatus'])->name('api.donors.toggle-status');
+
+        // PDF Report generation
+        Route::get('/{donor}/report', [\App\Http\Controllers\Api\DonorController::class, 'generateReport'])->name('api.donors.report');
     });
+
+    // In-Kind Contributions Routes (Module 9)
+    Route::post('/in-kind-contributions', [\App\Http\Controllers\Api\DonorController::class, 'storeInKindContribution'])->name('api.in-kind.store');
+
+    // Communications Routes (Module 9)
+    Route::post('/communications', [\App\Http\Controllers\Api\DonorController::class, 'storeCommunication'])->name('api.communications.store');
 
     // Expense Management Routes (Module 7)
     Route::prefix('expenses')->group(function () {
@@ -185,6 +219,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{expense}/review', [\App\Http\Controllers\Api\ExpenseController::class, 'review'])->name('api.expenses.review');
         Route::post('/{expense}/approve', [\App\Http\Controllers\Api\ExpenseController::class, 'approve'])->name('api.expenses.approve');
         Route::post('/{expense}/mark-paid', [\App\Http\Controllers\Api\ExpenseController::class, 'markAsPaid'])->name('api.expenses.mark-paid');
+
+        // Purchase Order linking routes
+        Route::post('/{expense}/link-po', [\App\Http\Controllers\Api\ExpenseController::class, 'linkPurchaseOrder'])->name('api.expenses.link-po');
+        Route::post('/{expense}/unlink-po', [\App\Http\Controllers\Api\ExpenseController::class, 'unlinkPurchaseOrder'])->name('api.expenses.unlink-po');
     });
 
     // Bank Account Management Routes (Module 8)
@@ -196,13 +234,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{bankAccount}/deactivate', [\App\Http\Controllers\Api\BankAccountController::class, 'deactivate'])->name('api.bank-accounts.deactivate');
         Route::post('/{bankAccount}/activate', [\App\Http\Controllers\Api\BankAccountController::class, 'activate'])->name('api.bank-accounts.activate');
         Route::get('/{bankAccount}/summary', [\App\Http\Controllers\Api\BankAccountController::class, 'summary'])->name('api.bank-accounts.summary');
+        Route::get('/{bankAccount}/reconciliation-report-pdf', [\App\Http\Controllers\Api\CashFlowController::class, 'exportReconciliation'])->name('api.bank-accounts.reconciliation-report-pdf');
     });
 
     // Cash Flow Management Routes (Module 8)
     Route::prefix('cash-flows')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\CashFlowController::class, 'index'])->name('api.cash-flows.index');
-        Route::post('/inflow', [\App\Http\Controllers\Api\CashFlowController::class, 'storeInflow'])->name('api.cash-flows.inflow');
-        Route::post('/outflow', [\App\Http\Controllers\Api\CashFlowController::class, 'storeOutflow'])->name('api.cash-flows.outflow');
+        Route::post('/inflows', [\App\Http\Controllers\Api\CashFlowController::class, 'storeInflow'])->name('api.cash-flows.inflow');
+        Route::put('/inflows/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'update'])->name('api.cash-flows.update-inflow');
+        Route::post('/outflows', [\App\Http\Controllers\Api\CashFlowController::class, 'storeOutflow'])->name('api.cash-flows.outflow');
+        Route::put('/outflows/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'update'])->name('api.cash-flows.update-outflow');
         Route::get('/statistics', [\App\Http\Controllers\Api\CashFlowController::class, 'statistics'])->name('api.cash-flows.statistics');
         Route::get('/projections', [\App\Http\Controllers\Api\CashFlowController::class, 'projections'])->name('api.cash-flows.projections');
         Route::post('/export-statement', [\App\Http\Controllers\Api\CashFlowController::class, 'exportStatement'])->name('api.cash-flows.export-statement');
@@ -210,8 +251,21 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'show'])->name('api.cash-flows.show');
         Route::put('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'update'])->name('api.cash-flows.update');
         Route::post('/{cashFlow}/reconcile', [\App\Http\Controllers\Api\CashFlowController::class, 'reconcile'])->name('api.cash-flows.reconcile');
+        Route::post('/{cashFlow}/unreconcile', [\App\Http\Controllers\Api\CashFlowController::class, 'unreconcile'])->name('api.cash-flows.unreconcile');
         Route::delete('/{cashFlow}', [\App\Http\Controllers\Api\CashFlowController::class, 'destroy'])->name('api.cash-flows.destroy');
     });
+
+    // Cash Flow route aliases (singular) for backward compatibility
+    Route::prefix('cash-flow')->group(function () {
+        Route::get('/projections', [\App\Http\Controllers\Api\CashFlowController::class, 'projections'])->name('api.cash-flow.projections');
+        Route::get('/export-pdf', [\App\Http\Controllers\Api\CashFlowController::class, 'exportStatement'])->name('api.cash-flow.export-pdf');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | - Purchase Order Routes (/api/v1/purchase-orders)
+    |--------------------------------------------------------------------------
+    */
 
     // Purchase Order Management Routes (Module 8)
     Route::prefix('purchase-orders')->group(function () {
@@ -219,6 +273,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'store'])->name('api.purchase-orders.store');
         Route::get('/statistics', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'statistics'])->name('api.purchase-orders.statistics');
         Route::post('/export-vendor-payment-status', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportVendorPaymentStatus'])->name('api.purchase-orders.export-vendor-payment-status');
+        Route::get('/export-list-pdf', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportListPDF'])->name('api.purchase-orders.export-list-pdf');
         Route::get('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'show'])->name('api.purchase-orders.show');
         Route::put('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'update'])->name('api.purchase-orders.update');
         Route::delete('/{purchaseOrder}', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'destroy'])->name('api.purchase-orders.destroy');
@@ -230,7 +285,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{purchaseOrder}/receive', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'receive'])->name('api.purchase-orders.receive');
         Route::post('/{purchaseOrder}/complete', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'complete'])->name('api.purchase-orders.complete');
         Route::post('/{purchaseOrder}/cancel', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'cancel'])->name('api.purchase-orders.cancel');
-        Route::post('/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportPDF'])->name('api.purchase-orders.export-pdf');
+
+        // PDF Export routes
+        Route::get('/{purchaseOrder}/export-pdf', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'exportPDF'])->name('api.purchase-orders.export-pdf');
+
+        // Expense linking routes
+        Route::get('/{purchaseOrder}/expenses', [\App\Http\Controllers\Api\PurchaseOrderController::class, 'getExpenses'])->name('api.purchase-orders.expenses');
     });
 
     // Vendor Management Routes (Module 8)

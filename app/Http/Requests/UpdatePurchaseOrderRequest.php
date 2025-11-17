@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\ValidationException;
 
 class UpdatePurchaseOrderRequest extends FormRequest
 {
@@ -11,6 +12,14 @@ class UpdatePurchaseOrderRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        $purchaseOrder = $this->route('purchaseOrder');
+
+        if ($purchaseOrder && ! in_array($purchaseOrder->status, ['Draft', 'Rejected'])) {
+            throw ValidationException::withMessages([
+                'status' => 'Cannot update purchase order that is not in draft status',
+            ]);
+        }
+
         return true;
     }
 

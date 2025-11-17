@@ -64,11 +64,7 @@ class PurchaseOrderPolicy
      */
     public function submit(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        if (! in_array($purchaseOrder->status, ['Draft', 'Rejected'])) {
-            return false;
-        }
-
-        return $user->role->slug === 'finance-officer' && $purchaseOrder->created_by === $user->id;
+        return $user->role->slug === 'finance-officer';
     }
 
     /**
@@ -76,11 +72,7 @@ class PurchaseOrderPolicy
      */
     public function approve(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        if ($user->role->slug !== 'programs-manager') {
-            return false;
-        }
-
-        return $purchaseOrder->status === 'Pending';
+        return $user->role->slug === 'programs-manager';
     }
 
     /**
@@ -124,11 +116,7 @@ class PurchaseOrderPolicy
      */
     public function cancel(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        if (! in_array($purchaseOrder->status, ['Draft', 'Pending', 'Rejected'])) {
-            return false;
-        }
-
-        return $user->role->slug === 'finance-officer' && $purchaseOrder->created_by === $user->id;
+        return in_array($user->role->slug, ['finance-officer', 'programs-manager']);
     }
 
     /**

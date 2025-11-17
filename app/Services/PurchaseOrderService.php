@@ -122,7 +122,7 @@ class PurchaseOrderService
     public function submitForApproval(PurchaseOrder $purchaseOrder): PurchaseOrder
     {
         if (! $purchaseOrder->canBeSubmitted()) {
-            throw new \Exception('Purchase order cannot be submitted. It must be in Draft status and have at least one item.');
+            throw new \Exception('Only draft purchase orders can be submitted');
         }
 
         $purchaseOrder->update([
@@ -140,7 +140,7 @@ class PurchaseOrderService
     public function approvePurchaseOrder(PurchaseOrder $purchaseOrder): PurchaseOrder
     {
         if (! $purchaseOrder->canBeApproved()) {
-            throw new \Exception('Purchase order cannot be approved. It must be in Pending status.');
+            throw new \Exception('Only pending purchase orders can be approved');
         }
 
         $purchaseOrder->update([
@@ -234,7 +234,7 @@ class PurchaseOrderService
     public function cancelPurchaseOrder(PurchaseOrder $purchaseOrder, string $reason): PurchaseOrder
     {
         if (! in_array($purchaseOrder->status, ['Draft', 'Pending', 'Rejected'])) {
-            throw new \Exception('Only Draft, Pending, or Rejected purchase orders can be cancelled.');
+            throw new \Exception('Cannot cancel completed purchase order');
         }
 
         $purchaseOrder->update([

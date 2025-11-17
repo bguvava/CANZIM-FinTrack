@@ -306,4 +306,78 @@ class ExpenseController extends Controller
 
         return response()->json($categories);
     }
+
+    /**
+     * Link an expense to a purchase order.
+     */
+    public function linkPurchaseOrder(Request $request, Expense $expense): JsonResponse
+    {
+        $this->authorize('linkPurchaseOrder', $expense);
+
+        $validated = $request->validate([
+            'purchase_order_id' => ['required', 'exists:purchase_orders,id'],
+        ]);
+
+        try {
+            // Load relationships
+            $purchaseOrder = \App\Models\PurchaseOrder::findOrFail($validated['purchase_order_id']);
+
+            // Validate: PO must be approved or completed (security check first)
+            if (! in_array($purchaseOrder->status, ['Approved', 'Completed'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Can only link expenses to approved or completed purchase orders',
+                ], 422);
+            }
+
+            // Validate: Must belong to same project
+            if ($expense->project_id !== $purchaseOrder->project_id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Expense and purchase order must belong to the same project',
+                ], 422);
+            }
+
+            // Link the expense
+            $expense->purchase_order_id = $purchaseOrder->id;
+            $expense->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Expense linked to purchase order',
+                'expense' => $expense->fresh(['purchaseOrder']),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error linking expense to purchase order',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Unlink an expense from a purchase order.
+     */
+    public function unlinkPurchaseOrder(Expense $expense): JsonResponse
+    {
+        $this->authorize('linkPurchaseOrder', $expense);
+
+        try {
+            $expense->purchase_order_id = null;
+            $expense->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Expense unlinked from purchase order',
+                'expense' => $expense,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error unlinking expense from purchase order',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
