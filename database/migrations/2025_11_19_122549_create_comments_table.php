@@ -13,18 +13,15 @@ return new class extends Migration
     {
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
-            $table->string('commentable_type');
-            $table->unsignedBigInteger('commentable_id');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->morphs('commentable'); // commentable_type and commentable_id for polymorphic relation (automatically indexed)
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
-            $table->text('comment');
-            $table->timestamps();
+            $table->text('content');
             $table->softDeletes();
+            $table->timestamps();
 
-            // Indexes
-            $table->index(['commentable_type', 'commentable_id']);
-            $table->index('user_id');
-            $table->index('parent_id');
+            // Additional indexes for performance (morphs() already creates commentable index)
+            $table->index('created_at');
         });
     }
 

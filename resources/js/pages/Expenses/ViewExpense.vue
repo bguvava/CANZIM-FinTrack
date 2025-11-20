@@ -485,6 +485,14 @@
                 </form>
             </div>
         </div>
+
+        <!-- Comments Section -->
+        <div v-if="expense" class="mt-6">
+            <CommentsSection
+                commentableType="Expense"
+                :commentableId="expense.id"
+            />
+        </div>
     </div>
 </template>
 
@@ -493,6 +501,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { useAuthStore } from "@/stores/authStore";
+import CommentsSection from "../../components/comments/CommentsSection.vue";
 
 const router = useRouter();
 const route = useRoute();

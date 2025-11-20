@@ -194,34 +194,25 @@ class DatabaseIntegrityTest extends TestCase
     {
         $this->seed();
 
-        $user = DB::table('users')->first();
+        $project = \App\Models\Project::factory()->create();
+        $budget = \App\Models\Budget::factory()->create();
+        $expense = \App\Models\Expense::factory()->create();
+        $user = \App\Models\User::factory()->create();
 
-        $projectId = DB::table('projects')->insertGetId([
-            'code' => 'TEST-004',
-            'name' => 'Test Project 4',
-            'start_date' => '2025-01-01',
-            'end_date' => '2025-12-31',
-            'total_budget' => 60000.00,
-            'status' => 'active',
-            'created_by' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $commentId = DB::table('comments')->insertGetId([
-            'commentable_type' => 'App\\Models\\Project',
-            'commentable_id' => $projectId,
+        // Create comment on project
+        DB::table('comments')->insert([
+            'commentable_type' => get_class($project),
+            'commentable_id' => $project->id,
             'user_id' => $user->id,
-            'comment' => 'This is a test comment on a project',
+            'content' => 'This is a test comment on a project',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->assertNotNull($commentId);
-
-        $comment = DB::table('comments')->where('id', $commentId)->first();
-        $this->assertEquals('App\\Models\\Project', $comment->commentable_type);
-        $this->assertEquals($projectId, $comment->commentable_id);
+        $this->assertDatabaseHas('comments', [
+            'commentable_type' => get_class($project),
+            'commentable_id' => $project->id,
+        ]);
     }
 
     /**

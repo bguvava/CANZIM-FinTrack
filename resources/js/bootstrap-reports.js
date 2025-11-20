@@ -3,6 +3,9 @@ import { createPinia } from "pinia";
 import Reports from "./pages/Reports.vue";
 import { useAuthStore } from "./stores/authStore";
 
+// Import FontAwesome
+import "@fortawesome/fontawesome-free/css/all.css";
+
 const pinia = createPinia();
 const app = createApp(Reports);
 

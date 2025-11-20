@@ -304,4 +304,92 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{vendor}/activate', [\App\Http\Controllers\Api\VendorController::class, 'activate'])->name('api.vendors.activate');
         Route::get('/{vendor}/summary', [\App\Http\Controllers\Api\VendorController::class, 'summary'])->name('api.vendors.summary');
     });
+
+    // Reporting & Analytics Routes (Module 10)
+    Route::prefix('reports')->group(function () {
+        // Report generation history
+        Route::get('/', [\App\Http\Controllers\Api\ReportController::class, 'index'])->name('api.reports.index');
+        Route::get('/{report}', [\App\Http\Controllers\Api\ReportController::class, 'show'])->name('api.reports.show');
+        Route::delete('/{report}', [\App\Http\Controllers\Api\ReportController::class, 'destroy'])->name('api.reports.destroy');
+
+        // PDF Download
+        Route::get('/{report}/download', [\App\Http\Controllers\Api\ReportController::class, 'download'])->name('api.reports.download');
+
+        // Generate specific report types
+        Route::post('/budget-vs-actual', [\App\Http\Controllers\Api\ReportController::class, 'budgetVsActual'])->name('api.reports.budget-vs-actual');
+        Route::post('/cash-flow', [\App\Http\Controllers\Api\ReportController::class, 'cashFlow'])->name('api.reports.cash-flow');
+        Route::post('/expense-summary', [\App\Http\Controllers\Api\ReportController::class, 'expenseSummary'])->name('api.reports.expense-summary');
+        Route::post('/project-status', [\App\Http\Controllers\Api\ReportController::class, 'projectStatus'])->name('api.reports.project-status');
+        Route::post('/donor-contributions', [\App\Http\Controllers\Api\ReportController::class, 'donorContributions'])->name('api.reports.donor-contributions');
+
+        // Custom report builder
+        Route::post('/custom', [\App\Http\Controllers\Api\ReportController::class, 'custom'])->name('api.reports.custom');
+    });
+
+    // Comment Management Routes (Module 11)
+    Route::prefix('comments')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\CommentController::class, 'index'])->name('api.comments.index');
+        Route::post('/', [\App\Http\Controllers\Api\CommentController::class, 'store'])->name('api.comments.store');
+        Route::get('/{comment}', [\App\Http\Controllers\Api\CommentController::class, 'show'])->name('api.comments.show');
+        Route::put('/{comment}', [\App\Http\Controllers\Api\CommentController::class, 'update'])->name('api.comments.update');
+        Route::delete('/{comment}', [\App\Http\Controllers\Api\CommentController::class, 'destroy'])->name('api.comments.destroy');
+
+        // Comment attachment download
+        Route::get('/attachments/{attachment}/download', [\App\Http\Controllers\Api\CommentController::class, 'downloadAttachment'])->name('api.comments.attachments.download');
+    });
+
+    // Document Management Routes (Module 12)
+    Route::prefix('documents')->group(function () {
+        // List and create documents
+        Route::get('/', [\App\Http\Controllers\Api\DocumentController::class, 'index'])->name('api.documents.index');
+        Route::post('/', [\App\Http\Controllers\Api\DocumentController::class, 'store'])->name('api.documents.store');
+
+        // Document categories
+        Route::get('/categories', [\App\Http\Controllers\Api\DocumentController::class, 'categories'])->name('api.documents.categories');
+        Route::post('/categories', [\App\Http\Controllers\Api\DocumentController::class, 'manageCategories'])->name('api.documents.manage-categories');
+
+        // Document operations
+        Route::get('/{document}', [\App\Http\Controllers\Api\DocumentController::class, 'show'])->name('api.documents.show');
+        Route::put('/{document}', [\App\Http\Controllers\Api\DocumentController::class, 'update'])->name('api.documents.update');
+        Route::delete('/{document}', [\App\Http\Controllers\Api\DocumentController::class, 'destroy'])->name('api.documents.destroy');
+
+        // View and download
+        Route::get('/{document}/view', [\App\Http\Controllers\Api\DocumentController::class, 'view'])->name('api.documents.view');
+        Route::get('/{document}/download', [\App\Http\Controllers\Api\DocumentController::class, 'download'])->name('api.documents.download');
+
+        // Version management
+        Route::post('/{document}/replace', [\App\Http\Controllers\Api\DocumentController::class, 'replace'])->name('api.documents.replace');
+        Route::get('/{document}/versions', [\App\Http\Controllers\Api\DocumentController::class, 'versions'])->name('api.documents.versions');
+    });
+
+    // Settings Management Routes (Module 13)
+    Route::prefix('settings')->group(function () {
+        // Get all settings
+        Route::get('/', [\App\Http\Controllers\Api\V1\SettingsController::class, 'index'])->name('api.settings.index');
+
+        // System management routes (must come before {group} wildcard)
+        Route::post('/cache/clear', [\App\Http\Controllers\Api\V1\SettingsController::class, 'clearCache'])->name('api.settings.cache.clear');
+        Route::get('/system-health', [\App\Http\Controllers\Api\V1\SettingsController::class, 'systemHealth'])->name('api.settings.system.health');
+
+        // Update settings by group
+        Route::put('/organization', [\App\Http\Controllers\Api\V1\SettingsController::class, 'updateOrganization'])->name('api.settings.update.organization');
+        Route::put('/financial', [\App\Http\Controllers\Api\V1\SettingsController::class, 'updateFinancial'])->name('api.settings.update.financial');
+        Route::put('/email', [\App\Http\Controllers\Api\V1\SettingsController::class, 'updateEmail'])->name('api.settings.update.email');
+        Route::put('/security', [\App\Http\Controllers\Api\V1\SettingsController::class, 'updateSecurity'])->name('api.settings.update.security');
+        Route::put('/notifications', [\App\Http\Controllers\Api\V1\SettingsController::class, 'updateNotifications'])->name('api.settings.update.notifications');
+
+        // Logo upload
+        Route::post('/logo', [\App\Http\Controllers\Api\V1\SettingsController::class, 'uploadLogo'])->name('api.settings.upload.logo');
+
+        // Get settings by group (must come last, after specific routes)
+        Route::get('/{group}', [\App\Http\Controllers\Api\V1\SettingsController::class, 'show'])->name('api.settings.show');
+    });
+
+    // Audit Trail Routes (Module 13)
+    Route::prefix('audit-trails')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\V1\AuditTrailController::class, 'index'])->name('api.audit-trails.index');
+        Route::get('/filters', [\App\Http\Controllers\Api\V1\AuditTrailController::class, 'filters'])->name('api.audit-trails.filters');
+        Route::get('/export', [\App\Http\Controllers\Api\V1\AuditTrailController::class, 'export'])->name('api.audit-trails.export');
+        Route::get('/{auditTrail}', [\App\Http\Controllers\Api\V1\AuditTrailController::class, 'show'])->name('api.audit-trails.show');
+    });
 });

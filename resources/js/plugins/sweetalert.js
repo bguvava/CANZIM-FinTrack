@@ -218,5 +218,17 @@ export const confirmLogout = async () => {
     );
 };
 
+/**
+ * Show Confirm Dialog (Alias for confirmAction)
+ * Kept for backward compatibility
+ *
+ * @param {string} title - Confirmation dialog title
+ * @param {string} text - Confirmation dialog message
+ * @param {string} confirmText - Confirm button text
+ * @param {string} cancelText - Cancel button text
+ * @returns {Promise<boolean>} - True if confirmed
+ */
+export const showConfirm = confirmAction;
+
 // Export default Swal instance
 export default canzimSwal;

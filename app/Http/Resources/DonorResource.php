@@ -29,33 +29,33 @@ class DonorResource extends JsonResource
             // Computed attributes
             'total_funding' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => (float) $this->projects->sum('pivot.funding_amount')
+                fn () => (float) $this->projects->sum('pivot.funding_amount')
             ),
             'restricted_funding' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => (float) $this->projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount')
+                fn () => (float) $this->projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount')
             ),
             'unrestricted_funding' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => (float) $this->projects->where('pivot.is_restricted', false)->sum('pivot.funding_amount')
+                fn () => (float) $this->projects->where('pivot.is_restricted', false)->sum('pivot.funding_amount')
             ),
             'in_kind_total' => $this->when(
                 $this->relationLoaded('inKindContributions'),
-                fn() => (float) $this->inKindContributions->sum('estimated_value')
+                fn () => (float) $this->inKindContributions->sum('estimated_value')
             ),
             'active_projects_count' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => $this->projects->where('status', 'active')->count()
+                fn () => $this->projects->where('status', 'active')->count()
             ),
             'total_projects_count' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => $this->projects->count()
+                fn () => $this->projects->count()
             ),
 
             // Relationships
             'projects' => $this->when(
                 $this->relationLoaded('projects'),
-                fn() => $this->projects->map(fn($project) => [
+                fn () => $this->projects->map(fn ($project) => [
                     'id' => $project->id,
                     'name' => $project->name,
                     'code' => $project->code,
@@ -69,11 +69,11 @@ class DonorResource extends JsonResource
             ),
             'in_kind_contributions' => $this->when(
                 $this->relationLoaded('inKindContributions'),
-                fn() => $this->inKindContributions
+                fn () => $this->inKindContributions
             ),
             'communications' => $this->when(
                 $this->relationLoaded('communications'),
-                fn() => $this->communications
+                fn () => $this->communications
             ),
 
             // Timestamps

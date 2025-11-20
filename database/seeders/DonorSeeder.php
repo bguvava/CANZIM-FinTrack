@@ -120,7 +120,7 @@ class DonorSeeder extends Seeder
             Donor::create($donorData);
         }
 
-        $this->command->info('✓ Created ' . count($donors) . ' donors');
+        $this->command->info('✓ Created '.count($donors).' donors');
 
         // Create additional test donors with factory
         $this->command->info('Creating additional test donors...');

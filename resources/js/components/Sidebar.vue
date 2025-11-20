@@ -487,7 +487,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "../stores/authStore";
 
 // Props
@@ -514,9 +514,23 @@ const props = defineProps({
 const authStore = useAuthStore();
 const isCollapsed = ref(false);
 const logoPath = "/images/logo/canzim_logo.png";
-
-// Get current path for active state
 const currentPath = ref(window.location.pathname);
+
+// Update currentPath when navigating (for traditional navigation)
+const updateCurrentPath = () => {
+    currentPath.value = window.location.pathname;
+};
+
+// Listen for popstate events (browser back/forward)
+onMounted(() => {
+    window.addEventListener("popstate", updateCurrentPath);
+    // Update on mount
+    updateCurrentPath();
+});
+
+onUnmounted(() => {
+    window.removeEventListener("popstate", updateCurrentPath);
+});
 
 // Toggle sidebar
 const toggleSidebar = () => {

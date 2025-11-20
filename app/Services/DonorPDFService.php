@@ -181,7 +181,7 @@ class DonorPDFService
             'grand_total_contribution' => $grandTotalContribution,
             'total_donors' => $donors->count(),
             'status_filter' => ucfirst($status),
-            'min_funding_filter' => $minFunding > 0 ? '$' . number_format($minFunding, 2) : 'None',
+            'min_funding_filter' => $minFunding > 0 ? '$'.number_format($minFunding, 2) : 'None',
             'generated_at' => now()->format('d M Y H:i:s'),
             'generated_by' => auth()->user(),
         ];

@@ -196,7 +196,7 @@ class DonorService
             'datasets' => [
                 [
                     'label' => 'Total Funding',
-                    'data' => $topDonors->pluck('total_funding')->map(fn($value) => (float) $value)->toArray(),
+                    'data' => $topDonors->pluck('total_funding')->map(fn ($value) => (float) $value)->toArray(),
                     'backgroundColor' => '#2563EB', // CANZIM blue
                 ],
             ],
@@ -227,10 +227,10 @@ class DonorService
             ->where('created_at', '>=', now()->subMonths(12))
             ->groupBy('year', 'month')
             ->get()
-            ->keyBy(fn($item) => $item->year . '-' . $item->month);
+            ->keyBy(fn ($item) => $item->year.'-'.$item->month);
 
         $monthlyData = $months->map(function ($month) use ($fundingByMonth) {
-            $key = $month['year'] . '-' . $month['month_num'];
+            $key = $month['year'].'-'.$month['month_num'];
 
             return (float) ($fundingByMonth->get($key)?->total ?? 0);
         });

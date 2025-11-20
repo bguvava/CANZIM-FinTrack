@@ -24,5 +24,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register User Policy
         Gate::policy(User::class, UserPolicy::class);
+
+        // Register Gates
+        Gate::define('manage-settings', function (User $user) {
+            return $user->role->slug === 'programs-manager';
+        });
     }
 }

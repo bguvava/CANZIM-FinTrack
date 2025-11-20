@@ -102,7 +102,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create donor: ' . $e->getMessage(),
+                'message' => 'Failed to create donor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -117,7 +117,7 @@ class DonorController extends Controller
         $donor->load([
             'projects',
             'inKindContributions.project',
-            'communications' => fn($q) => $q->latest('communication_date'),
+            'communications' => fn ($q) => $q->latest('communication_date'),
         ]);
 
         return response()->json([
@@ -144,7 +144,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update donor: ' . $e->getMessage(),
+                'message' => 'Failed to update donor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -174,7 +174,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete donor: ' . $e->getMessage(),
+                'message' => 'Failed to delete donor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -205,7 +205,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to assign donor to project: ' . $e->getMessage(),
+                'message' => 'Failed to assign donor to project: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -234,7 +234,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to remove donor from project: ' . $e->getMessage(),
+                'message' => 'Failed to remove donor from project: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -286,7 +286,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update donor status: ' . $e->getMessage(),
+                'message' => 'Failed to update donor status: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -312,7 +312,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to record in-kind contribution: ' . $e->getMessage(),
+                'message' => 'Failed to record in-kind contribution: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -345,7 +345,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to log communication: ' . $e->getMessage(),
+                'message' => 'Failed to log communication: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -380,7 +380,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate report: ' . $e->getMessage(),
+                'message' => 'Failed to generate report: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -412,7 +412,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore donor: ' . $e->getMessage(),
+                'message' => 'Failed to restore donor: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -434,7 +434,7 @@ class DonorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch chart data: ' . $e->getMessage(),
+                'message' => 'Failed to fetch chart data: '.$e->getMessage(),
             ], 500);
         }
     }

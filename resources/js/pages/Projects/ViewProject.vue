@@ -479,6 +479,14 @@
                             </p>
                         </div>
                     </div>
+
+                    <!-- Comments Tab -->
+                    <div v-show="activeTab === 'comments'">
+                        <CommentsSection
+                            commentableType="Project"
+                            :commentableId="parseInt(projectId)"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -489,6 +497,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useProjectStore } from "../../stores/projectStore";
 import { useAuthStore } from "../../stores/authStore";
+import CommentsSection from "../../components/comments/CommentsSection.vue";
 
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
@@ -506,6 +515,7 @@ const tabs = [
     { id: "team", label: "Team", icon: "fas fa-users" },
     { id: "activities", label: "Activities", icon: "fas fa-history" },
     { id: "documents", label: "Documents", icon: "fas fa-file-alt" },
+    { id: "comments", label: "Comments", icon: "fas fa-comments" },
 ];
 
 // Computed

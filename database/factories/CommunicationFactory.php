@@ -46,8 +46,8 @@ class CommunicationFactory extends Factory
      */
     public function withAttachment(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'attachment_path' => 'communications/' . fake()->uuid() . '.pdf',
+        return $this->state(fn (array $attributes) => [
+            'attachment_path' => 'communications/'.fake()->uuid().'.pdf',
         ]);
     }
 }

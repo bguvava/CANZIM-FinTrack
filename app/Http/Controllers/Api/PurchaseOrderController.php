@@ -57,8 +57,8 @@ class PurchaseOrderController extends Controller
         // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('po_number', 'like', '%' . $request->search . '%')
-                    ->orWhere('notes', 'like', '%' . $request->search . '%');
+                $q->where('po_number', 'like', '%'.$request->search.'%')
+                    ->orWhere('notes', 'like', '%'.$request->search.'%');
             });
         }
 

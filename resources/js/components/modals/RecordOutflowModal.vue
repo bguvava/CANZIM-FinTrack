@@ -285,7 +285,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useCashFlowStore } from "../../stores/cashFlowStore";
 import { showSuccess, showError } from "../../plugins/sweetalert";
-import api from "../../plugins/api";
+import api from "../../api";
 
 const props = defineProps({
     isOpen: {

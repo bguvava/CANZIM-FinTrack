@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('comment_attachments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('comment_id')->constrained('comments')->onDelete('cascade');
+            $table->foreignId('comment_id')->constrained()->onDelete('cascade');
             $table->string('file_name');
             $table->string('file_path');
-            $table->string('file_type');
-            $table->unsignedInteger('file_size');
-            $table->timestamp('created_at');
+            $table->unsignedInteger('file_size'); // in bytes
+            $table->string('file_type', 50); // mime type
+            $table->timestamps();
 
             // Indexes
             $table->index('comment_id');

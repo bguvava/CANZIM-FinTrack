@@ -21,8 +21,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $auditable_id
  * @property array|null $old_values
  * @property array|null $new_values
- * @property string|null $ip_address
- * @property string|null $user_agent
+ * @property string|null $description
+ * @property string|null $request_url
+ * @property string|null $request_method
  * @property \Illuminate\Support\Carbon $created_at
  * @property-read User|null $user
  * @property-read Model $auditable
@@ -61,8 +62,11 @@ class AuditTrail extends Model
         'auditable_id',
         'old_values',
         'new_values',
+        'description',
         'ip_address',
         'user_agent',
+        'request_url',
+        'request_method',
     ];
 
     /**
@@ -89,7 +93,8 @@ class AuditTrail extends Model
         Model $auditable,
         ?array $oldValues = null,
         ?array $newValues = null,
-        ?int $userId = null
+        ?int $userId = null,
+        ?string $description = null
     ): self {
         return self::create([
             'user_id' => $userId ?? auth()->id(),
@@ -98,8 +103,11 @@ class AuditTrail extends Model
             'auditable_id' => $auditable->id,
             'old_values' => $oldValues,
             'new_values' => $newValues,
+            'description' => $description,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
+            'request_url' => request()->fullUrl(),
+            'request_method' => request()->method(),
         ]);
     }
 }

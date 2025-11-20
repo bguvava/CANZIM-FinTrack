@@ -3,7 +3,6 @@
 namespace Tests\Feature\Donors;
 
 use App\Models\Donor;
-use App\Models\InKindContribution;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;

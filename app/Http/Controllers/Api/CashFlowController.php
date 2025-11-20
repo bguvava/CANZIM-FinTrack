@@ -59,9 +59,9 @@ class CashFlowController extends Controller
         // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('transaction_number', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('reference', 'like', '%' . $request->search . '%');
+                $q->where('transaction_number', 'like', '%'.$request->search.'%')
+                    ->orWhere('description', 'like', '%'.$request->search.'%')
+                    ->orWhere('reference', 'like', '%'.$request->search.'%');
             });
         }
 

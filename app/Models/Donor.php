@@ -117,15 +117,15 @@ class Donor extends Model
         $lastProject = $this->projects()->latest('project_donors.created_at')->first();
         $lastInKind = $this->inKindContributions()->latest('contribution_date')->first();
 
-        if (!$lastProject && !$lastInKind) {
+        if (! $lastProject && ! $lastInKind) {
             return null;
         }
 
-        if (!$lastProject) {
+        if (! $lastProject) {
             return $lastInKind->contribution_date;
         }
 
-        if (!$lastInKind) {
+        if (! $lastInKind) {
             return $lastProject->pivot->created_at->format('Y-m-d');
         }
 

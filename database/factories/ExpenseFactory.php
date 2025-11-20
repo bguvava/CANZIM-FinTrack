@@ -28,7 +28,7 @@ class ExpenseFactory extends Factory
         $expenseCategory = ExpenseCategory::inRandomOrder()->first() ?? ExpenseCategory::factory()->create();
 
         return [
-            'expense_number' => 'EXP-' . date('Y') . '-' . str_pad(fake()->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
+            'expense_number' => 'EXP-'.date('Y').'-'.str_pad(fake()->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'project_id' => Project::factory(),
             'budget_item_id' => BudgetItem::factory(),
             'expense_category_id' => $expenseCategory->id,
@@ -47,7 +47,7 @@ class ExpenseFactory extends Factory
      */
     public function draft(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Draft',
             'submitted_by' => null,
             'submitted_at' => null,
@@ -59,7 +59,7 @@ class ExpenseFactory extends Factory
      */
     public function submitted(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Submitted',
             'submitted_by' => User::factory(),
             'submitted_at' => now(),
@@ -71,7 +71,7 @@ class ExpenseFactory extends Factory
      */
     public function underReview(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Under Review',
             'submitted_by' => User::factory(),
             'submitted_at' => now()->subDays(2),
@@ -85,7 +85,7 @@ class ExpenseFactory extends Factory
      */
     public function approved(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Approved',
             'submitted_by' => User::factory(),
             'submitted_at' => now()->subDays(3),
@@ -101,7 +101,7 @@ class ExpenseFactory extends Factory
      */
     public function rejected(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Rejected',
             'submitted_by' => User::factory(),
             'submitted_at' => now()->subDays(2),
@@ -116,7 +116,7 @@ class ExpenseFactory extends Factory
      */
     public function paid(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'Paid',
             'submitted_by' => User::factory(),
             'submitted_at' => now()->subDays(4),
@@ -126,7 +126,7 @@ class ExpenseFactory extends Factory
             'approved_at' => now()->subDays(2),
             'paid_by' => User::factory(),
             'paid_at' => now()->subDays(1),
-            'payment_reference' => 'PAY-' . fake()->randomNumber(6),
+            'payment_reference' => 'PAY-'.fake()->randomNumber(6),
             'payment_method' => fake()->randomElement(['Bank Transfer', 'Cash', 'Cheque']),
         ]);
     }
@@ -136,9 +136,9 @@ class ExpenseFactory extends Factory
      */
     public function withReceipt(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'receipt_path' => 'receipts/' . date('Y') . '/' . date('m') . '/' . fake()->uuid() . '.pdf',
-            'receipt_original_name' => 'receipt_' . fake()->randomNumber(4) . '.pdf',
+        return $this->state(fn (array $attributes) => [
+            'receipt_path' => 'receipts/'.date('Y').'/'.date('m').'/'.fake()->uuid().'.pdf',
+            'receipt_original_name' => 'receipt_'.fake()->randomNumber(4).'.pdf',
             'receipt_file_size' => fake()->numberBetween(50000, 2000000),
         ]);
     }
