@@ -35,7 +35,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $filters = $request->only(['search', 'role_id', 'status', 'office_location']);
+        $filters = $request->only(['search', 'role_id', 'role', 'status', 'office_location']);
         $perPage = (int) $request->get('per_page', 25);
 
         $users = $this->userService->getUsersList($filters, $perPage);
@@ -243,6 +243,34 @@ class UserController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $locations,
+        ]);
+    }
+
+    /**
+     * Search users for @mention functionality
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->get('per_page', 100);
+        $search = $request->get('search', '');
+
+        $query = User::query()
+            ->where('status', 'active')
+            ->select('id', 'name', 'email')
+            ->orderBy('name');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->limit($perPage)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $users,
         ]);
     }
 }

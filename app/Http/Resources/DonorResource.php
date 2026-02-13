@@ -25,32 +25,28 @@ class DonorResource extends JsonResource
             'website' => $this->website,
             'status' => $this->status,
             'notes' => $this->notes,
+            'funding_total' => $this->funding_total ? (float) $this->funding_total : null,
 
-            // Computed attributes
-            'total_funding' => $this->when(
-                $this->relationLoaded('projects'),
-                fn () => (float) $this->projects->sum('pivot.funding_amount')
-            ),
-            'restricted_funding' => $this->when(
-                $this->relationLoaded('projects'),
-                fn () => (float) $this->projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount')
-            ),
-            'unrestricted_funding' => $this->when(
-                $this->relationLoaded('projects'),
-                fn () => (float) $this->projects->where('pivot.is_restricted', false)->sum('pivot.funding_amount')
-            ),
-            'in_kind_total' => $this->when(
-                $this->relationLoaded('inKindContributions'),
-                fn () => (float) $this->inKindContributions->sum('estimated_value')
-            ),
-            'active_projects_count' => $this->when(
-                $this->relationLoaded('projects'),
-                fn () => $this->projects->where('status', 'active')->count()
-            ),
-            'total_projects_count' => $this->when(
-                $this->relationLoaded('projects'),
-                fn () => $this->projects->count()
-            ),
+            // Computed attributes - Always return values, use loaded relationships or query
+            // Always compute total_funding from the pivot table to ensure accuracy
+            'total_funding' => $this->relationLoaded('projects')
+                ? (float) $this->projects->sum('pivot.funding_amount')
+                : (float) $this->total_funding,
+            'restricted_funding' => $this->relationLoaded('projects')
+                ? (float) $this->projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount')
+                : (float) $this->getRestrictedFundingAttribute(),
+            'unrestricted_funding' => $this->relationLoaded('projects')
+                ? (float) $this->projects->where('pivot.is_restricted', false)->sum('pivot.funding_amount')
+                : (float) $this->getUnrestrictedFundingAttribute(),
+            'in_kind_total' => $this->relationLoaded('inKindContributions')
+                ? (float) $this->inKindContributions->sum('estimated_value')
+                : (float) $this->getInKindTotalAttribute(),
+            'active_projects_count' => $this->relationLoaded('projects')
+                ? $this->projects->where('status', 'active')->count()
+                : $this->projects()->where('status', 'active')->count(),
+            'total_projects_count' => $this->relationLoaded('projects')
+                ? $this->projects->count()
+                : $this->projects()->count(),
 
             // Relationships
             'projects' => $this->when(

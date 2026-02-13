@@ -522,7 +522,7 @@ const loadActivityLogs = async (page = 1) => {
             }
         });
 
-        const response = await api.get("/users/activity-logs", {
+        const response = await api.get("/activity-logs", {
             params,
         });
 
@@ -658,7 +658,7 @@ const handleBulkDelete = async () => {
     bulkDeleteLoading.value = true;
 
     try {
-        await api.post("/users/activity-logs/bulk-delete", {
+        await api.post("/activity-logs/bulk-delete", {
             date_from: bulkDeleteForm.value.date_from,
             date_to: bulkDeleteForm.value.date_to,
         });

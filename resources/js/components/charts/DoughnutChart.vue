@@ -6,9 +6,9 @@
 
 <script setup>
 import { ref, onMounted, watch, onUnmounted } from "vue";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, DoughnutController } from "chart.js";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, DoughnutController);
 
 const props = defineProps({
     chartId: {

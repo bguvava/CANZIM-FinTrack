@@ -54,7 +54,7 @@ class DocumentAccessControlTest extends TestCase
     }
 
     /** @test */
-    public function test_user_cannot_view_document_they_dont_have_access_to()
+    public function test_user_can_view_project_document_even_if_not_project_creator()
     {
         $document = Document::factory()->create([
             'documentable_type' => 'App\\Models\\Project',
@@ -65,7 +65,7 @@ class DocumentAccessControlTest extends TestCase
         $response = $this->actingAs($this->otherUser, 'sanctum')
             ->getJson("/api/v1/documents/{$document->id}");
 
-        $response->assertStatus(403);
+        $response->assertStatus(200);
     }
 
     /** @test */

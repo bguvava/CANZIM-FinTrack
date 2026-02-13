@@ -25,7 +25,10 @@ class PurchaseOrderService
             $taxAmount = $subtotal * 0.15; // 15% tax
             $totalAmount = $subtotal + $taxAmount;
 
-            // Create PO
+            // Determine if this should be submitted for approval
+            $submitForApproval = isset($data['status']) && strtolower($data['status']) === 'pending';
+
+            // Create PO with Draft status initially
             $purchaseOrder = PurchaseOrder::create([
                 'po_number' => PurchaseOrder::generatePONumber(),
                 'vendor_id' => $data['vendor_id'],
@@ -52,6 +55,15 @@ class PurchaseOrderService
                     'unit_price' => $item['unit_price'],
                     'total_price' => $item['quantity'] * $item['unit_price'],
                     'quantity_received' => 0,
+                ]);
+            }
+
+            // If user requested to submit for approval, do it now
+            if ($submitForApproval) {
+                $purchaseOrder->update([
+                    'status' => 'Pending',
+                    'submitted_by' => auth()->id(),
+                    'submitted_at' => now(),
                 ]);
             }
 

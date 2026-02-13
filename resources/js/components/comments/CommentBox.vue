@@ -10,7 +10,8 @@
             <div class="flex items-center text-sm text-gray-600">
                 <i class="fas fa-reply mr-2"></i>
                 <span
-                    >Replying to <strong>{{ replyTo.user.name }}</strong></span
+                    >Replying to
+                    <strong>{{ replyTo?.user?.name || "User" }}</strong></span
                 >
             </div>
             <button
@@ -187,8 +188,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
+import { useAuthStore } from "@/stores/authStore";
+import api from "@/api";
+import { showError, showSuccess } from "@/plugins/sweetalert";
 
 const props = defineProps({
     commentableType: {
@@ -239,12 +241,14 @@ const filteredUsers = computed(() => {
 // Fetch users for @mention autocomplete
 const fetchUsers = async () => {
     try {
-        const response = await axios.get("/api/v1/users/search", {
+        const response = await api.get("/users/search", {
             params: { per_page: 100 },
         });
         allUsers.value = response.data.data || [];
     } catch (error) {
         console.error("Failed to fetch users:", error);
+        // Don't show error to user - @mention is optional feature
+        allUsers.value = [];
     }
 };
 
@@ -379,32 +383,43 @@ const submitComment = async () => {
             data.append(`attachments[${index}]`, file);
         });
 
-        const response = await axios.post("/api/v1/comments", data, {
+        const response = await api.post("/comments", data, {
             headers: { "Content-Type": "multipart/form-data" },
         });
 
-        emit("comment-added", response.data.data);
-
-        // Reset form
+        // Reset form first
         formData.value.content = "";
         formData.value.attachments = [];
+        errors.value = {};
 
-        Swal.fire({
-            icon: "success",
-            title: "Success",
-            text: "Comment posted successfully",
-            timer: 2000,
-            showConfirmButton: false,
-        });
+        // Emit comment added (updates list and triggers close)
+        emit("comment-added", response.data.data);
+
+        // Show success message without blocking (don't await)
+        showSuccess("Success", "Comment posted successfully");
     } catch (error) {
-        if (error.response && error.response.data.errors) {
+        console.error("Error posting comment:", error);
+
+        if (error.response?.status === 401) {
+            showError(
+                "Authentication Error",
+                "Your session may have expired. Please refresh the page and try again.",
+            );
+        } else if (
+            error.response?.status === 422 &&
+            error.response?.data?.errors
+        ) {
             errors.value = error.response.data.errors;
+            showError(
+                "Validation Error",
+                "Please check your input and try again.",
+            );
         } else {
-            Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: "Failed to post comment. Please try again.",
-            });
+            const errorMessage =
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to post comment. Please try again.";
+            showError("Error", errorMessage);
         }
     } finally {
         submitting.value = false;

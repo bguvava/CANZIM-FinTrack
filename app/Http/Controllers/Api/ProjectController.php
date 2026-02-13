@@ -25,7 +25,15 @@ class ProjectController extends Controller
     {
         $this->authorize('viewAny', Project::class);
 
+        $user = $request->user();
         $query = Project::with(['donors', 'creator', 'budgets']);
+
+        // Project Officers should only see their assigned projects
+        if ($user->role->slug === 'project-officer') {
+            $query->whereHas('teamMembers', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -143,9 +151,13 @@ class ProjectController extends Controller
         try {
             $this->projectService->archiveProject($project);
 
+            // Reload the project with relationships
+            $project->load(['donors', 'teamMembers', 'creator']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Project archived successfully',
+                'data' => $project,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -216,6 +228,92 @@ class ProjectController extends Controller
         return response()->json([
             'success' => true,
             'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Assign team members to a project.
+     */
+    public function assignTeamMembers(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('update', $project);
+
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'required|exists:users,id',
+            'role' => 'nullable|string|in:team_member,project_lead',
+        ]);
+
+        try {
+            $role = $request->input('role', 'team_member');
+            $syncData = [];
+
+            foreach ($request->user_ids as $userId) {
+                $syncData[$userId] = ['role' => $role];
+            }
+
+            $project->teamMembers()->syncWithoutDetaching($syncData);
+
+            $project->load('teamMembers.role');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Team members assigned successfully',
+                'data' => $project,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign team members: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove a team member from a project.
+     */
+    public function removeTeamMember(Project $project, int $userId): JsonResponse
+    {
+        $this->authorize('update', $project);
+
+        try {
+            $project->teamMembers()->detach($userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Team member removed successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove team member: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get team members for a project.
+     */
+    public function getTeamMembers(Project $project): JsonResponse
+    {
+        $this->authorize('view', $project);
+
+        $teamMembers = $project->teamMembers()
+            ->with('role')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role->name,
+                    'project_role' => $user->pivot->role,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $teamMembers,
         ]);
     }
 }

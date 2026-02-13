@@ -84,7 +84,7 @@ class SystemSettingsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            
+
             // Financial Settings
             [
                 'key' => 'base_currency',
@@ -126,7 +126,7 @@ class SystemSettingsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            
+
             // Email Settings
             [
                 'key' => 'mail_from_address',
@@ -148,7 +148,7 @@ class SystemSettingsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            
+
             // Security Settings
             [
                 'key' => 'session_timeout',
@@ -190,7 +190,7 @@ class SystemSettingsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            
+
             // Notification Settings (System Defaults)
             [
                 'key' => 'notifications_expense_approvals',
@@ -242,7 +242,7 @@ class SystemSettingsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            
+
             // General Settings
             [
                 'key' => 'timezone',

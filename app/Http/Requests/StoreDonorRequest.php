@@ -31,6 +31,7 @@ class StoreDonorRequest extends FormRequest
             'website' => ['nullable', 'url', 'max:255'],
             'status' => ['nullable', 'in:active,inactive'],
             'notes' => ['nullable', 'string'],
+            'funding_total' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -44,6 +45,8 @@ class StoreDonorRequest extends FormRequest
             'email.email' => 'Please provide a valid email address',
             'email.unique' => 'This email is already registered to another donor',
             'website.url' => 'Please provide a valid website URL',
+            'funding_total.numeric' => 'Funding total must be a valid number',
+            'funding_total.min' => 'Funding total must be zero or greater',
         ];
     }
 }

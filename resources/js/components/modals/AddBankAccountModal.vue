@@ -159,7 +159,7 @@
                             <label
                                 class="block text-sm font-medium text-gray-700 mb-2"
                             >
-                                Opening Balance
+                                Current Balance
                                 <span class="text-red-500">*</span>
                             </label>
                             <div class="relative">
@@ -170,11 +170,11 @@
                                 </span>
                                 <input
                                     type="number"
-                                    v-model.number="form.opening_balance"
+                                    v-model.number="form.current_balance"
                                     class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                                     :class="{
                                         'border-red-500':
-                                            errors.opening_balance,
+                                            errors.current_balance,
                                     }"
                                     placeholder="0.00"
                                     step="0.01"
@@ -183,10 +183,10 @@
                                 />
                             </div>
                             <p
-                                v-if="errors.opening_balance"
+                                v-if="errors.current_balance"
                                 class="mt-1 text-sm text-red-500"
                             >
-                                {{ errors.opening_balance[0] }}
+                                {{ errors.current_balance[0] }}
                             </p>
                             <p class="mt-1 text-xs text-gray-500">
                                 The initial balance for this account
@@ -225,10 +225,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             :disabled="submitting"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -238,6 +238,10 @@
                             <i
                                 v-if="submitting"
                                 class="fas fa-spinner fa-spin mr-2"
+                            ></i>
+                            <i
+                                v-if="!submitting"
+                                class="fas fa-plus mr-1.5"
                             ></i>
                             {{ submitting ? "Creating..." : "Create Account" }}
                         </button>
@@ -270,7 +274,7 @@ const form = ref({
     branch: "",
     account_number: "",
     currency: "USD",
-    opening_balance: 0,
+    current_balance: 0,
     description: "",
 });
 
@@ -291,7 +295,7 @@ const resetForm = () => {
         branch: "",
         account_number: "",
         currency: "USD",
-        opening_balance: 0,
+        current_balance: 0,
         description: "",
     };
     errors.value = {};

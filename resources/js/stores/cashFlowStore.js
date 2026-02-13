@@ -29,20 +29,39 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
     });
 
     // Getters
-    const activeBankAccounts = computed(() =>
-        bankAccounts.value.filter((account) => account.is_active),
-    );
+    const activeBankAccounts = computed(() => {
+        if (!Array.isArray(bankAccounts.value)) return [];
+        return bankAccounts.value.filter(
+            (account) =>
+                account != null &&
+                typeof account === "object" &&
+                "is_active" in account &&
+                account.is_active === true,
+        );
+    });
 
-    const totalBalance = computed(() =>
-        bankAccounts.value.reduce(
-            (sum, account) => sum + parseFloat(account.current_balance || 0),
-            0,
-        ),
-    );
+    const totalBalance = computed(() => {
+        if (!Array.isArray(bankAccounts.value)) return 0;
+        return bankAccounts.value
+            .filter(
+                (account) =>
+                    account != null &&
+                    typeof account === "object" &&
+                    "current_balance" in account,
+            )
+            .reduce(
+                (sum, account) =>
+                    sum + parseFloat(account.current_balance || 0),
+                0,
+            );
+    });
 
-    const unreconciledTransactions = computed(() =>
-        cashFlows.value.filter((cf) => !cf.is_reconciled),
-    );
+    const unreconciledTransactions = computed(() => {
+        if (!Array.isArray(cashFlows.value)) return [];
+        return cashFlows.value.filter(
+            (cf) => cf != null && typeof cf === "object" && !cf.is_reconciled,
+        );
+    });
 
     // Actions - Bank Accounts
     async function fetchBankAccounts() {
@@ -65,9 +84,20 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         error.value = null;
         try {
             const response = await api.post("/bank-accounts", data);
-            bankAccounts.value.unshift(
-                response.data.bank_account || response.data.data,
-            );
+            // API returns 'account' key, fallback to 'bank_account' or 'data'
+            const newAccount =
+                response.data.account ||
+                response.data.bank_account ||
+                response.data.data;
+            // Only add valid account objects with required properties
+            if (
+                newAccount &&
+                typeof newAccount === "object" &&
+                "id" in newAccount &&
+                "bank_name" in newAccount
+            ) {
+                bankAccounts.value.unshift(newAccount);
+            }
             return response.data;
         } catch (err) {
             error.value =
@@ -84,11 +114,14 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         try {
             const response = await api.put(`/bank-accounts/${id}`, data);
             const index = bankAccounts.value.findIndex(
-                (account) => account.id === id,
+                (account) => account && account.id === id,
             );
             if (index !== -1) {
+                // API returns 'account' key, fallback to 'bank_account' or 'data'
                 bankAccounts.value[index] =
-                    response.data.bank_account || response.data.data;
+                    response.data.account ||
+                    response.data.bank_account ||
+                    response.data.data;
             }
             return response.data;
         } catch (err) {
@@ -106,9 +139,9 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         try {
             const response = await api.post(`/bank-accounts/${id}/deactivate`);
             const index = bankAccounts.value.findIndex(
-                (account) => account.id === id,
+                (account) => account && account.id === id,
             );
-            if (index !== -1) {
+            if (index !== -1 && bankAccounts.value[index]) {
                 bankAccounts.value[index].is_active = false;
             }
             return response.data;
@@ -128,9 +161,9 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         try {
             const response = await api.post(`/bank-accounts/${id}/activate`);
             const index = bankAccounts.value.findIndex(
-                (account) => account.id === id,
+                (account) => account && account.id === id,
             );
-            if (index !== -1) {
+            if (index !== -1 && bankAccounts.value[index]) {
                 bankAccounts.value[index].is_active = true;
             }
             return response.data;
@@ -191,7 +224,7 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await api.post("/cash-flows/inflow", data);
+            const response = await api.post("/cash-flows/inflows", data);
             await fetchCashFlows(pagination.value.current_page);
             await fetchBankAccounts(); // Refresh balances
             return response.data;
@@ -208,7 +241,7 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await api.post("/cash-flows/outflow", data);
+            const response = await api.post("/cash-flows/outflows", data);
             await fetchCashFlows(pagination.value.current_page);
             await fetchBankAccounts(); // Refresh balances
             return response.data;
@@ -221,14 +254,19 @@ export const useCashFlowStore = defineStore("cashFlow", () => {
         }
     }
 
-    async function reconcileCashFlow(id) {
+    async function reconcileCashFlow(id, reconciliationDate = null) {
         loading.value = true;
         error.value = null;
         try {
-            const response = await api.post(`/cash-flows/${id}/reconcile`);
+            const response = await api.post(`/cash-flows/${id}/reconcile`, {
+                reconciliation_date:
+                    reconciliationDate ||
+                    new Date().toISOString().split("T")[0],
+            });
             const index = cashFlows.value.findIndex((cf) => cf.id === id);
             if (index !== -1) {
-                cashFlows.value[index] = response.data.cash_flow;
+                cashFlows.value[index] =
+                    response.data.data || response.data.cash_flow;
             }
             return response.data;
         } catch (err) {

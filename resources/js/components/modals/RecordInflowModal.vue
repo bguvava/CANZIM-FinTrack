@@ -110,7 +110,7 @@
                             >
                                 <option value="">Select bank account</option>
                                 <option
-                                    v-for="account in cashFlowStore.activeBankAccounts"
+                                    v-for="account in safeBankAccounts"
                                     :key="account.id"
                                     :value="account.id"
                                 >
@@ -135,13 +135,31 @@
                                     class="block text-sm font-medium text-gray-700 mb-2"
                                 >
                                     Donor/Source
+                                    <span class="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    v-model="form.donor"
+                                <select
+                                    v-model="form.donor_id"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-                                    placeholder="e.g., USAID, EU, Anonymous"
-                                />
+                                    :class="{
+                                        'border-red-500': errors.donor_id,
+                                    }"
+                                    required
+                                >
+                                    <option value="">Select Donor</option>
+                                    <option
+                                        v-for="donor in safeDonors"
+                                        :key="donor.id"
+                                        :value="donor.id"
+                                    >
+                                        {{ donor.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="errors.donor_id"
+                                    class="mt-1 text-sm text-red-500"
+                                >
+                                    {{ errors.donor_id[0] }}
+                                </p>
                             </div>
 
                             <div>
@@ -156,7 +174,7 @@
                                 >
                                     <option value="">None</option>
                                     <option
-                                        v-for="project in projects"
+                                        v-for="project in safeProjects"
                                         :key="project.id"
                                         :value="project.id"
                                     >
@@ -175,7 +193,7 @@
                             </label>
                             <input
                                 type="text"
-                                v-model="form.reference_number"
+                                v-model="form.reference"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                                 placeholder="e.g., Receipt #, Wire Transfer ID"
                             />
@@ -218,10 +236,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             :disabled="submitting"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -231,6 +249,10 @@
                             <i
                                 v-if="submitting"
                                 class="fas fa-spinner fa-spin mr-2"
+                            ></i>
+                            <i
+                                v-if="!submitting"
+                                class="fas fa-arrow-down mr-1.5"
                             ></i>
                             {{ submitting ? "Recording..." : "Record Inflow" }}
                         </button>
@@ -242,9 +264,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useCashFlowStore } from "../../stores/cashFlowStore";
-import { showSuccess, showError } from "../../plugins/sweetalert";
+import { Toast, showError } from "../../plugins/sweetalert";
 import api from "../../api";
 
 const props = defineProps({
@@ -262,25 +284,59 @@ const form = ref({
     transaction_date: new Date().toISOString().split("T")[0],
     amount: "",
     bank_account_id: "",
-    donor: "",
+    donor_id: "",
     project_id: "",
-    reference_number: "",
+    reference: "",
     description: "",
 });
 
 const errors = ref({});
 const submitting = ref(false);
 const projects = ref([]);
+const donors = ref([]);
 
-// Fetch projects for dropdown
+// Computed properties to safely filter arrays
+const safeBankAccounts = computed(() => {
+    const accounts = cashFlowStore.activeBankAccounts;
+    if (!accounts || !Array.isArray(accounts)) return [];
+    return accounts.filter((account) => account && account.id);
+});
+
+const safeProjects = computed(() => {
+    if (!projects.value || !Array.isArray(projects.value)) return [];
+    return projects.value.filter(
+        (project) => project && project.id && project.name,
+    );
+});
+
+const safeDonors = computed(() => {
+    if (!donors.value || !Array.isArray(donors.value)) return [];
+    return donors.value.filter((donor) => donor && donor.id && donor.name);
+});
+
+// Fetch projects and donors for dropdowns
 onMounted(async () => {
     try {
-        const response = await api.get("/api/v1/projects", {
-            params: { status: "active", per_page: 100 },
-        });
-        projects.value = response.data.data || response.data;
+        const [projectsResponse, donorsResponse] = await Promise.all([
+            api.get("/projects", {
+                params: { status: "active", per_page: 100 },
+            }),
+            api.get("/donors"),
+        ]);
+
+        // Projects: { success: true, data: { data: [...], ... } } (paginated)
+        const projectsPayload = projectsResponse.data?.data;
+        const projectsArray = projectsPayload?.data || projectsPayload;
+        projects.value = Array.isArray(projectsArray) ? projectsArray : [];
+
+        // Donors: { success: true, data: { data: [...], ... } } (paginated)
+        const donorsPayload = donorsResponse.data?.data;
+        const donorsArray = donorsPayload?.data || donorsPayload;
+        donors.value = Array.isArray(donorsArray) ? donorsArray : [];
     } catch (error) {
-        console.error("Failed to fetch projects:", error);
+        console.error("Failed to fetch data:", error);
+        projects.value = [];
+        donors.value = [];
     }
 });
 
@@ -303,9 +359,9 @@ const resetForm = () => {
         transaction_date: new Date().toISOString().split("T")[0],
         amount: "",
         bank_account_id: "",
-        donor: "",
+        donor_id: "",
         project_id: "",
-        reference_number: "",
+        reference: "",
         description: "",
     };
     errors.value = {};
@@ -319,9 +375,14 @@ const handleSubmit = async () => {
 
     try {
         await cashFlowStore.recordInflow(form.value);
-        showSuccess("Cash inflow recorded successfully!");
+        resetForm();
         emit("inflow-recorded");
+        submitting.value = false;
         closeModal();
+        Toast.fire({
+            icon: "success",
+            title: "Cash inflow recorded successfully!",
+        });
     } catch (error) {
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors || {};

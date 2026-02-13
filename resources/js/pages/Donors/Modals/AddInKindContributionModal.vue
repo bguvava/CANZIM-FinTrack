@@ -220,8 +220,9 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                        class="px-4 py-2 border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition"
                     >
+                        <i class="fas fa-times mr-1.5"></i>
                         Cancel
                     </button>
                     <button
@@ -233,6 +234,7 @@
                             v-if="submitting"
                             class="fas fa-spinner fa-spin mr-2"
                         ></i>
+                        <i v-else class="fas fa-gift mr-1.5"></i>
                         {{
                             submitting ? "Recording..." : "Record Contribution"
                         }}

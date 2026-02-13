@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import api from "../api";
 
 export const useDonorStore = defineStore("donor", {
     state: () => ({
@@ -93,20 +93,31 @@ export const useDonorStore = defineStore("donor", {
                     }
                 });
 
-                const response = await axios.get("/api/v1/donors", { params });
+                const response = await api.get("/donors", { params });
 
                 if (response.data.success) {
-                    this.donors = response.data.data.data;
+                    // Handle both response formats:
+                    // 1. data contains paginated items with data.data structure
+                    // 2. data is directly the array and pagination is separate
+                    this.donors =
+                        response.data.data?.data || response.data.data || [];
+
+                    // Get pagination from separate key or from nested structure
+                    const paginationData =
+                        response.data.pagination || response.data.data;
                     this.pagination = {
-                        current_page: response.data.data.current_page,
-                        last_page: response.data.data.last_page,
-                        per_page: response.data.data.per_page,
-                        total: response.data.data.total,
+                        current_page: paginationData?.current_page || 1,
+                        last_page: paginationData?.last_page || 1,
+                        per_page: paginationData?.per_page || 25,
+                        total: paginationData?.total || 0,
                     };
+                } else {
+                    this.donors = [];
                 }
             } catch (error) {
                 this.error =
                     error.response?.data?.message || "Failed to fetch donors";
+                this.donors = [];
                 console.error("Error fetching donors:", error);
             } finally {
                 this.loading = false;
@@ -118,10 +129,16 @@ export const useDonorStore = defineStore("donor", {
          */
         async fetchStatistics() {
             try {
-                const response = await axios.get("/api/v1/donors/statistics");
+                const response = await api.get("/donors/statistics");
 
-                if (response.data.success) {
-                    this.statistics = response.data.data;
+                if (response.data.success && response.data.data) {
+                    this.statistics = {
+                        total_donors: response.data.data.total_donors || 0,
+                        active_donors: response.data.data.active_donors || 0,
+                        total_funding: response.data.data.total_funding || 0,
+                        average_funding:
+                            response.data.data.average_funding || 0,
+                    };
                 }
             } catch (error) {
                 console.error("Error fetching donor statistics:", error);
@@ -136,7 +153,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.get(`/api/v1/donors/${id}`);
+                const response = await api.get(`/donors/${id}`);
 
                 if (response.data.success) {
                     this.currentDonor = response.data.data;
@@ -158,7 +175,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.post("/api/v1/donors", donorData);
+                const response = await api.post("/donors", donorData);
 
                 if (response.data.success) {
                     this.donors.unshift(response.data.data);
@@ -188,10 +205,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.put(
-                    `/api/v1/donors/${id}`,
-                    donorData,
-                );
+                const response = await api.put(`/donors/${id}`, donorData);
 
                 if (response.data.success) {
                     // Update in donors list
@@ -233,7 +247,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.delete(`/api/v1/donors/${id}`);
+                const response = await api.delete(`/donors/${id}`);
 
                 if (response.data.success) {
                     // Remove from donors list
@@ -261,9 +275,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/donors/${id}/toggle-status`,
-                );
+                const response = await api.post(`/donors/${id}/toggle-status`);
 
                 if (response.data.success) {
                     // Update in donors list
@@ -300,8 +312,8 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/donors/${donorId}/assign-project`,
+                const response = await api.post(
+                    `/donors/${donorId}/assign-project`,
                     projectData,
                 );
 
@@ -337,8 +349,8 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.delete(
-                    `/api/v1/donors/${donorId}/projects/${projectId}`,
+                const response = await api.delete(
+                    `/donors/${donorId}/projects/${projectId}`,
                 );
 
                 if (response.data.success) {
@@ -368,8 +380,8 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    "/api/v1/in-kind-contributions",
+                const response = await api.post(
+                    "/in-kind-contributions",
                     contributionData,
                 );
 
@@ -411,15 +423,11 @@ export const useDonorStore = defineStore("donor", {
                     }
                 });
 
-                const response = await axios.post(
-                    "/api/v1/communications",
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data",
-                        },
+                const response = await api.post("/communications", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
                     },
-                );
+                });
 
                 if (response.data.success) {
                     // Refresh current donor if it matches
@@ -454,8 +462,8 @@ export const useDonorStore = defineStore("donor", {
          */
         async getFundingSummary(donorId) {
             try {
-                const response = await axios.get(
-                    `/api/v1/donors/${donorId}/funding-summary`,
+                const response = await api.get(
+                    `/donors/${donorId}/funding-summary`,
                 );
 
                 if (response.data.success) {
@@ -470,14 +478,12 @@ export const useDonorStore = defineStore("donor", {
         /**
          * Generate donor financial report (PDF)
          */
-        async generateReport(donorId) {
+        async generateReport(donorId, filters = {}) {
             try {
-                const response = await axios.get(
-                    `/api/v1/donors/${donorId}/report`,
-                    {
-                        responseType: "blob",
-                    },
-                );
+                const response = await api.get(`/donors/${donorId}/report`, {
+                    params: filters,
+                    responseType: "blob",
+                });
 
                 // Create blob URL and trigger download
                 const blob = new Blob([response.data], {
@@ -502,6 +508,23 @@ export const useDonorStore = defineStore("donor", {
         },
 
         /**
+         * Fetch funding timeline for a donor
+         */
+        async fetchFundingTimeline(donorId) {
+            try {
+                const response = await api.get(
+                    `/donors/${donorId}/funding-timeline`,
+                );
+                return response.data;
+            } catch (error) {
+                this.error =
+                    error.response?.data?.message ||
+                    "Failed to fetch funding timeline";
+                throw error;
+            }
+        },
+
+        /**
          * Restore a soft-deleted donor
          */
         async restoreDonor(id) {
@@ -509,9 +532,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/donors/${id}/restore`,
-                );
+                const response = await api.post(`/donors/${id}/restore`);
 
                 if (response.data.success) {
                     await this.fetchDonors(this.pagination.current_page);
@@ -553,7 +574,7 @@ export const useDonorStore = defineStore("donor", {
             this.error = null;
 
             try {
-                const response = await axios.get("/api/v1/donors/chart-data");
+                const response = await api.get("/donors/chart-data");
 
                 if (response.data.success) {
                     return response.data.data;

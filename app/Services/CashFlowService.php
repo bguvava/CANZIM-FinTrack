@@ -142,8 +142,11 @@ class CashFlowService
             ->get();
 
         // Calculate average monthly inflows and outflows
-        $avgMonthlyInflow = $cashFlows->where('type', 'inflow')->avg('amount') ?? 0;
-        $avgMonthlyOutflow = $cashFlows->where('type', 'outflow')->avg('amount') ?? 0;
+        // Sum all inflows/outflows and divide by 6 months to get monthly average
+        $totalInflows = $cashFlows->where('type', 'inflow')->sum('amount') ?? 0;
+        $totalOutflows = $cashFlows->where('type', 'outflow')->sum('amount') ?? 0;
+        $avgMonthlyInflow = $totalInflows / 6;
+        $avgMonthlyOutflow = $totalOutflows / 6;
         $avgNetCashFlow = $avgMonthlyInflow - $avgMonthlyOutflow;
 
         // Project future balances

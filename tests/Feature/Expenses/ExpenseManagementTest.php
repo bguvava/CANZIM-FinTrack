@@ -178,8 +178,14 @@ class ExpenseManagementTest extends TestCase
             'project_id' => $this->project->id,
         ]);
 
+        $bankAccount = \App\Models\BankAccount::factory()->create([
+            'current_balance' => 10000.00,
+            'is_active' => true,
+        ]);
+
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
             ->postJson("/api/v1/expenses/{$expense->id}/mark-paid", [
+                'bank_account_id' => $bankAccount->id,
                 'payment_reference' => 'PAY-12345',
                 'payment_method' => 'Bank Transfer',
                 'payment_notes' => 'Paid successfully',
@@ -313,8 +319,14 @@ class ExpenseManagementTest extends TestCase
         $this->assertEquals('Approved', $expense->status);
 
         // 5. Mark as Paid
+        $bankAccount = \App\Models\BankAccount::factory()->create([
+            'current_balance' => 10000.00,
+            'is_active' => true,
+        ]);
+
         $this->actingAs($this->financeOfficer, 'sanctum')
             ->postJson("/api/v1/expenses/{$expense->id}/mark-paid", [
+                'bank_account_id' => $bankAccount->id,
                 'payment_reference' => 'PAY-TEST-001',
                 'payment_method' => 'Bank Transfer',
             ])
@@ -323,5 +335,115 @@ class ExpenseManagementTest extends TestCase
         $expense->refresh();
         $this->assertEquals('Paid', $expense->status);
         $this->assertNotNull($expense->paid_at);
+    }
+
+    /** @test */
+    public function project_officer_can_edit_rejected_expense(): void
+    {
+        $expense = Expense::factory()->create([
+            'project_id' => $this->project->id,
+            'submitted_by' => $this->projectOfficer->id,
+            'status' => 'Rejected',
+            'rejection_reason' => 'Insufficient documentation',
+            'rejected_by' => $this->financeOfficer->id,
+            'rejected_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->projectOfficer, 'sanctum')
+            ->putJson("/api/v1/expenses/{$expense->id}", [
+                'project_id' => $this->project->id,
+                'budget_item_id' => $this->budgetItem->id,
+                'expense_category_id' => $this->category->id,
+                'expense_date' => now()->format('Y-m-d'),
+                'amount' => 600,
+                'description' => 'Updated expense with proper documentation',
+            ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('expenses', [
+            'id' => $expense->id,
+            'amount' => 600,
+            'description' => 'Updated expense with proper documentation',
+        ]);
+    }
+
+    /** @test */
+    public function resubmit_rejected_expense_clears_previous_review_data(): void
+    {
+        $expense = Expense::factory()->create([
+            'project_id' => $this->project->id,
+            'submitted_by' => $this->projectOfficer->id,
+            'status' => 'Rejected',
+            'reviewed_by' => $this->financeOfficer->id,
+            'reviewed_at' => now(),
+            'review_comments' => 'Initial review comments',
+            'rejected_by' => $this->programsManager->id,
+            'rejected_at' => now(),
+            'rejection_reason' => 'Insufficient documentation',
+        ]);
+
+        $response = $this->actingAs($this->projectOfficer, 'sanctum')
+            ->postJson("/api/v1/expenses/{$expense->id}/submit");
+
+        $response->assertStatus(200);
+
+        $expense->refresh();
+
+        // Verify status updated and review data cleared
+        $this->assertEquals('Submitted', $expense->status);
+        $this->assertNull($expense->reviewed_by);
+        $this->assertNull($expense->reviewed_at);
+        $this->assertNull($expense->review_comments);
+        $this->assertNull($expense->rejected_by);
+        $this->assertNull($expense->rejected_at);
+        $this->assertNull($expense->rejection_reason);
+    }
+
+    /** @test */
+    public function resubmission_preserves_approval_history(): void
+    {
+        // Create expense with approval history
+        $expense = Expense::factory()->create([
+            'project_id' => $this->project->id,
+            'submitted_by' => $this->projectOfficer->id,
+            'status' => 'Rejected',
+        ]);
+
+        // Create approval history entry (use 'rejected' not 'reject')
+        $expense->approvals()->create([
+            'user_id' => $this->financeOfficer->id,
+            'stage' => 'review',
+            'action' => 'rejected',
+            'comments' => 'Missing receipts',
+            'approved_at' => now(),
+        ]);
+
+        $this->assertEquals(1, $expense->approvals()->count());
+
+        // Resubmit expense
+        $this->actingAs($this->projectOfficer, 'sanctum')
+            ->postJson("/api/v1/expenses/{$expense->id}/submit")
+            ->assertStatus(200);
+
+        // Verify approval history preserved
+        $expense->refresh();
+        $this->assertEquals(1, $expense->approvals()->count());
+        $this->assertEquals('Missing receipts', $expense->approvals()->first()->comments);
+    }
+
+    /** @test */
+    public function project_officer_cannot_edit_expense_under_review(): void
+    {
+        $expense = Expense::factory()->underReview()->create([
+            'submitted_by' => $this->projectOfficer->id,
+        ]);
+
+        $response = $this->actingAs($this->projectOfficer, 'sanctum')
+            ->putJson("/api/v1/expenses/{$expense->id}", [
+                'amount' => 1000,
+            ]);
+
+        $response->assertStatus(403);
     }
 }

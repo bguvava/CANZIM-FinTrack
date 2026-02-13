@@ -20,8 +20,8 @@ class DocumentService
 
         // Create document record
         $document = Document::create([
-            'documentable_type' => $data['documentable_type'],
-            'documentable_id' => $data['documentable_id'],
+            'documentable_type' => $data['documentable_type'] ?? null,
+            'documentable_id' => $data['documentable_id'] ?? null,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'category' => $data['category'],
@@ -137,7 +137,7 @@ class DocumentService
     {
         $year = date('Y');
         $month = date('m');
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
 
         return $file->storeAs(
             "documents/{$year}/{$month}",

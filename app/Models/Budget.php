@@ -14,6 +14,18 @@ class Budget extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * The accessors to append to the model's array/JSON form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'total_allocated',
+        'total_spent',
+        'total_remaining',
+        'utilization_percentage',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -99,7 +111,11 @@ class Budget extends Model
      */
     public function getTotalAllocatedAttribute(): float
     {
-        return $this->items()->sum('allocated_amount');
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum('allocated_amount');
+        }
+
+        return (float) $this->items()->sum('allocated_amount');
     }
 
     /**
@@ -107,7 +123,11 @@ class Budget extends Model
      */
     public function getTotalSpentAttribute(): float
     {
-        return $this->items()->sum('spent_amount');
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum('spent_amount');
+        }
+
+        return (float) $this->items()->sum('spent_amount');
     }
 
     /**
@@ -115,7 +135,7 @@ class Budget extends Model
      */
     public function getTotalRemainingAttribute(): float
     {
-        return $this->items()->sum('remaining_amount');
+        return $this->total_allocated - $this->total_spent;
     }
 
     /**

@@ -192,9 +192,9 @@
                     </p>
                     <button
                         @click="closeModal"
-                        class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                     >
-                        Close
+                        <i class="fas fa-times mr-1.5"></i>Close
                     </button>
                 </div>
             </div>
@@ -204,7 +204,7 @@
 
 <script>
 import { ref, onMounted } from "vue";
-import axios from "axios";
+import api from "@/api";
 
 export default {
     name: "DocumentVersionsModal",
@@ -222,7 +222,7 @@ export default {
         const loadVersions = async () => {
             loading.value = true;
             try {
-                const response = await axios.get(
+                const response = await api.get(
                     `/api/v1/documents/${props.document.id}/versions`,
                 );
                 versions.value = response.data.data.versions || [];
@@ -238,7 +238,7 @@ export default {
             try {
                 // For archived versions, we might need a different endpoint
                 // For now, we'll use the document ID and construct a download URL
-                const response = await axios.get(
+                const response = await api.get(
                     `/api/v1/documents/${props.document.id}/download`,
                     {
                         params: { version: version.version_number },

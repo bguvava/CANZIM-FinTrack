@@ -67,6 +67,7 @@ class AuditTrail extends Model
         'user_agent',
         'request_url',
         'request_method',
+        'created_at',
     ];
 
     /**

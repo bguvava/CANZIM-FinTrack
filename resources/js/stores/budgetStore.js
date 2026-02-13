@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import api from "../api";
 
 export const useBudgetStore = defineStore("budget", {
     state: () => ({
@@ -146,7 +146,7 @@ export const useBudgetStore = defineStore("budget", {
                     }
                 });
 
-                const response = await axios.get("/api/v1/budgets", { params });
+                const response = await api.get("/budgets", { params });
 
                 if (response.data.success) {
                     this.budgets = response.data.data.data;
@@ -174,7 +174,7 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.get(`/api/v1/budgets/${id}`);
+                const response = await api.get(`/budgets/${id}`);
 
                 if (response.data.success) {
                     this.currentBudget = response.data.data;
@@ -194,7 +194,7 @@ export const useBudgetStore = defineStore("budget", {
          */
         async fetchBudgetCategories() {
             try {
-                const response = await axios.get("/api/v1/budgets/categories");
+                const response = await api.get("/budgets/categories");
 
                 if (response.data.success) {
                     this.budgetCategories = response.data.data;
@@ -212,10 +212,7 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    "/api/v1/budgets",
-                    budgetData,
-                );
+                const response = await api.post("/budgets", budgetData);
 
                 if (response.data.success) {
                     this.budgets.unshift(response.data.data);
@@ -244,10 +241,7 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.put(
-                    `/api/v1/budgets/${id}`,
-                    budgetData,
-                );
+                const response = await api.put(`/budgets/${id}`, budgetData);
 
                 if (response.data.success) {
                     // Update in budgets list
@@ -286,10 +280,9 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/budgets/${id}/approve`,
-                    { notes },
-                );
+                const response = await api.post(`/budgets/${id}/approve`, {
+                    notes,
+                });
 
                 if (response.data.success) {
                     // Update in budgets list
@@ -322,8 +315,8 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/budgets/${budgetId}/reallocations`,
+                const response = await api.post(
+                    `/budgets/${budgetId}/reallocations`,
                     reallocationData,
                 );
 
@@ -354,8 +347,8 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/budgets/${budgetId}/reallocations/${reallocationId}/approve`,
+                const response = await api.post(
+                    `/budgets/${budgetId}/reallocations/${reallocationId}/approve`,
                     { notes },
                 );
 
@@ -393,8 +386,8 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/budgets/${budgetId}/reallocations/${reallocationId}/reject`,
+                const response = await api.post(
+                    `/budgets/${budgetId}/reallocations/${reallocationId}/reject`,
                     { notes },
                 );
 
@@ -427,7 +420,7 @@ export const useBudgetStore = defineStore("budget", {
             this.error = null;
 
             try {
-                const response = await axios.delete(`/api/v1/budgets/${id}`);
+                const response = await api.delete(`/budgets/${id}`);
 
                 if (response.data.success) {
                     // Remove from budgets list

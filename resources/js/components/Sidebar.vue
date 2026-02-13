@@ -439,21 +439,27 @@
                         >
                     </a>
 
-                    <!-- Settings (Programs Manager only) -->
+                    <!-- Audit Trail - REMOVED per requirements (only Activity Logs module remains) -->
+                    <!-- Audit Trail link has been removed from navigation -->
+
+                    <!-- Settings - REMOVED per requirements (settings stored in .env and database) -->
+                    <!-- Settings link has been removed from navigation -->
+
+                    <!-- Help & Support -->
                     <a
-                        v-if="canAccessSettings"
-                        href="/dashboard/settings"
+                        href="/dashboard/help"
+                        target="_blank"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                            isActive('/dashboard/settings')
+                            isActive('/dashboard/help')
                                 ? 'bg-blue-50 text-blue-700'
                                 : 'text-gray-700 hover:bg-gray-50',
                         ]"
-                        :title="isCollapsed ? 'Settings' : ''"
+                        :title="isCollapsed ? 'Help & Support' : ''"
                     >
-                        <i class="fas fa-cog w-5 text-center"></i>
+                        <i class="fas fa-question-circle w-5 text-center"></i>
                         <span v-if="!isCollapsed" class="font-medium"
-                            >Settings</span
+                            >Help &amp; Support</span
                         >
                     </a>
 
@@ -479,7 +485,7 @@
             class="absolute bottom-0 left-0 right-0 h-12 flex items-center justify-center border-t border-gray-200 bg-white px-4"
         >
             <p v-if="!isCollapsed" class="text-xs text-gray-500 text-center">
-                &copy; 2025 CAN-Zimbabwe.
+                &copy; {{ currentYear }} CAN-Zimbabwe.
             </p>
             <p v-else class="text-xs text-gray-500 text-center">&copy;</p>
         </div>
@@ -489,6 +495,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "../stores/authStore";
+
+// Current year
+const currentYear = computed(() => new Date().getFullYear());
 
 // Props
 const props = defineProps({
@@ -615,10 +624,15 @@ const canAccessUsers = computed(() => isProgramsManager.value);
 const canAccessActivityLogs = computed(() => isProgramsManager.value);
 
 const canAccessDocuments = computed(
-    () => isProgramsManager.value || isProjectOfficer.value,
+    () =>
+        isProgramsManager.value ||
+        isFinanceOfficer.value ||
+        isProjectOfficer.value,
 );
 
 const canAccessSettings = computed(() => isProgramsManager.value);
+
+const canAccessAuditTrail = computed(() => isProgramsManager.value);
 
 // Handle logout
 const handleLogout = async () => {

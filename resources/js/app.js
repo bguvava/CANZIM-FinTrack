@@ -14,6 +14,9 @@ import Alpine from "alpinejs";
 // Import SweetAlert2 plugin
 import { canzimSwal, Toast } from "./plugins/sweetalert";
 
+// Import Session Lock plugin
+import SessionLockPlugin from "./plugins/sessionLock";
+
 // Import FontAwesome
 import "@fortawesome/fontawesome-free/css/all.css";
 
@@ -48,6 +51,9 @@ if (landingPageElement) {
     // Register Pinia
     landingApp.use(pinia);
 
+    // Register Session Lock Plugin
+    landingApp.use(SessionLockPlugin);
+
     // Make SweetAlert2 globally available
     landingApp.config.globalProperties.$swal = canzimSwal;
     landingApp.config.globalProperties.$toast = Toast;
@@ -69,6 +75,9 @@ if (dashboardElement) {
 
     // Register Pinia
     dashboardApp.use(pinia);
+
+    // Register Session Lock Plugin
+    dashboardApp.use(SessionLockPlugin);
 
     // Make SweetAlert2 globally available
     dashboardApp.config.globalProperties.$swal = canzimSwal;
@@ -92,6 +101,9 @@ if (usersElement) {
     // Register Pinia
     usersApp.use(pinia);
 
+    // Register Session Lock Plugin
+    usersApp.use(SessionLockPlugin);
+
     // Make SweetAlert2 globally available
     usersApp.config.globalProperties.$swal = canzimSwal;
     usersApp.config.globalProperties.$toast = Toast;
@@ -114,6 +126,9 @@ if (activityLogsElement) {
     // Register Pinia
     activityLogsApp.use(pinia);
 
+    // Register Session Lock Plugin
+    activityLogsApp.use(SessionLockPlugin);
+
     // Make SweetAlert2 globally available
     activityLogsApp.config.globalProperties.$swal = canzimSwal;
     activityLogsApp.config.globalProperties.$toast = Toast;
@@ -135,6 +150,9 @@ if (profileElement) {
 
     // Register Pinia
     profileApp.use(pinia);
+
+    // Register Session Lock Plugin
+    profileApp.use(SessionLockPlugin);
 
     // Make SweetAlert2 globally available
     profileApp.config.globalProperties.$swal = canzimSwal;

@@ -22,3 +22,9 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Exclude docs and .github folders (contain sensitive info)
+/docs/
+/.github/
+TEST_USERS.md
+boost.json

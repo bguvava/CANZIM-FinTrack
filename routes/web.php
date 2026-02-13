@@ -66,6 +66,10 @@ Route::get('/expenses/create', function () {
     return view('expenses.create');
 })->name('expenses.create');
 
+Route::get('/expenses/{id}/edit', function () {
+    return view('expenses.edit');
+})->name('expenses.edit');
+
 Route::get('/expenses/pending-review', function () {
     return view('expenses.pending-review');
 })->name('expenses.pending-review');
@@ -127,7 +131,17 @@ Route::get('/dashboard/settings', function () {
     return view('settings');
 })->name('settings');
 
+// Audit Trail route (requires authentication - Programs Manager only)
+Route::get('/dashboard/audit-trail', function () {
+    return view('audit-trail');
+})->name('audit-trail');
+
 // Donors route (requires authentication - Programs Manager, Finance Officer)
 Route::get('/donors', function () {
     return view('donors');
 })->name('donors');
+
+// Help & Support route - serves the user manual
+Route::get('/dashboard/help', function () {
+    return view('help');
+})->name('help');

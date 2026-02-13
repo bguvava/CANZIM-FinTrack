@@ -43,14 +43,12 @@ class MigrationsTest extends TestCase
     public function test_financial_tables_exist(): void
     {
         $tables = [
-            'budgets',
-            'budget_items',
-            'expense_categories',
             'expenses',
+            'expense_categories',
             'vendors',
             'purchase_orders',
             'bank_accounts',
-            'cash_flow',
+            'cash_flows',
             'in_kind_contributions',
         ];
 
@@ -185,27 +183,33 @@ class MigrationsTest extends TestCase
     }
 
     /**
-     * Test expenses table has all required columns including approval workflow
+     * Test expenses table has all approval workflow columns
      */
     public function test_expenses_table_has_approval_workflow_columns(): void
     {
         $columns = [
             'id',
+            'expense_number',
             'project_id',
             'budget_item_id',
-            'category_id',
+            'expense_category_id',
             'expense_date',
             'amount',
+            'currency',
             'description',
             'receipt_path',
             'status',
             'submitted_by',
-            'reviewed_by',
-            'approved_by',
             'submitted_at',
+            'reviewed_by',
             'reviewed_at',
+            'approved_by',
             'approved_at',
             'rejection_reason',
+            'rejected_by',
+            'rejected_at',
+            'paid_by',
+            'paid_at',
             'created_at',
             'updated_at',
             'deleted_at',
@@ -220,22 +224,27 @@ class MigrationsTest extends TestCase
     }
 
     /**
-     * Test cash_flow table has all required columns for tracking
+     * Test cash_flows table has tracking columns
      */
     public function test_cash_flow_table_has_tracking_columns(): void
     {
         $columns = [
             'id',
+            'transaction_number',
             'transaction_date',
             'type',
             'amount',
             'description',
+            'reference',
             'project_id',
             'donor_id',
             'expense_id',
             'bank_account_id',
             'balance_before',
             'balance_after',
+            'is_reconciled',
+            'reconciled_at',
+            'reconciled_by',
             'created_by',
             'created_at',
             'updated_at',
@@ -243,8 +252,8 @@ class MigrationsTest extends TestCase
 
         foreach ($columns as $column) {
             $this->assertTrue(
-                Schema::hasColumn('cash_flow', $column),
-                "Column '{$column}' does not exist in cash_flow table"
+                Schema::hasColumn('cash_flows', $column),
+                "Column '{$column}' does not exist in cash_flows table"
             );
         }
     }
@@ -368,7 +377,7 @@ class MigrationsTest extends TestCase
             'vendors',
             'purchase_orders',
             'bank_accounts',
-            'cash_flow',
+            'cash_flows',
             'comments',
             'documents',
             'notifications',

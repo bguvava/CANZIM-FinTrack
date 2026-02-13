@@ -188,30 +188,47 @@
                                         >
                                             Category
                                         </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             v-model="item.category"
                                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                                             :class="{
                                                 'border-red-500':
                                                     errors[
-                                                        `line_items.${index}.category`
+                                                        `items.${index}.category`
                                                     ],
                                             }"
-                                            placeholder="e.g., Staff Salaries"
                                             required
-                                        />
+                                        >
+                                            <option value="">
+                                                Select Category
+                                            </option>
+                                            <option value="Travel">
+                                                Travel
+                                            </option>
+                                            <option value="Staff Salaries">
+                                                Staff Salaries
+                                            </option>
+                                            <option
+                                                value="Procurement/Supplies"
+                                            >
+                                                Procurement/Supplies
+                                            </option>
+                                            <option value="Consultants">
+                                                Consultants
+                                            </option>
+                                            <option value="Other">Other</option>
+                                        </select>
                                         <p
                                             v-if="
                                                 errors[
-                                                    `line_items.${index}.category`
+                                                    `items.${index}.category`
                                                 ]
                                             "
                                             class="mt-1 text-sm text-red-500"
                                         >
                                             {{
                                                 errors[
-                                                    `line_items.${index}.category`
+                                                    `items.${index}.category`
                                                 ][0]
                                             }}
                                         </p>
@@ -233,7 +250,7 @@
                                             :class="{
                                                 'border-red-500':
                                                     errors[
-                                                        `line_items.${index}.allocated_amount`
+                                                        `items.${index}.allocated_amount`
                                                     ],
                                             }"
                                             placeholder="0.00"
@@ -244,14 +261,14 @@
                                         <p
                                             v-if="
                                                 errors[
-                                                    `line_items.${index}.allocated_amount`
+                                                    `items.${index}.allocated_amount`
                                                 ]
                                             "
                                             class="mt-1 text-sm text-red-500"
                                         >
                                             {{
                                                 errors[
-                                                    `line_items.${index}.allocated_amount`
+                                                    `items.${index}.allocated_amount`
                                                 ][0]
                                             }}
                                         </p>
@@ -326,10 +343,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             :disabled="submitting"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -339,6 +356,10 @@
                             <i
                                 v-if="submitting"
                                 class="fas fa-spinner fa-spin mr-2"
+                            ></i>
+                            <i
+                                v-if="!submitting"
+                                class="fas fa-save mr-1.5"
                             ></i>
                             {{ submitting ? "Updating..." : "Update Budget" }}
                         </button>
@@ -399,14 +420,17 @@ watch(
     () => props.budget,
     (newBudget) => {
         if (newBudget) {
+            // Donor comes from project relationship, not budget directly
+            const projectDonorId = newBudget.project?.donors?.[0]?.id || "";
+
             form.value = {
                 project_id: newBudget.project_id || "",
-                donor_id: newBudget.donor_id || "",
+                donor_id: projectDonorId,
                 fiscal_year: newBudget.fiscal_year || new Date().getFullYear(),
                 quarter: newBudget.quarter || "",
                 line_items:
-                    newBudget.line_items && newBudget.line_items.length > 0
-                        ? newBudget.line_items.map((item) => ({
+                    newBudget.items && newBudget.items.length > 0
+                        ? newBudget.items.map((item) => ({
                               category: item.category || "",
                               allocated_amount: item.allocated_amount || 0,
                           }))
@@ -442,13 +466,28 @@ const handleSubmit = async () => {
     errors.value = {};
 
     try {
-        await api.put(`/budgets/${props.budget.id}`, form.value);
+        // Transform line_items to items for backend
+        const payload = {
+            project_id: form.value.project_id,
+            fiscal_year: form.value.fiscal_year.toString(),
+            items: form.value.line_items.map((item) => ({
+                category: item.category,
+                allocated_amount: parseFloat(item.allocated_amount) || 0,
+                description: item.description || null,
+                cost_code: item.cost_code || null,
+            })),
+        };
+
+        await api.put(`/budgets/${props.budget.id}`, payload);
         showSuccess("Budget updated successfully!");
         emit("budget-updated");
     } catch (error) {
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors || {};
-            showError("Please check the form for errors.");
+            const message =
+                error.response.data.message ||
+                "Please check the form for errors.";
+            showError(message);
         } else {
             showError("Failed to update budget. Please try again.");
         }

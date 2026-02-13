@@ -178,17 +178,25 @@
                                     <p
                                         class="text-base font-medium text-gray-900"
                                     >
-                                        {{ transaction.donor }}
+                                        {{
+                                            typeof transaction.donor ===
+                                            "object"
+                                                ? transaction.donor?.name
+                                                : transaction.donor || "N/A"
+                                        }}
                                     </p>
                                 </div>
-                                <div v-if="transaction.reference_number">
+                                <div v-if="transaction.reference">
                                     <p class="text-sm text-gray-500 mb-1">
                                         Reference Number
                                     </p>
                                     <p
                                         class="text-base font-medium text-gray-900"
                                     >
-                                        {{ transaction.reference_number }}
+                                        {{
+                                            transaction.reference ||
+                                            transaction.reference_number
+                                        }}
                                     </p>
                                 </div>
                                 <div
@@ -210,8 +218,15 @@
                                         </p>
                                         <p class="text-sm text-gray-500">
                                             Category:
-                                            {{ transaction.expense.category }} •
-                                            Amount: ${{
+                                            {{
+                                                typeof transaction.expense
+                                                    .category === "object"
+                                                    ? transaction.expense
+                                                          .category?.name
+                                                    : transaction.expense
+                                                          .category || "N/A"
+                                            }}
+                                            • Amount: ${{
                                                 formatCurrency(
                                                     transaction.expense.amount,
                                                 )
@@ -319,8 +334,9 @@
                     >
                         <button
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                         >
+                            <i class="fas fa-times mr-1.5"></i>
                             Close
                         </button>
                     </div>

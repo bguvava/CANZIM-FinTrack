@@ -39,6 +39,7 @@ class DonorFactory extends Factory
             'website' => fake()->optional()->url(),
             'status' => fake()->randomElement(['active', 'inactive']),
             'notes' => fake()->optional()->sentence(),
+            'funding_total' => fake()->randomFloat(2, 0, 1000000),
         ];
     }
 

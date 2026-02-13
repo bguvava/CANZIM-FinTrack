@@ -7,7 +7,7 @@
                 <div
                     class="h-10 w-10 rounded-full bg-blue-800 text-white flex items-center justify-center font-medium"
                 >
-                    {{ comment.user.name.charAt(0).toUpperCase() }}
+                    {{ comment.user?.name?.charAt(0)?.toUpperCase() || "?" }}
                 </div>
             </div>
 
@@ -21,7 +21,7 @@
                 >
                     <div class="flex items-center space-x-2">
                         <span class="font-medium text-sm text-gray-900">{{
-                            comment.user.name
+                            comment.user?.name || "Unknown User"
                         }}</span>
                         <span class="text-xs text-gray-500">•</span>
                         <span
@@ -31,7 +31,7 @@
                             {{ formatDateRelative(comment.created_at) }}
                         </span>
                         <span
-                            v-if="comment.updated_at !== comment.created_at"
+                            v-if="comment.is_edited"
                             class="text-xs text-gray-500"
                         >
                             (edited)
@@ -176,12 +176,9 @@
         </div>
 
         <!-- Nested replies -->
-        <div
-            v-if="comment.replies && comment.replies.length > 0"
-            class="mt-3 ml-12 space-y-3"
-        >
+        <div v-if="validReplies.length > 0" class="mt-3 ml-12 space-y-3">
             <CommentItem
-                v-for="reply in comment.replies"
+                v-for="reply in validReplies"
                 :key="reply.id"
                 :comment="reply"
                 :commentableType="commentableType"
@@ -197,9 +194,10 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import axios from "axios";
-import { formatDistanceToNow, format } from "date-fns";
+import { useAuthStore } from "@/stores/authStore";
+import api from "@/api";
+import { formatDistanceToNow, format, parseISO, isValid } from "date-fns";
+import { showError, showSuccess } from "@/plugins/sweetalert";
 
 const props = defineProps({
     comment: {
@@ -228,18 +226,67 @@ const isOwnComment = computed(() => {
     return authStore.user && authStore.user.id === props.comment.user_id;
 });
 
+// Filter out invalid replies to prevent vnode errors
+const validReplies = computed(() => {
+    if (!props.comment.replies || !Array.isArray(props.comment.replies)) {
+        return [];
+    }
+    return props.comment.replies.filter((reply) => reply && reply.id);
+});
+
+// Safe date parser that handles various date formats
+const safeParseDate = (date) => {
+    if (!date) return null;
+    try {
+        let parsed;
+        if (date instanceof Date) {
+            parsed = date;
+        } else if (typeof date === "string") {
+            // Try parseISO first for ISO 8601 strings
+            parsed = parseISO(date);
+            // If parseISO returns Invalid Date, try Date constructor
+            if (!isValid(parsed)) {
+                parsed = new Date(date);
+            }
+        } else if (typeof date === "number") {
+            parsed = new Date(date);
+        } else {
+            return null;
+        }
+        return isValid(parsed) ? parsed : null;
+    } catch (error) {
+        console.warn("Failed to parse date:", date, error);
+        return null;
+    }
+};
+
 // Format date relative (e.g., "2 hours ago")
 const formatDateRelative = (date) => {
-    return formatDistanceToNow(new Date(date), { addSuffix: true });
+    const parsed = safeParseDate(date);
+    if (!parsed) return "";
+    try {
+        return formatDistanceToNow(parsed, { addSuffix: true });
+    } catch (error) {
+        console.warn("Failed to format relative date:", date, error);
+        return "";
+    }
 };
 
 // Format date full (e.g., "Nov 19, 2025 at 2:30 PM")
 const formatDateFull = (date) => {
-    return format(new Date(date), "MMM dd, yyyy 'at' h:mm a");
+    const parsed = safeParseDate(date);
+    if (!parsed) return "";
+    try {
+        return format(parsed, "MMM dd, yyyy 'at' h:mm a");
+    } catch (error) {
+        console.warn("Failed to format full date:", date, error);
+        return "";
+    }
 };
 
 // Render content with @mentions highlighted
 const renderContent = (content) => {
+    if (!content) return "";
     return content.replace(
         /@(\w+)/g,
         '<span class="text-blue-800 font-medium">@$1</span>',
@@ -281,26 +328,22 @@ const saveEdit = async () => {
     saving.value = true;
 
     try {
-        await axios.put(`/api/v1/comments/${props.comment.id}`, {
+        await api.put(`/comments/${props.comment.id}`, {
             content: editContent.value,
         });
 
-        Swal.fire({
-            icon: "success",
-            title: "Updated",
-            text: "Comment updated successfully",
-            timer: 2000,
-            showConfirmButton: false,
-        });
+        await showSuccess("Updated", "Comment updated successfully");
 
         isEditing.value = false;
         emit("update");
     } catch (error) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to update comment. Please try again.",
-        });
+        console.error("Failed to update comment:", error);
+
+        const errorMessage =
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to update comment. Please try again.";
+        await showError("Error", errorMessage);
     } finally {
         saving.value = false;
     }

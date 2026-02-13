@@ -234,7 +234,7 @@
                                 </button>
                                 <button
                                     v-if="canEdit(expense)"
-                                    @click="goToCreateExpense(expense.id)"
+                                    @click="editExpense(expense.id)"
                                     class="text-green-600 hover:text-green-900 mr-3"
                                     title="Edit"
                                 >
@@ -340,12 +340,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useProjectStore } from "@/stores/projectStore";
 
-const router = useRouter();
+// Direct navigation - no router
 const expenseStore = useExpenseStore();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
@@ -480,16 +479,16 @@ const changePage = (page) => {
     }
 };
 
-const goToCreateExpense = (id = null) => {
-    if (id) {
-        router.push({ name: "CreateExpense", params: { id } });
-    } else {
-        router.push({ name: "CreateExpense" });
-    }
+const goToCreateExpense = () => {
+    window.location.href = "/expenses/create";
+};
+
+const editExpense = (id) => {
+    window.location.href = `/expenses/${id}/edit`;
 };
 
 const viewExpense = (id) => {
-    router.push({ name: "ViewExpense", params: { id } });
+    window.location.href = `/expenses/${id}`;
 };
 
 const confirmDelete = async (expense) => {

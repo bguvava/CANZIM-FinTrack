@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use Tests\Traits\RequiresGdExtension;
 
 class UserServiceTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresGdExtension;
 
     protected UserService $userService;
 
@@ -244,13 +246,17 @@ class UserServiceTest extends TestCase
     /** @test */
     public function it_can_delete_a_user(): void
     {
-        // Create a token for the user
+        // Create an admin user who will perform the deletion
+        $adminUser = User::factory()->create(['role_id' => $this->role->id]);
+
+        // Create a token for the user to be deleted
         Sanctum::actingAs($this->user);
         $this->user->createToken('test-token');
 
         $this->assertEquals(1, $this->user->tokens()->count());
 
-        $result = $this->userService->deleteUser($this->user, $this->user->id);
+        // Admin deletes another user (not themselves)
+        $result = $this->userService->deleteUser($this->user, $adminUser->id);
 
         $this->assertTrue($result);
         $this->assertSoftDeleted('users', ['id' => $this->user->id]);
@@ -260,9 +266,23 @@ class UserServiceTest extends TestCase
 
         // Verify activity log was created
         $this->assertDatabaseHas('activity_logs', [
-            'user_id' => $this->user->id,
+            'user_id' => $adminUser->id,
             'activity_type' => 'user_deleted',
         ]);
+    }
+
+    /** @test */
+    public function it_prevents_self_deletion(): void
+    {
+        // Create a token for the user
+        Sanctum::actingAs($this->user);
+        $this->user->createToken('test-token');
+
+        // Attempt self-deletion should throw exception
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('You cannot delete your own account.');
+
+        $this->userService->deleteUser($this->user, $this->user->id);
     }
 
     /** @test */
@@ -319,6 +339,8 @@ class UserServiceTest extends TestCase
     /** @test */
     public function it_can_upload_and_resize_avatar(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Storage::fake('public');
 
         $file = UploadedFile::fake()->image('avatar.jpg', 500, 500);
@@ -341,6 +363,8 @@ class UserServiceTest extends TestCase
     /** @test */
     public function it_deletes_old_avatar_when_uploading_new_one(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Storage::fake('public');
 
         // Upload first avatar

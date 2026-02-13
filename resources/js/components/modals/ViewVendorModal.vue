@@ -51,7 +51,7 @@
                                 Vendor Name
                             </p>
                             <p class="mt-1 text-sm font-semibold text-gray-900">
-                                {{ vendor?.vendor_name || "N/A" }}
+                                {{ vendor?.name || "N/A" }}
                             </p>
                         </div>
                         <div>
@@ -240,8 +240,9 @@
             >
                 <button
                     @click="closeModal"
-                    class="rounded-lg border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                    class="rounded-lg border border-red-300 px-6 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                 >
+                    <i class="fas fa-times mr-1.5"></i>
                     Close
                 </button>
             </div>

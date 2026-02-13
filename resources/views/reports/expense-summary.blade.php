@@ -1,39 +1,55 @@
-@extends('reports.layouts.pdf')
+<!DOCTYPE html>
+<html>
 
-@section('title', 'Expense Summary Report')
+<head>
+    <meta charset="utf-8">
+    <title>Expense Summary Report - CANZIM</title>
+    @include('pdf.partials.styles')
+</head>
 
-@section('report-title', 'Expense Summary Report')
+<body>
+    @include('pdf.partials.header', [
+        'logoBase64' => $logoBase64,
+        'organizationName' => 'Climate Action Network Zimbabwe',
+        'reportTitle' => 'Expense Summary Report',
+    ])
 
-@section('content')
-    <h1>Expense Summary Report</h1>
-
-    <div class="info-section">
-        <p><strong>Report Period:</strong> {{ $period ?? 'N/A' }}</p>
-        <p><strong>Group By:</strong> {{ ucfirst($group_by ?? 'category') }}</p>
-        <p><strong>Generated On:</strong> {{ now()->format('F d, Y H:i:s') }}</p>
+    <div class="content">
+        <h2 style="color: #1E40AF;">Expense Breakdown</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: center;">Count</th>
+                    <th style="text-align: right;">Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($data['data'] ?? [] as $item)
+                    <tr>
+                        <td>{{ $item['category_name'] ?? ($item['project_name'] ?? ($item['month'] ?? 'N/A')) }}</td>
+                        <td style="text-align: right; font-weight: bold;">${{ number_format($item['amount'] ?? 0, 2) }}
+                        </td>
+                        <td style="text-align: center;">{{ $item['count'] ?? 0 }}</td>
+                        <td style="text-align: right;">{{ number_format($item['percentage'] ?? 0, 2) }}%</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="text-center">No data available</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
-    <h2>Expense Breakdown</h2>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>{{ ucfirst($group_by ?? 'Category') }}</th>
-                <th>Total Amount</th>
-                <th>Count</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($items ?? [] as $item)
-                <tr>
-                    <td>{{ $item['name'] ?? 'N/A' }}</td>
-                    <td>{{ number_format($item['total'] ?? 0, 2) }}</td>
-                    <td>{{ $item['count'] ?? 0 }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="3" class="text-center">No data available</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-@endsection
+    @include('pdf.partials.footer', [
+        'generatedBy' => $generatedBy,
+        'userRole' => $userRole,
+        'generatedAt' => $generatedAt,
+        'year' => $year,
+        'organizationName' => 'Climate Action Network Zimbabwe',
+    ])
+</body>
+
+</html>

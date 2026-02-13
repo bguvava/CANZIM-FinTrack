@@ -283,12 +283,22 @@
                                             <i class="fas fa-check-circle"></i>
                                         </button>
                                         <button
+                                            v-if="
+                                                user.id !== authStore.user?.id
+                                            "
                                             @click="deleteUser(user)"
                                             class="text-red-600 hover:text-red-700"
                                             title="Delete User"
                                         >
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        <span
+                                            v-else
+                                            class="text-gray-400 cursor-not-allowed"
+                                            title="You cannot delete your own account"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </span>
                                     </div>
                                 </td>
                             </tr>
@@ -388,12 +398,16 @@ import DashboardLayout from "../layouts/DashboardLayout.vue";
 import AddUserModal from "../components/modals/AddUserModal.vue";
 import EditUserModal from "../components/modals/EditUserModal.vue";
 import ViewUserModal from "../components/modals/ViewUserModal.vue";
+import { useAuthStore } from "../stores/authStore";
 import {
     confirmAction,
     showSuccess,
     showError,
     Toast,
 } from "../plugins/sweetalert";
+
+// Stores
+const authStore = useAuthStore();
 
 // State
 const loading = ref(false);
@@ -626,6 +640,15 @@ const activateUser = async (user) => {
 };
 
 const deleteUser = async (user) => {
+    // Prevent admin from deleting their own account
+    if (user.id === authStore.user?.id) {
+        showError(
+            "Action Not Allowed",
+            "You cannot delete your own account. Please contact another administrator.",
+        );
+        return;
+    }
+
     const confirmed = await confirmAction(
         "Delete User",
         `Are you sure you want to delete ${user.name}? This action cannot be undone.`,

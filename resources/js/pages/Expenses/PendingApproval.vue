@@ -8,24 +8,58 @@
             </p>
         </div>
 
-        <!-- Stats Card -->
-        <div
-            class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-6 mb-6 text-white"
-        >
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-purple-100 text-sm font-medium">
-                        Total Pending
-                    </p>
-                    <p class="text-3xl font-bold mt-1">
-                        {{ expenseStore.pendingApproval.length }}
-                    </p>
-                    <p class="text-purple-100 text-sm mt-2">
-                        {{ formatCurrency(totalPendingAmount) }} in total value
-                    </p>
+        <!-- Stats Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- Total Pending Card -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-medium uppercase">
+                            Total Pending
+                        </p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            {{ expenseStore.pendingApproval.length }}
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 rounded-lg p-3">
+                        <i class="fas fa-clock text-purple-600 text-xl"></i>
+                    </div>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-check-double text-4xl"></i>
+            </div>
+
+            <!-- Total Amount Card -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-medium uppercase">
+                            Total Amount
+                        </p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            {{ formatCurrency(totalPendingAmount) }}
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 rounded-lg p-3">
+                        <i class="fas fa-dollar-sign text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviewed Today Card -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-medium uppercase">
+                            Reviewed Today
+                        </p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            {{ reviewedTodayCount }}
+                        </p>
+                    </div>
+                    <div class="bg-green-100 rounded-lg p-3">
+                        <i
+                            class="fas fa-check-circle text-green-600 text-xl"
+                        ></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -220,7 +254,7 @@
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500">Budget Item</p>
                             <p class="text-sm font-medium text-gray-900">
-                                {{ selectedExpense.budget_item?.name }}
+                                {{ selectedExpense.budgetItem?.name || "—" }}
                             </p>
                         </div>
                     </div>
@@ -311,10 +345,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useExpenseStore } from "@/stores/expenseStore";
 
-const router = useRouter();
 const expenseStore = useExpenseStore();
 
 const loading = ref(false);
@@ -331,6 +363,16 @@ const totalPendingAmount = computed(() => {
     );
 });
 
+const reviewedTodayCount = computed(() => {
+    const today = new Date().toDateString();
+    return expenseStore.pendingApproval.filter((expense) => {
+        if (expense.reviewed_at) {
+            return new Date(expense.reviewed_at).toDateString() === today;
+        }
+        return false;
+    }).length;
+});
+
 // Methods
 const loadPendingExpenses = async () => {
     try {
@@ -344,24 +386,22 @@ const loadPendingExpenses = async () => {
 };
 
 const viewExpense = (id) => {
-    router.push({ name: "ViewExpense", params: { id } });
+    window.location.href = `/expenses/${id}`;
 };
 
 const getReviewer = (expense) => {
-    const reviewApproval = expense.approvals?.find((a) => a.stage === "review");
-    return reviewApproval?.approver?.name || "N/A";
+    // Use the reviewer relationship loaded directly on the expense
+    return expense.reviewer?.name || "N/A";
 };
 
 const getReviewDate = (expense) => {
-    const reviewApproval = expense.approvals?.find((a) => a.stage === "review");
-    return reviewApproval?.approved_at
-        ? formatDate(reviewApproval.approved_at)
-        : "N/A";
+    // Use the reviewed_at field directly from the expense
+    return expense.reviewed_at ? formatDate(expense.reviewed_at) : "N/A";
 };
 
 const getReviewComments = (expense) => {
-    const reviewApproval = expense.approvals?.find((a) => a.stage === "review");
-    return reviewApproval?.comments || "";
+    // Check review_comments on the expense, or look up from approvals
+    return expense.review_comments || "";
 };
 
 const openApprovalModal = (expense, action) => {

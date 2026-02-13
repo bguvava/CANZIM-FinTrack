@@ -110,7 +110,7 @@
                             >
                                 <option value="">Select bank account</option>
                                 <option
-                                    v-for="account in cashFlowStore.activeBankAccounts"
+                                    v-for="account in safeBankAccounts"
                                     :key="account.id"
                                     :value="account.id"
                                 >
@@ -150,32 +150,21 @@
                             <label
                                 class="block text-sm font-medium text-gray-700 mb-2"
                             >
-                                Project
-                                <span class="text-red-500">*</span>
+                                Project (Optional)
                             </label>
                             <select
                                 v-model="form.project_id"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-                                :class="{
-                                    'border-red-500': errors.project_id,
-                                }"
-                                required
                             >
-                                <option value="">Select project</option>
+                                <option value="">None</option>
                                 <option
-                                    v-for="project in projects"
+                                    v-for="project in safeProjects"
                                     :key="project.id"
                                     :value="project.id"
                                 >
                                     {{ project.name }}
                                 </option>
                             </select>
-                            <p
-                                v-if="errors.project_id"
-                                class="mt-1 text-sm text-red-500"
-                            >
-                                {{ errors.project_id[0] }}
-                            </p>
                         </div>
 
                         <!-- Expense Link (Optional) -->
@@ -191,14 +180,18 @@
                             >
                                 <option value="">None - Manual Payment</option>
                                 <option
-                                    v-for="expense in unpaidExpenses"
+                                    v-for="expense in safeUnpaidExpenses"
                                     :key="expense.id"
                                     :value="expense.id"
                                 >
-                                    {{ expense.description }} - ${{
-                                        formatCurrency(expense.amount)
+                                    {{ expense.expense_number }} -
+                                    {{
+                                        expense.description || "No description"
                                     }}
-                                    ({{ expense.category }})
+                                    - ${{ formatCurrency(expense.amount) }} ({{
+                                        expense.category?.name ||
+                                        "Uncategorized"
+                                    }})
                                 </option>
                             </select>
                             <p class="mt-1 text-xs text-gray-500">
@@ -215,7 +208,7 @@
                             </label>
                             <input
                                 type="text"
-                                v-model="form.reference_number"
+                                v-model="form.reference"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                                 placeholder="e.g., Check #, Payment Voucher #"
                             />
@@ -258,10 +251,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             :disabled="submitting"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -271,6 +264,10 @@
                             <i
                                 v-if="submitting"
                                 class="fas fa-spinner fa-spin mr-2"
+                            ></i>
+                            <i
+                                v-if="!submitting"
+                                class="fas fa-arrow-up mr-1.5"
                             ></i>
                             {{ submitting ? "Recording..." : "Record Outflow" }}
                         </button>
@@ -284,7 +281,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useCashFlowStore } from "../../stores/cashFlowStore";
-import { showSuccess, showError } from "../../plugins/sweetalert";
+import { Toast, showError } from "../../plugins/sweetalert";
 import api from "../../api";
 
 const props = defineProps({
@@ -304,7 +301,7 @@ const form = ref({
     bank_account_id: "",
     project_id: "",
     expense_id: "",
-    reference_number: "",
+    reference: "",
     description: "",
 });
 
@@ -314,27 +311,60 @@ const projects = ref([]);
 const unpaidExpenses = ref([]);
 
 const selectedAccount = computed(() => {
-    return cashFlowStore.activeBankAccounts.find(
-        (acc) => acc.id === parseInt(form.value.bank_account_id),
+    const accounts = cashFlowStore.activeBankAccounts;
+    if (!accounts || !Array.isArray(accounts)) return null;
+    return accounts.find(
+        (acc) => acc && acc.id === parseInt(form.value.bank_account_id),
     );
+});
+
+// Safe computed properties to filter out null/undefined entries
+const safeBankAccounts = computed(() => {
+    const accounts = cashFlowStore.activeBankAccounts;
+    if (!accounts || !Array.isArray(accounts)) return [];
+    return accounts.filter((account) => account && account.id);
+});
+
+const safeProjects = computed(() => {
+    if (!projects.value || !Array.isArray(projects.value)) return [];
+    return projects.value.filter(
+        (project) => project && project.id && project.name,
+    );
+});
+
+const safeUnpaidExpenses = computed(() => {
+    if (!unpaidExpenses.value || !Array.isArray(unpaidExpenses.value))
+        return [];
+    return unpaidExpenses.value.filter((expense) => expense && expense.id);
 });
 
 // Fetch projects and unpaid expenses
 onMounted(async () => {
     try {
         const [projectsResponse, expensesResponse] = await Promise.all([
-            api.get("/api/v1/projects", {
+            api.get("/projects", {
                 params: { status: "active", per_page: 100 },
             }),
-            api.get("/api/v1/expenses", {
-                params: { payment_status: "unpaid", per_page: 100 },
+            api.get("/expenses", {
+                params: { status: "approved", per_page: 100 },
             }),
         ]);
-        projects.value = projectsResponse.data.data || projectsResponse.data;
-        unpaidExpenses.value =
-            expensesResponse.data.data || expensesResponse.data;
+
+        // Projects response: { success: true, data: { data: [...], ... } } (paginated)
+        const projectsPayload = projectsResponse.data?.data;
+        const projectsArray = projectsPayload?.data || projectsPayload;
+        projects.value = Array.isArray(projectsArray) ? projectsArray : [];
+
+        // Expenses response: raw paginator { data: [...], current_page: 1, ... }
+        const expensesPayload = expensesResponse.data;
+        const expensesArray = expensesPayload?.data || expensesPayload;
+        unpaidExpenses.value = Array.isArray(expensesArray)
+            ? expensesArray
+            : [];
     } catch (error) {
         console.error("Failed to fetch data:", error);
+        projects.value = [];
+        unpaidExpenses.value = [];
     }
 });
 
@@ -359,7 +389,7 @@ const resetForm = () => {
         bank_account_id: "",
         project_id: "",
         expense_id: "",
-        reference_number: "",
+        reference: "",
         description: "",
     };
     errors.value = {};
@@ -373,9 +403,14 @@ const handleSubmit = async () => {
 
     try {
         await cashFlowStore.recordOutflow(form.value);
-        showSuccess("Cash outflow recorded successfully!");
+        resetForm();
         emit("outflow-recorded");
+        submitting.value = false;
         closeModal();
+        Toast.fire({
+            icon: "success",
+            title: "Cash outflow recorded successfully!",
+        });
     } catch (error) {
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors || {};

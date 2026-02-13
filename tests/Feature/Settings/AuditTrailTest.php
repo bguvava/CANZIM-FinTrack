@@ -235,7 +235,10 @@ class AuditTrailTest extends TestCase
     {
         Sanctum::actingAs($this->programsManager);
 
-        // Create audit trail in the past
+        // Clear any existing audit trails from other tests
+        AuditTrail::query()->delete();
+
+        // Create old audit trail (outside date range)
         AuditTrail::create([
             'user_id' => $this->programsManager->id,
             'action' => 'updated',
@@ -245,14 +248,14 @@ class AuditTrailTest extends TestCase
             'created_at' => now()->subDays(10),
         ]);
 
-        // Create recent audit trail
+        // Create recent audit trail (within date range)
         AuditTrail::create([
             'user_id' => $this->programsManager->id,
             'action' => 'updated',
             'auditable_type' => SystemSetting::class,
             'description' => 'Recent action',
             'ip_address' => '127.0.0.1',
-            'created_at' => now(),
+            'created_at' => now()->subDays(2),
         ]);
 
         $startDate = now()->subDays(5)->toDateString();
@@ -500,7 +503,7 @@ class AuditTrailTest extends TestCase
             'org_short_name' => 'NEW',
         ]);
 
-        $auditTrail = AuditTrail::first();
+        $auditTrail = AuditTrail::latest()->first();
 
         $oldValues = $auditTrail->old_values;
         $newValues = $auditTrail->new_values;

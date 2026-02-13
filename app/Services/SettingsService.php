@@ -54,9 +54,12 @@ class SettingsService
             SystemSetting::set($key, $value, 'organization');
         }
 
+        // Clear group cache to ensure fresh data
+        Cache::forget('settings.group.organization');
+
         $newValues = SystemSetting::getByGroup('organization');
 
-        // Clear cache
+        // Clear all cache
         SystemSetting::clearCache();
 
         // Log audit trail
@@ -88,8 +91,12 @@ class SettingsService
             SystemSetting::set($key, $value, 'financial');
         }
 
+        // Clear group cache to ensure fresh data
+        Cache::forget('settings.group.financial');
+
         $newValues = SystemSetting::getByGroup('financial');
 
+        // Clear all cache
         SystemSetting::clearCache();
 
         AuditTrail::create([
@@ -120,8 +127,12 @@ class SettingsService
             SystemSetting::set($key, $value, 'email');
         }
 
+        // Clear group cache to ensure fresh data
+        Cache::forget('settings.group.email');
+
         $newValues = SystemSetting::getByGroup('email');
 
+        // Clear all cache
         SystemSetting::clearCache();
 
         AuditTrail::create([
@@ -152,8 +163,12 @@ class SettingsService
             SystemSetting::set($key, $value, 'security');
         }
 
+        // Clear group cache to ensure fresh data
+        Cache::forget('settings.group.security');
+
         $newValues = SystemSetting::getByGroup('security');
 
+        // Clear all cache
         SystemSetting::clearCache();
 
         AuditTrail::create([
@@ -185,10 +200,15 @@ class SettingsService
             SystemSetting::set($key, $boolValue ? 'true' : 'false', 'notifications', 'boolean');
         }
 
+        // Clear group cache to ensure fresh data
+        Cache::forget('settings.group.notifications');
+
         $newValues = SystemSetting::getByGroup('notifications');
 
+        // Clear all cache
         SystemSetting::clearCache();
 
+        // Log audit trail
         AuditTrail::create([
             'user_id' => Auth::id(),
             'action' => 'updated',

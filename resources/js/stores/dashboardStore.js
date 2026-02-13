@@ -17,6 +17,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     const unreadCount = ref(0);
     const refreshInterval = ref(null);
     const lastRefreshTime = ref(null);
+    const error = ref(null);
 
     // Computed
     const kpis = computed(() => dashboardData.value?.kpis || {});
@@ -58,14 +59,18 @@ export const useDashboardStore = defineStore("dashboard", () => {
     // Actions
     const fetchDashboardData = async () => {
         loading.value = true;
+        error.value = null;
 
         try {
             const response = await api.get("/dashboard");
             dashboardData.value = response.data.data;
             lastRefreshTime.value = new Date();
-        } catch (error) {
-            console.error("Failed to fetch dashboard data:", error);
-            throw error;
+        } catch (err) {
+            console.error("Failed to fetch dashboard data:", err);
+            error.value =
+                err.response?.data?.message ||
+                "Failed to load dashboard data. Please try again.";
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -128,6 +133,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
         notifications.value = [];
         unreadCount.value = 0;
         lastRefreshTime.value = null;
+        error.value = null;
         stopAutoRefresh();
     };
 
@@ -138,6 +144,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
         notifications,
         unreadCount,
         lastRefreshTime,
+        error,
 
         // Computed
         kpis,

@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Budget;
 use App\Models\BudgetItem;
+use App\Models\CashFlow;
 use App\Models\Donor;
 use App\Models\Expense;
 use App\Models\Project;
@@ -218,25 +219,25 @@ class ReportService
             $projectIds = $parameters['project_ids'] ?? [];
             $categoryIds = $parameters['category_ids'] ?? [];
 
-            // Build budget items query
+            // Build budget items query (BudgetItem uses string 'category' field, not expense_category_id)
             $budgetQuery = BudgetItem::query()
-                ->with(['budget.project', 'category'])
+                ->with(['budget.project'])
                 ->whereHas('budget', function ($query) use ($projectIds) {
                     if (! empty($projectIds)) {
                         $query->whereIn('project_id', $projectIds);
                     }
                 });
 
-            if (! empty($categoryIds)) {
-                $budgetQuery->whereIn('expense_category_id', $categoryIds);
-            }
+            // Note: BudgetItem has a string 'category' field, not a foreign key to expense_categories
+            // Category filtering for budget items is not supported in the same way as expenses
 
             $budgetItems = $budgetQuery->get();
 
             // Build expense query
+            // Include both 'Approved' and 'Paid' statuses
             $expenseQuery = Expense::query()
                 ->with(['project', 'category'])
-                ->where('status', 'Paid');
+                ->whereIn('status', ['Approved', 'Paid']);
 
             if (! empty($projectIds)) {
                 $expenseQuery->whereIn('project_id', $projectIds);
@@ -255,34 +256,36 @@ class ReportService
             // Group data by project and category
             $data = [];
 
+            // BudgetItem uses string 'category' field - group by project and category string
             foreach ($budgetItems as $budgetItem) {
                 $projectId = $budgetItem->budget->project_id;
-                $categoryId = $budgetItem->expense_category_id;
-                $key = "{$projectId}_{$categoryId}";
+                $categoryName = $budgetItem->category ?: 'Uncategorized';
+                $key = "{$projectId}_{$categoryName}";
 
                 if (! isset($data[$key])) {
                     $data[$key] = [
                         'project_id' => $projectId,
                         'project_name' => $budgetItem->budget->project->name,
-                        'category_id' => $categoryId,
-                        'category_name' => $budgetItem->category->name,
+                        'category_id' => null,
+                        'category_name' => $categoryName,
                         'budget' => 0,
                         'actual' => 0,
                     ];
                 }
 
-                $data[$key]['budget'] += $budgetItem->amount;
+                $data[$key]['budget'] += $budgetItem->allocated_amount;
             }
 
             foreach ($expenses as $expense) {
-                $key = "{$expense->project_id}_{$expense->expense_category_id}";
+                $categoryName = $expense->category->name ?? 'Uncategorized';
+                $key = "{$expense->project_id}_{$categoryName}";
 
                 if (! isset($data[$key])) {
                     $data[$key] = [
                         'project_id' => $expense->project_id,
                         'project_name' => $expense->project->name,
                         'category_id' => $expense->expense_category_id,
-                        'category_name' => $expense->category->name,
+                        'category_name' => $categoryName,
                         'budget' => 0,
                         'actual' => 0,
                     ];
@@ -324,25 +327,25 @@ class ReportService
             $endDate = Carbon::parse($parameters['end_date'] ?? now());
             $grouping = $parameters['grouping'] ?? 'month';
 
-            // Get all paid expenses (outflows)
-            $expenses = Expense::query()
-                ->where('status', 'Paid')
-                ->whereBetween('expense_date', [$startDate, $endDate])
+            // Get actual cash flow inflows from the cash_flows table
+            $inflows = CashFlow::query()
+                ->where('type', 'inflow')
+                ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->select(
-                    DB::raw($this->getDateGrouping('expense_date', $grouping).' as period'),
+                    DB::raw($this->getDateGrouping('transaction_date', $grouping).' as period'),
                     DB::raw('SUM(amount) as amount')
                 )
                 ->groupBy('period')
                 ->orderBy('period')
                 ->get();
 
-            // Get donor funding (inflows) - using project_donors pivot
-            $funding = DB::table('project_donors')
-                ->whereBetween('funding_period_start', [$startDate, $endDate])
-                ->orWhereBetween('funding_period_end', [$startDate, $endDate])
+            // Get actual cash flow outflows from the cash_flows table
+            $outflows = CashFlow::query()
+                ->where('type', 'outflow')
+                ->whereBetween('transaction_date', [$startDate, $endDate])
                 ->select(
-                    DB::raw($this->getDateGrouping('funding_period_start', $grouping).' as period'),
-                    DB::raw('SUM(funding_amount) as amount')
+                    DB::raw($this->getDateGrouping('transaction_date', $grouping).' as period'),
+                    DB::raw('SUM(amount) as amount')
                 )
                 ->groupBy('period')
                 ->orderBy('period')
@@ -354,8 +357,8 @@ class ReportService
             $runningBalance = 0;
 
             foreach ($periods as $period) {
-                $inflow = $funding->where('period', $period)->sum('amount');
-                $outflow = $expenses->where('period', $period)->sum('amount');
+                $inflow = $inflows->where('period', $period)->sum('amount');
+                $outflow = $outflows->where('period', $period)->sum('amount');
                 $netFlow = $inflow - $outflow;
                 $runningBalance += $netFlow;
 
@@ -398,7 +401,7 @@ class ReportService
 
             $query = Expense::query()
                 ->with(['project', 'category'])
-                ->where('status', 'Paid');
+                ->whereIn('status', ['Approved', 'Paid']);
 
             if ($startDate && $endDate) {
                 $query->whereBetween('expense_date', [$startDate, $endDate]);
@@ -445,33 +448,33 @@ class ReportService
             $projectId = $parameters['project_id'];
 
             $project = Project::with([
-                'budgets.items.category',
+                'budgets.items',
                 'expenses.category',
                 'donors',
                 'creator',
             ])->findOrFail($projectId);
 
             $totalBudget = $project->budgets->sum(function ($budget) {
-                return $budget->items->sum('amount');
+                return $budget->items->sum('allocated_amount');
             });
 
-            $totalSpent = $project->expenses->where('status', 'Paid')->sum('amount');
+            $totalSpent = $project->expenses->whereIn('status', ['Approved', 'Paid'])->sum('amount');
             $remainingBudget = $totalBudget - $totalSpent;
             $utilizationPercentage = $totalBudget > 0 ? ($totalSpent / $totalBudget) * 100 : 0;
 
-            // Budget breakdown by category
+            // Budget breakdown by category (BudgetItem uses string 'category' field)
             $budgetByCategory = $project->budgets->flatMap(function ($budget) {
                 return $budget->items;
-            })->groupBy('expense_category_id')->map(function ($items) {
+            })->groupBy('category')->map(function ($items, $categoryName) {
                 return [
-                    'category_name' => $items->first()->category->name ?? 'Uncategorized',
-                    'budget' => $items->sum('amount'),
+                    'category_name' => $categoryName ?: 'Uncategorized',
+                    'budget' => $items->sum('allocated_amount'),
                 ];
             })->values();
 
-            // Expenses by category
+            // Expenses by category (Expense has category relationship)
             $expensesByCategory = $project->expenses
-                ->where('status', 'Paid')
+                ->whereIn('status', ['Approved', 'Paid'])
                 ->groupBy('expense_category_id')
                 ->map(function ($expenses) {
                     return [
@@ -535,80 +538,91 @@ class ReportService
      */
     public function generateDonorContributionsReport(array $parameters): array
     {
-        $cacheKey = 'report:donor-contributions:'.md5(json_encode($parameters));
+        $startDate = ! empty($parameters['start_date']) ? $parameters['start_date'] : null;
+        $endDate = ! empty($parameters['end_date']) ? $parameters['end_date'] : null;
+        $donorIds = $parameters['donor_ids'] ?? [];
 
-        return Cache::remember($cacheKey, 300, function () use ($parameters) {
-            $startDate = $parameters['start_date'] ?? null;
-            $endDate = $parameters['end_date'] ?? null;
-            $donorIds = $parameters['donor_ids'] ?? [];
+        $query = Donor::with(['projects', 'inKindContributions']);
 
-            $query = Donor::with(['projects', 'inKindContributions']);
+        if (! empty($donorIds)) {
+            $query->whereIn('id', $donorIds);
+        }
 
-            if (! empty($donorIds)) {
-                $query->whereIn('id', $donorIds);
+        $donors = $query->get();
+
+        $donorData = $donors->map(function ($donor) use ($startDate, $endDate) {
+            // Calculate total funding
+            $fundingQuery = $donor->projects();
+
+            if ($startDate && $endDate) {
+                // Include funding that overlaps with the date range
+                // OR has null dates (considered always active)
+                $fundingQuery->where(function ($q) use ($startDate, $endDate) {
+                    $q->where(function ($inner) use ($startDate, $endDate) {
+                        // Funding period overlaps with the filter range
+                        $inner->where('project_donors.funding_period_start', '<=', $endDate)
+                            ->where('project_donors.funding_period_end', '>=', $startDate);
+                    })->orWhere(function ($inner) {
+                        // Include records with null dates (considered active)
+                        $inner->whereNull('project_donors.funding_period_start')
+                            ->whereNull('project_donors.funding_period_end');
+                    });
+                });
             }
 
-            $donors = $query->get();
+            $totalFunding = $fundingQuery->sum('project_donors.funding_amount');
 
-            $donorData = $donors->map(function ($donor) use ($startDate, $endDate) {
-                // Calculate total funding
-                $fundingQuery = $donor->projects();
+            // Get in-kind contributions
+            $inKindQuery = $donor->inKindContributions();
 
-                if ($startDate && $endDate) {
-                    $fundingQuery->wherePivot('funding_period_start', '>=', $startDate)
-                        ->wherePivot('funding_period_end', '<=', $endDate);
-                }
-
-                $totalFunding = $fundingQuery->sum('project_donors.funding_amount');
-
-                // Get in-kind contributions
-                $inKindQuery = $donor->inKindContributions();
-
-                if ($startDate && $endDate) {
-                    $inKindQuery->whereBetween('contribution_date', [$startDate, $endDate]);
-                }
-
-                $inKindContributions = $inKindQuery->get();
-                $totalInKindValue = $inKindContributions->sum('estimated_value');
-
-                // Projects funded
-                $projectsFunded = $donor->projects->map(function ($project) {
-                    return [
-                        'id' => $project->id,
-                        'code' => $project->code,
-                        'name' => $project->name,
-                        'funding_amount' => $project->pivot->funding_amount,
-                        'is_restricted' => $project->pivot->is_restricted,
-                    ];
+            if ($startDate && $endDate) {
+                $inKindQuery->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('contribution_date', [$startDate, $endDate])
+                        ->orWhereNull('contribution_date');
                 });
+            }
 
+            $inKindContributions = $inKindQuery->get();
+            $totalInKindValue = $inKindContributions->sum('estimated_value');
+
+            // Projects funded - get from the funding query to be consistent with totals
+            $fundedProjects = $donor->projects;
+            $projectsFunded = $fundedProjects->map(function ($project) {
                 return [
-                    'donor_id' => $donor->id,
-                    'donor_name' => $donor->name,
-                    'donor_type' => $donor->type,
-                    'country' => $donor->country,
-                    'total_funding' => $totalFunding,
-                    'total_in_kind_value' => $totalInKindValue,
-                    'total_contribution' => $totalFunding + $totalInKindValue,
-                    'projects_count' => $projectsFunded->count(),
-                    'projects_funded' => $projectsFunded,
-                    'in_kind_contributions_count' => $inKindContributions->count(),
+                    'id' => $project->id,
+                    'code' => $project->code,
+                    'name' => $project->name,
+                    'funding_amount' => (float) $project->pivot->funding_amount,
+                    'is_restricted' => $project->pivot->is_restricted,
                 ];
             });
 
             return [
-                'type' => 'donor-contributions',
-                'parameters' => $parameters,
-                'data' => $donorData,
-                'summary' => [
-                    'total_donors' => $donorData->count(),
-                    'total_funding' => $donorData->sum('total_funding'),
-                    'total_in_kind' => $donorData->sum('total_in_kind_value'),
-                    'total_contributions' => $donorData->sum('total_contribution'),
-                    'total_projects' => $donorData->sum('projects_count'),
-                ],
+                'donor_id' => $donor->id,
+                'donor_name' => $donor->name,
+                'donor_type' => $donor->status ?? 'N/A',
+                'country' => $donor->address ?? 'N/A',
+                'total_funding' => (float) $totalFunding,
+                'total_in_kind_value' => (float) $totalInKindValue,
+                'total_contribution' => (float) $totalFunding + (float) $totalInKindValue,
+                'projects_count' => $projectsFunded->count(),
+                'projects_funded' => $projectsFunded,
+                'in_kind_contributions_count' => $inKindContributions->count(),
             ];
         });
+
+        return [
+            'type' => 'donor-contributions',
+            'parameters' => $parameters,
+            'data' => $donorData,
+            'summary' => [
+                'total_donors' => $donorData->count(),
+                'total_funding' => $donorData->sum('total_funding'),
+                'total_in_kind' => $donorData->sum('total_in_kind_value'),
+                'total_contributions' => $donorData->sum('total_contribution'),
+                'total_projects' => $donorData->sum('projects_count'),
+            ],
+        ];
     }
 
     /**

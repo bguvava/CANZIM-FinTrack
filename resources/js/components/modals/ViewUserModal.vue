@@ -296,8 +296,9 @@
                     </button>
                     <button
                         @click="closeModal"
-                        class="rounded-lg bg-blue-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-900"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
                     >
+                        <i class="fas fa-times mr-1.5"></i>
                         Close
                     </button>
                 </div>

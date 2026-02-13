@@ -18,6 +18,9 @@ class ProjectService
             // Generate project code
             $data['code'] = $this->generateProjectCode();
 
+            // Handle location field mapping (frontend sends 'location', backend uses 'office_location')
+            $officeLocation = $data['office_location'] ?? $data['location'] ?? null;
+
             // Create the project
             $project = Project::create([
                 'code' => $data['code'],
@@ -27,13 +30,22 @@ class ProjectService
                 'end_date' => $data['end_date'],
                 'total_budget' => $data['total_budget'] ?? 0,
                 'status' => $data['status'] ?? 'planning',
-                'office_location' => $data['office_location'] ?? null,
+                'office_location' => $officeLocation,
                 'created_by' => $data['created_by'],
             ]);
 
-            // Assign donors if provided
-            if (isset($data['donors']) && is_array($data['donors'])) {
+            // Handle donors - accept both 'donors' (full objects) and 'donor_ids' (simple array)
+            if (isset($data['donors']) && is_array($data['donors']) && count($data['donors']) > 0) {
                 $this->assignDonors($project, $data['donors']);
+            } elseif (isset($data['donor_ids']) && is_array($data['donor_ids']) && count($data['donor_ids']) > 0) {
+                // Convert simple donor_ids to donors array format
+                $donorsArray = array_map(function ($donorId) {
+                    return [
+                        'donor_id' => $donorId,
+                        'funding_amount' => 0,
+                    ];
+                }, $data['donor_ids']);
+                $this->assignDonors($project, $donorsArray);
             }
 
             // Assign team members if provided
@@ -63,6 +75,9 @@ class ProjectService
         return DB::transaction(function () use ($project, $data) {
             $oldAttributes = $project->toArray();
 
+            // Handle location field mapping (frontend sends 'location', backend uses 'office_location')
+            $officeLocation = $data['office_location'] ?? $data['location'] ?? $project->office_location;
+
             // Update basic project info
             $project->update([
                 'name' => $data['name'] ?? $project->name,
@@ -71,12 +86,27 @@ class ProjectService
                 'end_date' => $data['end_date'] ?? $project->end_date,
                 'total_budget' => $data['total_budget'] ?? $project->total_budget,
                 'status' => $data['status'] ?? $project->status,
-                'office_location' => $data['office_location'] ?? $project->office_location,
+                'office_location' => $officeLocation,
             ]);
 
-            // Update donors if provided
-            if (isset($data['donors'])) {
+            // Handle donors - accept both 'donors' (full objects) and 'donor_ids' (simple array)
+            if (isset($data['donors']) && is_array($data['donors'])) {
                 $this->syncDonors($project, $data['donors']);
+            } elseif (isset($data['donor_ids']) && is_array($data['donor_ids'])) {
+                // Convert simple donor_ids to donors array format (preserving existing funding amounts)
+                $existingDonors = $project->donors->keyBy('id');
+                $donorsArray = array_map(function ($donorId) use ($existingDonors) {
+                    $existingPivot = $existingDonors->get($donorId)?->pivot;
+
+                    return [
+                        'donor_id' => $donorId,
+                        'funding_amount' => $existingPivot?->funding_amount ?? 0,
+                        'funding_period_start' => $existingPivot?->funding_period_start ?? null,
+                        'funding_period_end' => $existingPivot?->funding_period_end ?? null,
+                        'is_restricted' => $existingPivot?->is_restricted ?? false,
+                    ];
+                }, $data['donor_ids']);
+                $this->syncDonors($project, $donorsArray);
             }
 
             // Update team members if provided

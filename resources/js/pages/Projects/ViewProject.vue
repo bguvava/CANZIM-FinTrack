@@ -497,6 +497,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useProjectStore } from "../../stores/projectStore";
 import { useAuthStore } from "../../stores/authStore";
+import { showSuccess, showError } from "../../plugins/sweetalert";
 import CommentsSection from "../../components/comments/CommentsSection.vue";
 
 const projectStore = useProjectStore();
@@ -538,11 +539,10 @@ const loadProject = async () => {
     try {
         await projectStore.fetchProject(projectId);
     } catch (error) {
-        window.$swal.fire({
-            icon: "error",
-            title: "Failed to Load Project",
-            text: error.message || "Could not load project details",
-        });
+        await showError(
+            "Failed to Load Project",
+            error.message || "Could not load project details",
+        );
     } finally {
         loading.value = false;
     }
@@ -551,16 +551,12 @@ const loadProject = async () => {
 const handleGenerateReport = async () => {
     try {
         await projectStore.generateReport(projectId, "pdf");
-        window.$toast.fire({
-            icon: "success",
-            title: "Report generated successfully",
-        });
+        await showSuccess("Success!", "Report generated successfully");
     } catch (error) {
-        window.$swal.fire({
-            icon: "error",
-            title: "Report Generation Failed",
-            text: error.message || "Failed to generate report",
-        });
+        await showError(
+            "Report Generation Failed",
+            error.message || "Failed to generate report",
+        );
     }
 };
 

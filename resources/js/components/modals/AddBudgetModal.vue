@@ -74,39 +74,6 @@
                                     </p>
                                 </div>
 
-                                <!-- Donor -->
-                                <div class="md:col-span-2">
-                                    <label
-                                        class="mb-1.5 block text-sm font-medium text-gray-700"
-                                    >
-                                        Donor
-                                        <span class="text-red-500">*</span>
-                                    </label>
-                                    <select
-                                        v-model="form.donor_id"
-                                        required
-                                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        :class="{
-                                            'border-red-500': errors.donor_id,
-                                        }"
-                                    >
-                                        <option value="">Select Donor</option>
-                                        <option
-                                            v-for="donor in donors"
-                                            :key="donor.id"
-                                            :value="donor.id"
-                                        >
-                                            {{ donor.name }}
-                                        </option>
-                                    </select>
-                                    <p
-                                        v-if="errors.donor_id"
-                                        class="mt-1 text-sm text-red-600"
-                                    >
-                                        {{ errors.donor_id[0] }}
-                                    </p>
-                                </div>
-
                                 <!-- Period -->
                                 <div>
                                     <label
@@ -192,15 +159,30 @@
 
                                 <div class="space-y-2">
                                     <div
-                                        v-for="(item, index) in form.line_items"
+                                        v-for="(item, index) in form.items"
                                         :key="index"
                                         class="flex items-start gap-2"
                                     >
-                                        <input
+                                        <select
                                             v-model="item.category"
-                                            type="text"
                                             required
-                                            placeholder="Category"
+                                            class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                        >
+                                            <option value="">
+                                                Select Category
+                                            </option>
+                                            <option
+                                                v-for="category in budgetCategories"
+                                                :key="category"
+                                                :value="category"
+                                            >
+                                                {{ category }}
+                                            </option>
+                                        </select>
+                                        <input
+                                            v-model="item.description"
+                                            type="text"
+                                            placeholder="Description (optional)"
                                             class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                         />
                                         <input
@@ -217,9 +199,7 @@
                                         <button
                                             type="button"
                                             @click="removeLineItem(index)"
-                                            :disabled="
-                                                form.line_items.length === 1
-                                            "
+                                            :disabled="form.items.length === 1"
                                             class="rounded-lg border border-red-300 px-3 py-2 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <i class="fas fa-trash text-sm"></i>
@@ -255,18 +235,19 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                            class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
-                            :disabled="
-                                submitting || form.line_items.length === 0
-                            "
+                            :disabled="submitting || form.items.length === 0"
                             class="rounded-lg bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span v-if="!submitting">Create Budget</span>
+                            <span v-if="!submitting"
+                                ><i class="fas fa-plus mr-1.5"></i>Create
+                                Budget</span
+                            >
                             <span v-else class="flex items-center gap-2">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 Creating...
@@ -293,28 +274,34 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    donors: {
-        type: Array,
-        default: () => [],
-    },
 });
 
 const emit = defineEmits(["close", "budget-created"]);
 
 const form = ref({
     project_id: "",
-    donor_id: "",
     fiscal_year: new Date().getFullYear().toString(),
     quarter: "",
     notes: "",
-    line_items: [{ category: "", allocated_amount: 0 }],
+    items: [
+        { category: "", description: "", cost_code: "", allocated_amount: 0 },
+    ],
 });
+
+// Budget categories allowed by backend
+const budgetCategories = [
+    "Travel",
+    "Staff Salaries",
+    "Procurement/Supplies",
+    "Consultants",
+    "Other",
+];
 
 const errors = ref({});
 const submitting = ref(false);
 
 const totalBudget = computed(() => {
-    return form.value.line_items.reduce(
+    return form.value.items.reduce(
         (sum, item) => sum + (parseFloat(item.allocated_amount) || 0),
         0,
     );
@@ -332,22 +319,33 @@ watch(
 const resetForm = () => {
     form.value = {
         project_id: "",
-        donor_id: "",
         fiscal_year: new Date().getFullYear().toString(),
         quarter: "",
         notes: "",
-        line_items: [{ category: "", allocated_amount: 0 }],
+        items: [
+            {
+                category: "",
+                description: "",
+                cost_code: "",
+                allocated_amount: 0,
+            },
+        ],
     };
     errors.value = {};
 };
 
 const addLineItem = () => {
-    form.value.line_items.push({ category: "", allocated_amount: 0 });
+    form.value.items.push({
+        category: "",
+        description: "",
+        cost_code: "",
+        allocated_amount: 0,
+    });
 };
 
 const removeLineItem = (index) => {
-    if (form.value.line_items.length > 1) {
-        form.value.line_items.splice(index, 1);
+    if (form.value.items.length > 1) {
+        form.value.items.splice(index, 1);
     }
 };
 
@@ -366,10 +364,17 @@ const submitForm = async () => {
     try {
         const response = await api.post("/budgets", form.value);
 
-        if (response.data.status === "success") {
+        // Check for success using the correct response property (success is a boolean)
+        if (response.data.success === true) {
             showSuccess("Success!", "Budget created successfully.");
             emit("budget-created", response.data.data);
             closeModal();
+        } else {
+            // Handle case where request completed but success is false
+            showError(
+                "Error",
+                response.data.message || "Failed to create budget.",
+            );
         }
     } catch (error) {
         if (error.response?.status === 422) {

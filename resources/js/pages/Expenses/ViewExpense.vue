@@ -31,6 +31,33 @@
                         {{ expense.status }}
                     </span>
                 </div>
+
+                <!-- Rejection Alert -->
+                <div
+                    v-if="
+                        expense.status === 'Rejected' &&
+                        expense.rejection_reason
+                    "
+                    class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg"
+                >
+                    <div class="flex items-start gap-3">
+                        <i
+                            class="fas fa-exclamation-circle text-red-600 mt-1"
+                        ></i>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-semibold text-red-900 mb-1">
+                                Expense Rejected
+                            </h3>
+                            <p class="text-sm text-red-800">
+                                {{ expense.rejection_reason }}
+                            </p>
+                            <p class="text-xs text-red-600 mt-2">
+                                You can edit this expense and resubmit it for
+                                review.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Action Buttons -->
@@ -41,7 +68,11 @@
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                 >
                     <i class="fas fa-edit"></i>
-                    Edit
+                    {{
+                        expense.status === "Rejected"
+                            ? "Edit & Resubmit"
+                            : "Edit"
+                    }}
                 </button>
                 <button
                     v-if="canSubmit"
@@ -49,7 +80,11 @@
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
                 >
                     <i class="fas fa-paper-plane"></i>
-                    Submit for Review
+                    {{
+                        expense.status === "Rejected"
+                            ? "Resubmit for Review"
+                            : "Submit for Review"
+                    }}
                 </button>
                 <button
                     v-if="canReview"
@@ -115,7 +150,7 @@
                                     Budget Item
                                 </dt>
                                 <dd class="mt-1 text-sm text-gray-900">
-                                    {{ expense.budget_item?.name }}
+                                    {{ expense.budget_item?.category || "—" }}
                                 </dd>
                             </div>
                             <div>
@@ -177,7 +212,7 @@
                                 <div
                                     :class="[
                                         'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
-                                        approval.action === 'approve'
+                                        approval.action === 'Approved'
                                             ? 'bg-green-100'
                                             : 'bg-red-100',
                                     ]"
@@ -185,7 +220,7 @@
                                     <i
                                         :class="[
                                             'fas',
-                                            approval.action === 'approve'
+                                            approval.action === 'Approved'
                                                 ? 'fa-check text-green-600'
                                                 : 'fa-times text-red-600',
                                         ]"
@@ -199,10 +234,15 @@
                                             <p
                                                 class="text-sm font-medium text-gray-900"
                                             >
-                                                {{ approval.approver?.name }}
+                                                {{
+                                                    approval.user?.name ||
+                                                    approval.approver?.name
+                                                }}
                                             </p>
                                             <p class="text-xs text-gray-500">
                                                 {{
+                                                    approval.approval_level ||
+                                                    approval.user?.role?.name ||
                                                     approval.approver?.role
                                                         ?.name
                                                 }}
@@ -210,20 +250,21 @@
                                         </div>
                                         <span class="text-xs text-gray-500">
                                             {{
-                                                formatDate(approval.approved_at)
+                                                formatDate(
+                                                    approval.action_date ||
+                                                        approval.approved_at,
+                                                )
                                             }}
                                         </span>
                                     </div>
                                     <p class="mt-1 text-sm text-gray-600">
+                                        {{ approval.action }}
                                         {{
-                                            approval.action === "approve"
-                                                ? "Approved"
-                                                : "Rejected"
-                                        }}
-                                        {{
-                                            approval.stage === "review"
-                                                ? "(Review)"
-                                                : "(Final Approval)"
+                                            approval.approval_level
+                                                ? `(${approval.approval_level})`
+                                                : approval.stage === "review"
+                                                  ? "(Review)"
+                                                  : "(Final Approval)"
                                         }}
                                     </p>
                                     <p
@@ -281,12 +322,23 @@
                             Payment Information
                         </h3>
                         <dl class="space-y-3">
+                            <div v-if="expense.cash_flow">
+                                <dt class="text-sm font-medium text-gray-500">
+                                    Bank Account
+                                </dt>
+                                <dd class="mt-1 text-sm text-gray-900">
+                                    {{
+                                        expense.cash_flow.bank_account
+                                            ?.account_name
+                                    }}
+                                </dd>
+                            </div>
                             <div>
                                 <dt class="text-sm font-medium text-gray-500">
                                     Payment Date
                                 </dt>
                                 <dd class="mt-1 text-sm text-gray-900">
-                                    {{ formatDate(expense.payment_date) }}
+                                    {{ formatDate(expense.paid_at) }}
                                 </dd>
                             </div>
                             <div v-if="expense.payment_method">
@@ -349,6 +401,14 @@
                         </dl>
                     </div>
                 </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                <CommentsSection
+                    commentable-type="Expense"
+                    :commentable-id="expense.id"
+                />
             </div>
         </div>
 
@@ -430,6 +490,33 @@
                             <label
                                 class="block text-sm font-medium text-gray-700 mb-2"
                             >
+                                Bank Account <span class="text-red-600">*</span>
+                            </label>
+                            <select
+                                v-model="paymentForm.bank_account_id"
+                                required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="" disabled>
+                                    Select bank account...
+                                </option>
+                                <option
+                                    v-for="account in cashFlowStore.activeBankAccounts"
+                                    :key="account.id"
+                                    :value="account.id"
+                                >
+                                    {{ account.account_name }} - ${{
+                                        Number(
+                                            account.current_balance,
+                                        ).toLocaleString()
+                                    }}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            >
                                 Payment Reference
                             </label>
                             <input
@@ -485,28 +572,30 @@
                 </form>
             </div>
         </div>
-
-        <!-- Comments Section -->
-        <div v-if="expense" class="mt-6">
-            <CommentsSection
-                commentableType="Expense"
-                :commentableId="expense.id"
-            />
-        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useCashFlowStore } from "@/stores/cashFlowStore";
 import CommentsSection from "../../components/comments/CommentsSection.vue";
 
-const router = useRouter();
-const route = useRoute();
+// Get expense ID from URL
+const getExpenseIdFromUrl = () => {
+    const pathParts = window.location.pathname.split("/");
+    const expensesIndex = pathParts.indexOf("expenses");
+    if (expensesIndex !== -1 && pathParts[expensesIndex + 1]) {
+        return pathParts[expensesIndex + 1];
+    }
+    return null;
+};
+
+const expenseId = getExpenseIdFromUrl();
 const expenseStore = useExpenseStore();
 const authStore = useAuthStore();
+const cashFlowStore = useCashFlowStore();
 
 const loading = ref(false);
 const expense = ref(null);
@@ -516,6 +605,7 @@ const reviewComments = ref("");
 const modalAction = ref("");
 const modalStage = ref("");
 const paymentForm = ref({
+    bank_account_id: "",
     payment_reference: "",
     payment_method: "",
     payment_notes: "",
@@ -529,7 +619,8 @@ const canEdit = computed(() => {
     return (
         role === "project-officer" &&
         expense.value.submitted_by === userId &&
-        expense.value.status === "Draft"
+        (expense.value.status === "Draft" ||
+            expense.value.status === "Rejected")
     );
 });
 
@@ -540,7 +631,8 @@ const canSubmit = computed(() => {
     return (
         role === "project-officer" &&
         expense.value.submitted_by === userId &&
-        expense.value.status === "Draft"
+        (expense.value.status === "Draft" ||
+            expense.value.status === "Rejected")
     );
 });
 
@@ -566,7 +658,7 @@ const canMarkPaid = computed(() => {
 const loadExpense = async () => {
     try {
         loading.value = true;
-        expense.value = await expenseStore.fetchExpense(route.params.id);
+        expense.value = await expenseStore.fetchExpense(expenseId);
     } catch (error) {
         console.error("Error loading expense:", error);
         alert("Failed to load expense details");
@@ -577,7 +669,7 @@ const loadExpense = async () => {
 };
 
 const editExpense = () => {
-    router.push({ name: "CreateExpense", params: { id: expense.value.id } });
+    window.location.href = `/expenses/${expense.value.id}/edit`;
 };
 
 const submitForReview = async () => {
@@ -644,11 +736,14 @@ const handleReviewSubmit = async () => {
 
 const openPaymentModal = () => {
     paymentForm.value = {
+        bank_account_id: "",
         payment_reference: "",
         payment_method: "",
         payment_notes: "",
     };
     showPaymentModal.value = true;
+    // Load bank accounts when modal opens
+    cashFlowStore.fetchBankAccounts();
 };
 
 const closePaymentModal = () => {
@@ -670,7 +765,7 @@ const handlePaymentSubmit = async () => {
 };
 
 const goBack = () => {
-    router.push({ name: "ExpensesList" });
+    window.location.href = "/expenses";
 };
 
 const formatAmount = (amount) => {

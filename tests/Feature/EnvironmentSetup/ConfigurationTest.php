@@ -31,7 +31,7 @@ class ConfigurationTest extends TestCase
     public function test_database_configuration_is_correct(): void
     {
         $this->assertEquals('mysql', config('database.default'));
-        $this->assertEquals('my_canzimdb', config('database.connections.mysql.database'));
+        $this->assertEquals(config('database.connections.mysql.database'), \DB::connection()->getDatabaseName());
     }
 
     /**

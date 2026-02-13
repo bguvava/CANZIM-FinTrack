@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Vendor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,6 +57,11 @@ class VendorController extends Controller
 
         $vendor = Vendor::create($validated);
 
+        ActivityLog::log(auth()->id(), 'vendor_created', 'Vendor created: '.$vendor->name, [
+            'vendor_id' => $vendor->id,
+            'vendor_code' => $vendor->vendor_code,
+        ]);
+
         return response()->json([
             'message' => 'Vendor created successfully',
             'vendor' => $vendor,
@@ -91,6 +97,11 @@ class VendorController extends Controller
             ]);
 
             $vendor->update($validated);
+
+            ActivityLog::log(auth()->id(), 'vendor_updated', 'Vendor updated: '.$vendor->name, [
+                'vendor_id' => $vendor->id,
+                'vendor_code' => $vendor->vendor_code,
+            ]);
 
             return response()->json([
                 'message' => 'Vendor updated successfully',

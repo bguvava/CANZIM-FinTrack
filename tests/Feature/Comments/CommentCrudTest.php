@@ -9,10 +9,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Traits\RequiresGdExtension;
 
 class CommentCrudTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresGdExtension;
 
     protected User $user;
 
@@ -119,6 +121,8 @@ class CommentCrudTest extends TestCase
 
     public function test_user_can_create_comment_with_attachments(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Storage::fake('public');
 
         $file1 = UploadedFile::fake()->create('document.pdf', 500, 'application/pdf');
@@ -218,7 +222,8 @@ class CommentCrudTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
             ->deleteJson("/api/v1/comments/{$comment->id}");
 
-        $response->assertStatus(204);
+        $response->assertStatus(200)
+            ->assertJson(['success' => true]);
 
         $this->assertSoftDeleted('comments', [
             'id' => $comment->id,

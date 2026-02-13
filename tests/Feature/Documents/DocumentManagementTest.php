@@ -10,10 +10,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Traits\RequiresGdExtension;
 
 class DocumentManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresGdExtension;
 
     private User $programsManager;
 
@@ -143,6 +145,8 @@ class DocumentManagementTest extends TestCase
     /** @test */
     public function test_can_upload_image_document()
     {
+        $this->skipIfGdNotAvailable();
+
         $file = UploadedFile::fake()->image('receipt.jpg')->size(300);
 
         $response = $this->actingAs($this->projectOfficer, 'sanctum')
@@ -179,7 +183,7 @@ class DocumentManagementTest extends TestCase
     /** @test */
     public function test_document_validation_rejects_large_files()
     {
-        $file = UploadedFile::fake()->create('large.pdf', 6000); // 6MB > 5MB limit
+        $file = UploadedFile::fake()->create('large.pdf', 11000); // 11MB > 10MB limit
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
             ->postJson('/api/v1/documents', [
@@ -240,7 +244,7 @@ class DocumentManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
-            ->getJson('/api/v1/documents?documentable_type=App\\Models\\Project&documentable_id=' . $this->project->id);
+            ->getJson('/api/v1/documents?documentable_type=App\\Models\\Project&documentable_id='.$this->project->id);
 
         $response->assertStatus(200)
             ->assertJsonStructure([

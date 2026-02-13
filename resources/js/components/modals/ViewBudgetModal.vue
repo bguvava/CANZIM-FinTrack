@@ -49,10 +49,10 @@
                                 <label
                                     class="block text-sm font-medium text-gray-500 mb-1"
                                 >
-                                    Donor
+                                    Donor(s)
                                 </label>
                                 <p class="text-gray-900 font-medium">
-                                    {{ budget.donor?.name || "N/A" }}
+                                    {{ getDonorNames(budget) }}
                                 </p>
                             </div>
                         </div>
@@ -204,7 +204,7 @@
                                         <tr
                                             v-for="(
                                                 item, index
-                                            ) in budget.line_items"
+                                            ) in budget.items"
                                             :key="index"
                                         >
                                             <td
@@ -289,6 +289,14 @@
                                 </p>
                             </div>
                         </div>
+
+                        <!-- Comments Section -->
+                        <div class="mt-6">
+                            <CommentsSection
+                                commentable-type="Budget"
+                                :commentable-id="budget.id"
+                            />
+                        </div>
                     </div>
 
                     <!-- Footer -->
@@ -298,9 +306,19 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                         >
+                            <i class="fas fa-times mr-1.5"></i>
                             Close
+                        </button>
+                        <button
+                            v-if="canApproveBudget"
+                            type="button"
+                            @click="handleApproveBudget"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                        >
+                            <i class="fas fa-check mr-2"></i>
+                            Approve Budget
                         </button>
                         <button
                             type="button"
@@ -319,6 +337,13 @@
 
 <script setup>
 import { computed } from "vue";
+import { useAuthStore } from "@/stores/authStore";
+import { useBudgetStore } from "@/stores/budgetStore";
+import { confirmAction, showSuccess, showError } from "@/plugins/sweetalert";
+import CommentsSection from "../comments/CommentsSection.vue";
+
+const authStore = useAuthStore();
+const budgetStore = useBudgetStore();
 
 const props = defineProps({
     isOpen: {
@@ -331,19 +356,19 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["close", "edit"]);
+const emit = defineEmits(["close", "edit", "budgetApproved"]);
 
 const totalAllocated = computed(() => {
-    if (!props.budget?.line_items) return 0;
-    return props.budget.line_items.reduce(
+    if (!props.budget?.items) return 0;
+    return props.budget.items.reduce(
         (sum, item) => sum + (parseFloat(item.allocated_amount) || 0),
         0,
     );
 });
 
 const totalSpent = computed(() => {
-    if (!props.budget?.line_items) return 0;
-    return props.budget.line_items.reduce(
+    if (!props.budget?.items) return 0;
+    return props.budget.items.reduce(
         (sum, item) => sum + (parseFloat(item.spent_amount) || 0),
         0,
     );
@@ -383,11 +408,46 @@ const formatDate = (dateString) => {
     });
 };
 
+const getDonorNames = (budget) => {
+    if (!budget?.project?.donors || budget.project.donors.length === 0) {
+        return "N/A";
+    }
+    return budget.project.donors.map((d) => d.name).join(", ");
+};
+
+// Check if user is Programs Manager and budget is draft
+const canApproveBudget = computed(() => {
+    if (!props.budget || !authStore.user) return false;
+    const userRole = authStore.user.role?.slug;
+    const isProgramsManager = userRole === "programs-manager";
+    const isDraft = props.budget.status === "draft";
+    return isProgramsManager && isDraft;
+});
+
 const closeModal = () => {
     emit("close");
 };
 
 const handleEdit = () => {
     emit("edit", props.budget);
+};
+
+const handleApproveBudget = async () => {
+    const confirmed = await confirmAction(
+        "Approve Budget",
+        "Are you sure you want to approve this budget? This action cannot be undone.",
+        "Yes, Approve",
+    );
+
+    if (confirmed) {
+        try {
+            await budgetStore.approveBudget(props.budget.id);
+            showSuccess("Budget approved successfully!");
+            emit("budgetApproved", props.budget.id);
+            closeModal();
+        } catch (error) {
+            showError(error.message || "Failed to approve budget");
+        }
+    }
 };
 </script>

@@ -24,12 +24,12 @@ class StoreCommunicationRequest extends FormRequest
         return [
             'communicable_id' => ['required', 'integer'],
             'communicable_type' => ['required', 'string'],
-            'type' => ['required', 'in:email,phone_call,meeting,letter,other'],
+            'type' => ['required', 'in:email,phone_call,meeting,letter,other,Email,Phone Call,Meeting,Letter,Other'],
             'communication_date' => ['required', 'date'],
             'subject' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'attachment' => ['nullable', 'file', 'max:5120'], // 5MB max
-            'next_action_date' => ['nullable', 'date'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,doc,docx,txt,jpg,jpeg,png', 'max:5120'], // 5MB max
+            'next_action_date' => ['nullable', 'date', 'after_or_equal:communication_date'],
             'next_action_notes' => ['nullable', 'string'],
         ];
     }
@@ -41,9 +41,12 @@ class StoreCommunicationRequest extends FormRequest
     {
         return [
             'type.required' => 'Communication type is required',
+            'type.in' => 'Invalid communication type selected',
             'communication_date.required' => 'Communication date is required',
             'subject.required' => 'Subject is required',
+            'attachment.mimes' => 'Attachment must be a PDF, DOC, DOCX, TXT, JPG, JPEG, or PNG file',
             'attachment.max' => 'Attachment must not exceed 5MB',
+            'next_action_date.after_or_equal' => 'Next action date must be after or equal to communication date',
         ];
     }
 }

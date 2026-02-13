@@ -59,7 +59,7 @@
                                     :key="vendor.id"
                                     :value="vendor.id"
                                 >
-                                    {{ vendor.vendor_name }}
+                                    {{ vendor.name }}
                                 </option>
                             </select>
                         </div>
@@ -85,7 +85,7 @@
                                     :key="project.id"
                                     :value="project.id"
                                 >
-                                    {{ project.project_name }}
+                                    {{ project.name }}
                                 </option>
                             </select>
                         </div>
@@ -129,6 +129,11 @@
                                         <th
                                             class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                         >
+                                            Unit
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                        >
                                             Unit Price ($)
                                         </th>
                                         <th
@@ -147,7 +152,7 @@
                                     class="divide-y divide-gray-200 bg-white"
                                 >
                                     <tr
-                                        v-for="(item, index) in form.items"
+                                        v-for="(item, index) in validItems"
                                         :key="index"
                                     >
                                         <td class="px-4 py-3">
@@ -168,6 +173,51 @@
                                                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                                 required
                                             />
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <select
+                                                v-model="item.unit"
+                                                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                required
+                                            >
+                                                <option value="" disabled>
+                                                    Select
+                                                </option>
+                                                <option value="pieces">
+                                                    Pieces
+                                                </option>
+                                                <option value="sets">
+                                                    Sets
+                                                </option>
+                                                <option value="boxes">
+                                                    Boxes
+                                                </option>
+                                                <option value="packs">
+                                                    Packs
+                                                </option>
+                                                <option value="kg">Kg</option>
+                                                <option value="liters">
+                                                    Liters
+                                                </option>
+                                                <option value="meters">
+                                                    Meters
+                                                </option>
+                                                <option value="units">
+                                                    Units
+                                                </option>
+                                                <option value="reams">
+                                                    Reams
+                                                </option>
+                                                <option value="rolls">
+                                                    Rolls
+                                                </option>
+                                                <option value="bottles">
+                                                    Bottles
+                                                </option>
+                                                <option value="cartons">
+                                                    Cartons
+                                                </option>
+                                            </select>
                                         </td>
                                         <td class="px-4 py-3">
                                             <input
@@ -194,9 +244,8 @@
                                         </td>
                                         <td class="px-4 py-3 text-center">
                                             <button
-                                                v-if="form.items.length > 1"
                                                 type="button"
-                                                @click="removeLineItem(index)"
+                                                @click="removeLineItem(item)"
                                                 class="text-red-600 transition-colors hover:text-red-800"
                                                 title="Remove Item"
                                             >
@@ -248,10 +297,10 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                         :disabled="submitting"
                     >
-                        Cancel
+                        <i class="fas fa-times mr-1.5"></i>Cancel
                     </button>
                     <button
                         type="submit"
@@ -263,6 +312,15 @@
                         <span>{{
                             submitting ? "Updating..." : "Update Draft"
                         }}</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="handleSubmitForApproval"
+                        class="flex items-center space-x-2 rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="submitting"
+                    >
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Submit for Approval</span>
                     </button>
                 </div>
             </form>
@@ -287,7 +345,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["close", "po-updated"]);
+const emit = defineEmits(["close", "po-updated", "submit-for-approval"]);
 
 const purchaseOrderStore = usePurchaseOrderStore();
 
@@ -303,9 +361,22 @@ const vendors = ref([]);
 const projects = ref([]);
 
 const grandTotal = computed(() => {
+    if (!form.value.items || !Array.isArray(form.value.items)) {
+        return 0;
+    }
     return form.value.items.reduce((total, item) => {
+        if (!item) return total;
         return total + calculateLineTotal(item);
     }, 0);
+});
+
+const validItems = computed(() => {
+    if (!form.value.items || !Array.isArray(form.value.items)) {
+        return [];
+    }
+    return form.value.items.filter(
+        (item) => item !== null && item !== undefined,
+    );
 });
 
 const calculateLineTotal = (item) => {
@@ -324,13 +395,24 @@ const addLineItem = () => {
     form.value.items.push({
         description: "",
         quantity: 1,
+        unit: "pieces",
         unit_price: 0,
     });
 };
 
-const removeLineItem = (index) => {
-    if (form.value.items.length > 1) {
+const removeLineItem = (itemToRemove) => {
+    const index = form.value.items.indexOf(itemToRemove);
+    if (index > -1) {
         form.value.items.splice(index, 1);
+        // Ensure at least one empty row remains
+        if (validItems.value.length === 0) {
+            form.value.items.push({
+                description: "",
+                quantity: 1,
+                unit: "pieces",
+                unit_price: 0,
+            });
+        }
     }
 };
 
@@ -345,13 +427,14 @@ const loadPOData = () => {
                     id: item.id,
                     description: item.description || "",
                     quantity: item.quantity || 1,
+                    unit: item.unit || "pieces",
                     unit_price: item.unit_price || 0,
                 })) || [],
         };
 
         if (form.value.items.length === 0) {
             form.value.items = [
-                { description: "", quantity: 1, unit_price: 0 },
+                { description: "", quantity: 1, unit: "pieces", unit_price: 0 },
             ];
         }
     }
@@ -362,7 +445,9 @@ const resetForm = () => {
         vendor_id: "",
         project_id: "",
         notes: "",
-        items: [{ description: "", quantity: 1, unit_price: 0 }],
+        items: [
+            { description: "", quantity: 1, unit: "pieces", unit_price: 0 },
+        ],
     };
     submitting.value = false;
 };
@@ -372,14 +457,41 @@ const closeModal = () => {
     emit("close");
 };
 
+const loadVendors = async () => {
+    try {
+        await purchaseOrderStore.fetchVendors();
+        vendors.value = purchaseOrderStore.vendors || [];
+    } catch (error) {
+        console.error("Failed to load vendors:", error);
+        vendors.value = [];
+    }
+};
+
 const loadProjects = async () => {
     try {
-        const response = await api.get("/api/v1/projects", {
+        const response = await api.get("/projects", {
             params: { status: "active", per_page: 100 },
         });
-        projects.value = response.data.data || response.data || [];
+        // Handle different response formats
+        const responseData = response.data;
+        if (Array.isArray(responseData)) {
+            projects.value = responseData;
+        } else if (responseData?.data) {
+            // Check if it's { data: [...] } or { data: { data: [...] } }
+            const innerData = responseData.data;
+            if (Array.isArray(innerData)) {
+                projects.value = innerData;
+            } else if (innerData?.data && Array.isArray(innerData.data)) {
+                projects.value = innerData.data;
+            } else {
+                projects.value = [];
+            }
+        } else {
+            projects.value = [];
+        }
     } catch (error) {
         console.error("Failed to load projects:", error);
+        projects.value = [];
     }
 };
 
@@ -420,12 +532,42 @@ const handleSubmit = async () => {
     }
 };
 
+const handleSubmitForApproval = async () => {
+    // First save the draft, then emit submit-for-approval
+    submitting.value = true;
+    try {
+        const poData = {
+            ...form.value,
+            total_amount: grandTotal.value,
+        };
+
+        await purchaseOrderStore.updatePurchaseOrder(
+            props.purchaseOrder.id,
+            poData,
+        );
+
+        emit("submit-for-approval", props.purchaseOrder.id);
+        closeModal();
+    } catch (error) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text:
+                error.response?.data?.message ||
+                "Failed to save and submit purchase order. Please try again.",
+        });
+    } finally {
+        submitting.value = false;
+    }
+};
+
 watch(
     () => props.isVisible,
     async (newVal) => {
         if (newVal) {
-            await loadProjects();
-            vendors.value = purchaseOrderStore.vendors || [];
+            // Load data in parallel
+            await Promise.all([loadProjects(), loadVendors()]);
+            // Load PO data after dropdowns are ready
             loadPOData();
         } else {
             resetForm();
@@ -444,6 +586,8 @@ watch(
 );
 
 onMounted(() => {
-    purchaseOrderStore.fetchVendors();
+    // Pre-fetch vendors and projects when component mounts
+    loadVendors();
+    loadProjects();
 });
 </script>

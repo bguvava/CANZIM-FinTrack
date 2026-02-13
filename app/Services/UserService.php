@@ -39,6 +39,11 @@ class UserService
             ->when(isset($filters['role_id']), function ($q) use ($filters) {
                 $q->where('role_id', $filters['role_id']);
             })
+            ->when(isset($filters['role']), function ($q) use ($filters) {
+                $q->whereHas('role', function ($query) use ($filters) {
+                    $query->where('slug', $filters['role']);
+                });
+            })
             ->when(isset($filters['status']), function ($q) use ($filters) {
                 $q->where('status', $filters['status']);
             })
@@ -183,9 +188,16 @@ class UserService
 
     /**
      * Soft delete a user
+     *
+     * @throws \Exception if user tries to delete themselves
      */
     public function deleteUser(User $user, ?int $deletedBy = null): bool
     {
+        // Prevent self-deletion
+        if ($deletedBy && $user->id === $deletedBy) {
+            throw new \Exception('You cannot delete your own account.');
+        }
+
         ActivityLog::log(
             $deletedBy,
             'user_deleted',

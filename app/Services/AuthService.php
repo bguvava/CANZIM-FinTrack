@@ -70,13 +70,28 @@ class AuthService
             ];
         }
 
-        // Verify password
+        // Verify password FIRST before checking role permissions
+        // This prevents information leakage about user roles
         if (! $user->verifyPassword($password)) {
             $this->handleFailedLogin($user, $ipAddress);
 
             return [
                 'success' => false,
                 'message' => 'Invalid credentials',
+            ];
+        }
+
+        // After successful password verification, validate user has one of the 3 authorized roles
+        $validRoles = ['programs-manager', 'finance-officer', 'project-officer'];
+        $userRoleSlug = $user->role?->slug;
+
+        if (! $userRoleSlug || ! in_array($userRoleSlug, $validRoles, true)) {
+            $this->logFailedLogin($email, $ipAddress, 'Invalid role: '.($userRoleSlug ?? 'none'), $user->id);
+
+            return [
+                'success' => false,
+                'message' => 'Your account does not have the required permissions to access this system.',
+                'status_code' => 403,
             ];
         }
 

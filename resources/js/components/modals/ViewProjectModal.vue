@@ -198,6 +198,14 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Comments Section -->
+                        <div class="mt-6">
+                            <CommentsSection
+                                commentable-type="Project"
+                                :commentable-id="project.id"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -208,11 +216,22 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
                     >
+                        <i class="fas fa-times mr-1.5"></i>
                         Close
                     </button>
                     <button
+                        v-if="canManageTeam"
+                        type="button"
+                        @click="handleManageTeam"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                    >
+                        <i class="fas fa-users mr-1.5"></i>
+                        Manage Team
+                    </button>
+                    <button
+                        v-if="canEdit"
                         type="button"
                         @click="handleEdit"
                         class="rounded-lg bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900 transition-colors"
@@ -227,6 +246,12 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
+import { useAuthStore } from "@/stores/authStore";
+import CommentsSection from "../comments/CommentsSection.vue";
+
+const authStore = useAuthStore();
+
 const props = defineProps({
     isOpen: {
         type: Boolean,
@@ -238,7 +263,16 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["close", "edit"]);
+const emit = defineEmits(["close", "edit", "manageTeam"]);
+
+const canManageTeam = computed(() => {
+    return authStore.user?.role?.slug === "programs-manager";
+});
+
+const canEdit = computed(() => {
+    const role = authStore.user?.role?.slug;
+    return role === "programs-manager" || role === "finance-officer";
+});
 
 const closeModal = () => {
     emit("close");
@@ -246,6 +280,10 @@ const closeModal = () => {
 
 const handleEdit = () => {
     emit("edit", props.project);
+};
+
+const handleManageTeam = () => {
+    emit("manageTeam", props.project);
 };
 
 const formatDate = (dateString) => {

@@ -394,6 +394,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { useProjectStore } from "../../stores/projectStore";
+import { showSuccess, showError } from "../../plugins/sweetalert";
 
 const projectStore = useProjectStore();
 
@@ -476,26 +477,24 @@ const handleSubmit = async () => {
 
         const project = await projectStore.createProject(payload);
 
-        window.$toast.fire({
-            icon: "success",
-            title: "Project created successfully",
-        });
+        await showSuccess("Success!", "Project created successfully");
 
         // Redirect to project view
         setTimeout(() => {
             window.location.href = `/projects/${project.id}`;
         }, 1000);
     } catch (err) {
+        console.error("Error creating project:", err);
+
         if (typeof err === "object" && err !== null) {
             errors.value = err;
             currentStep.value = 0; // Go back to first step to show errors
         }
 
-        window.$swal.fire({
-            icon: "error",
-            title: "Failed to Create Project",
-            text: projectStore.error || "Please check the form and try again",
-        });
+        await showError(
+            "Failed to Create Project",
+            projectStore.error || "Please check the form and try again",
+        );
     } finally {
         loading.value = false;
     }

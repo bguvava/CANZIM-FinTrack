@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBankAccountRequest;
+use App\Models\ActivityLog;
 use App\Models\BankAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -67,6 +68,12 @@ class BankAccountController extends Controller
 
             $account = BankAccount::create($data);
 
+            ActivityLog::log(auth()->id(), 'bank_account_created', 'Bank account created: '.$account->account_name, [
+                'bank_account_id' => $account->id,
+                'account_name' => $account->account_name,
+                'bank_name' => $account->bank_name,
+            ]);
+
             return response()->json([
                 'message' => 'Bank account created successfully',
                 'account' => $account,
@@ -105,6 +112,7 @@ class BankAccountController extends Controller
                 'account_name' => 'sometimes|string|max:255',
                 'bank_name' => 'sometimes|string|max:255',
                 'branch' => 'nullable|string|max:255',
+                'description' => 'nullable|string|max:1000',
             ]);
 
             $bankAccount->update($validated);

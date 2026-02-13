@@ -277,9 +277,9 @@ class DatabaseIntegrityTest extends TestCase
     {
         $indexedTables = [
             'users' => ['email', 'role_id', 'status'],
-            'projects' => ['code', 'status', 'created_by'],
+            'projects' => ['code', 'status', 'start_date', 'end_date'],
             'budgets' => ['project_id', 'status'],
-            'expenses' => ['project_id', 'category_id', 'status'],
+            'expenses' => ['expense_number', 'project_id', 'expense_category_id', 'status'],
         ];
 
         foreach ($indexedTables as $table => $columns) {
@@ -352,8 +352,8 @@ class DatabaseIntegrityTest extends TestCase
     public function test_database_connection_is_active(): void
     {
         $this->assertTrue(
-            DB::connection()->getDatabaseName() === 'my_canzimdb',
-            'Database connection should be active and connected to my_canzimdb'
+            DB::connection()->getDatabaseName() === config('database.connections.mysql.database'),
+            'Database connection should be active and connected to the configured database'
         );
     }
 

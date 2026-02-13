@@ -24,7 +24,7 @@ class StoreOutflowRequest extends FormRequest
         return [
             'bank_account_id' => ['required', 'exists:bank_accounts,id'],
             'project_id' => ['nullable', 'exists:projects,id'],
-            'expense_id' => ['required', 'exists:expenses,id'],
+            'expense_id' => ['nullable', 'exists:expenses,id'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -41,7 +41,6 @@ class StoreOutflowRequest extends FormRequest
             'bank_account_id.required' => 'Bank account is required',
             'bank_account_id.exists' => 'Selected bank account does not exist',
             'project_id.exists' => 'Selected project does not exist',
-            'expense_id.required' => 'Expense is required',
             'expense_id.exists' => 'Selected expense does not exist',
             'transaction_date.required' => 'Transaction date is required',
             'transaction_date.before_or_equal' => 'Transaction date cannot be in the future',

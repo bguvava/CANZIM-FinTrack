@@ -9,6 +9,7 @@ use App\Http\Requests\StoreDonorRequest;
 use App\Http\Requests\StoreInKindContributionRequest;
 use App\Http\Requests\UpdateDonorRequest;
 use App\Http\Resources\DonorResource;
+use App\Models\ActivityLog;
 use App\Models\Communication;
 use App\Models\Donor;
 use App\Models\InKindContribution;
@@ -23,7 +24,8 @@ class DonorController extends Controller
 {
     public function __construct(
         protected DonorService $donorService,
-        protected DonorPDFService $pdfService
+        protected DonorPDFService $pdfService,
+        protected \App\Services\DonorReportService $reportService
     ) {}
 
     /**
@@ -85,6 +87,35 @@ class DonorController extends Controller
     }
 
     /**
+     * Get donors for projects assigned to the current user (Project Officers).
+     */
+    public function donorsForMyProjects(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Get project IDs for projects the user is assigned to
+        $projectIds = Project::query()
+            ->whereHas('teamMembers', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->pluck('id');
+
+        // Get donors linked to these projects
+        $donors = Donor::query()
+            ->whereHas('projects', function ($query) use ($projectIds) {
+                $query->whereIn('projects.id', $projectIds);
+            })
+            ->with('projects')
+            ->distinct()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => DonorResource::collection($donors),
+        ]);
+    }
+
+    /**
      * Store a newly created donor.
      */
     public function store(StoreDonorRequest $request): JsonResponse
@@ -93,6 +124,11 @@ class DonorController extends Controller
 
         try {
             $donor = Donor::create($request->validated());
+
+            ActivityLog::log(auth()->id(), 'donor_created', 'Donor created: '.$donor->name, [
+                'donor_id' => $donor->id,
+                'name' => $donor->name,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -135,6 +171,11 @@ class DonorController extends Controller
 
         try {
             $donor->update($request->validated());
+
+            ActivityLog::log(auth()->id(), 'donor_updated', 'Donor updated: '.$donor->name, [
+                'donor_id' => $donor->id,
+                'name' => $donor->name,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -364,19 +405,62 @@ class DonorController extends Controller
     }
 
     /**
-     * Generate PDF financial report for a donor.
+     * Generate PDF financial report for a donor with optional filters.
      */
-    public function generateReport(Donor $donor): BinaryFileResponse|JsonResponse
+    public function generateReport(Request $request, Donor $donor): BinaryFileResponse|JsonResponse
     {
         $this->authorize('view', $donor);
 
+        // Validate filters
+        $filters = $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'project_ids' => 'nullable|array',
+            'project_ids.*' => 'exists:projects,id',
+            'include_in_kind' => 'nullable|in:true,false,1,0',
+        ]);
+
+        // Convert string boolean to actual boolean
+        if (isset($filters['include_in_kind'])) {
+            $filters['include_in_kind'] = filter_var($filters['include_in_kind'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         try {
-            $filename = $this->pdfService->generateDonorFinancialReport($donor);
+            $filename = $this->pdfService->generateDonorFinancialReport($donor, $filters);
             $filepath = $this->pdfService->getReportDownloadPath($filename);
 
             return response()->download($filepath, $filename, [
                 'Content-Type' => 'application/pdf',
             ])->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate report: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export donor financial report as PDF stream.
+     */
+    public function exportFinancialReport(Request $request, Donor $donor): \Illuminate\Http\Response|JsonResponse
+    {
+        $this->authorize('view', $donor);
+
+        // Validate filters
+        $filters = $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'include_in_kind' => 'nullable|in:true,false,1,0',
+        ]);
+
+        // Convert string boolean to actual boolean
+        if (isset($filters['include_in_kind'])) {
+            $filters['include_in_kind'] = filter_var($filters['include_in_kind'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        try {
+            return $this->reportService->streamDonorFinancialReportPDF($donor, $filters);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -435,6 +519,77 @@ class DonorController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch chart data: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get funding timeline for a specific donor.
+     */
+    public function getFundingTimeline(Donor $donor): JsonResponse
+    {
+        $this->authorize('view', $donor);
+
+        try {
+            // Get project funding grouped by year
+            $fundingByYear = $donor->projects()
+                ->withPivot(['funding_amount', 'funding_period_start', 'funding_period_end'])
+                ->get()
+                ->groupBy(function ($project) {
+                    return $project->pivot->funding_period_start
+                        ? \Carbon\Carbon::parse($project->pivot->funding_period_start)->year
+                        : 'Undated';
+                })
+                ->map(fn ($projects) => $projects->sum('pivot.funding_amount'))
+                ->sortKeys();
+
+            // Format for Chart.js
+            $chartData = [
+                'labels' => $fundingByYear->keys()->toArray(),
+                'datasets' => [
+                    [
+                        'label' => 'Funding Amount (USD)',
+                        'data' => $fundingByYear->values()->toArray(),
+                        'backgroundColor' => '#1E40AF',
+                        'borderColor' => '#1E40AF',
+                        'borderWidth' => 1,
+                    ],
+                ],
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $chartData,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch funding timeline: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get communications for a specific donor.
+     */
+    public function getCommunications(Donor $donor): JsonResponse
+    {
+        $this->authorize('view', $donor);
+
+        try {
+            $communications = $donor->communications()
+                ->with('creator')
+                ->latest('communication_date')
+                ->paginate(20);
+
+            return response()->json([
+                'success' => true,
+                'data' => $communications,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch communications: '.$e->getMessage(),
             ], 500);
         }
     }

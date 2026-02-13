@@ -231,4 +231,115 @@ class DonorCommunicationTest extends TestCase
 
         $this->assertCount(3, $this->donor->communications);
     }
+
+    /** @test */
+    public function can_view_communication_history_for_donor()
+    {
+        Sanctum::actingAs($this->programsManager);
+
+        // Create multiple communications
+        Communication::create([
+            'communicable_type' => 'App\Models\Donor',
+            'communicable_id' => $this->donor->id,
+            'type' => 'email',
+            'subject' => 'First Contact',
+            'notes' => 'Initial discussion',
+            'communication_date' => now()->subDays(5),
+            'created_by' => $this->programsManager->id,
+        ]);
+
+        Communication::create([
+            'communicable_type' => 'App\Models\Donor',
+            'communicable_id' => $this->donor->id,
+            'type' => 'meeting',
+            'subject' => 'Follow-up Meeting',
+            'notes' => 'Discussed project details',
+            'communication_date' => now()->subDays(2),
+            'created_by' => $this->programsManager->id,
+        ]);
+
+        $response = $this->getJson("/api/v1/donors/{$this->donor->id}/communications");
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'type',
+                            'subject',
+                            'notes',
+                            'communication_date',
+                            'created_by',
+                        ],
+                    ],
+                    'current_page',
+                    'total',
+                ],
+            ]);
+
+        $this->assertEquals(2, $response->json('data.total'));
+    }
+
+    /** @test */
+    public function communication_date_is_required()
+    {
+        Sanctum::actingAs($this->programsManager);
+
+        $communicationData = [
+            'communicable_type' => 'App\Models\Donor',
+            'communicable_id' => $this->donor->id,
+            'type' => 'email',
+            'subject' => 'Test',
+            'notes' => 'Test notes',
+            // Missing communication_date
+        ];
+
+        $response = $this->postJson('/api/v1/communications', $communicationData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['communication_date']);
+    }
+
+    /** @test */
+    public function next_action_date_must_be_after_communication_date()
+    {
+        Sanctum::actingAs($this->programsManager);
+
+        $communicationData = [
+            'communicable_type' => 'App\Models\Donor',
+            'communicable_id' => $this->donor->id,
+            'type' => 'meeting',
+            'subject' => 'Test Meeting',
+            'notes' => 'Test notes',
+            'communication_date' => now()->format('Y-m-d H:i:s'),
+            'next_action_date' => now()->subDays(1)->format('Y-m-d'), // In the past
+        ];
+
+        $response = $this->postJson('/api/v1/communications', $communicationData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['next_action_date']);
+    }
+
+    /** @test */
+    public function unauthenticated_user_cannot_log_communication()
+    {
+        $communicationData = [
+            'communicable_type' => 'App\Models\Donor',
+            'communicable_id' => $this->donor->id,
+            'type' => 'email',
+            'subject' => 'Test',
+            'notes' => 'Test notes',
+            'communication_date' => now()->format('Y-m-d H:i:s'),
+        ];
+
+        $response = $this->postJson('/api/v1/communications', $communicationData);
+
+        $response->assertUnauthorized();
+    }
 }

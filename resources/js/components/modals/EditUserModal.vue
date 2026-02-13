@@ -207,7 +207,7 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                             :disabled="loading"
                         >
                             <i class="fas fa-times mr-2"></i>

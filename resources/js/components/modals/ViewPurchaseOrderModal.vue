@@ -45,9 +45,7 @@
                                 Vendor
                             </p>
                             <p class="mt-1 text-sm font-semibold text-gray-900">
-                                {{
-                                    purchaseOrder?.vendor?.vendor_name || "N/A"
-                                }}
+                                {{ purchaseOrder?.vendor?.name || "N/A" }}
                             </p>
                             <p class="mt-1 text-xs text-gray-600">
                                 {{
@@ -60,10 +58,7 @@
                                 Project
                             </p>
                             <p class="mt-1 text-sm font-semibold text-gray-900">
-                                {{
-                                    purchaseOrder?.project?.project_name ||
-                                    "N/A"
-                                }}
+                                {{ purchaseOrder?.project?.name || "N/A" }}
                             </p>
                         </div>
                         <div>
@@ -123,6 +118,18 @@
                                         Quantity
                                     </th>
                                     <th
+                                        v-if="showReceivedColumns"
+                                        class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
+                                    >
+                                        Received
+                                    </th>
+                                    <th
+                                        v-if="showReceivedColumns"
+                                        class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
+                                    >
+                                        Remaining
+                                    </th>
+                                    <th
                                         class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                     >
                                         Unit Price
@@ -145,6 +152,34 @@
                                     <td class="px-4 py-3 text-sm text-gray-900">
                                         {{ item.quantity }}
                                     </td>
+                                    <td
+                                        v-if="showReceivedColumns"
+                                        class="px-4 py-3 text-center text-sm"
+                                        :class="
+                                            (item.quantity_received || 0) >=
+                                            item.quantity
+                                                ? 'text-green-600 font-medium'
+                                                : 'text-gray-900'
+                                        "
+                                    >
+                                        {{ item.quantity_received || 0 }}
+                                    </td>
+                                    <td
+                                        v-if="showReceivedColumns"
+                                        class="px-4 py-3 text-center text-sm"
+                                        :class="
+                                            item.quantity -
+                                                (item.quantity_received || 0) >
+                                            0
+                                                ? 'text-orange-600 font-medium'
+                                                : 'text-green-600 font-medium'
+                                        "
+                                    >
+                                        {{
+                                            item.quantity -
+                                            (item.quantity_received || 0)
+                                        }}
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-gray-900">
                                         ${{ formatCurrency(item.unit_price) }}
                                     </td>
@@ -162,7 +197,7 @@
                             <tfoot class="bg-gray-50">
                                 <tr>
                                     <td
-                                        colspan="3"
+                                        :colspan="showReceivedColumns ? 5 : 3"
                                         class="px-4 py-3 text-right text-sm font-semibold text-gray-900"
                                     >
                                         Grand Total:
@@ -182,20 +217,138 @@
                     </div>
                 </div>
 
-                <!-- Notes Card (if present) -->
-                <div
-                    v-if="purchaseOrder?.notes"
-                    class="rounded-lg border border-gray-200 bg-white p-6"
-                >
-                    <h4
-                        class="mb-2 flex items-center text-base font-semibold text-gray-900"
+                <!-- Notes Card (if present) - standalone when no approval history -->
+                <!-- Notes is shown below in the row if approval/audit exist -->
+
+                <!-- Approval History, Audit Trail, Notes - Side by Side Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Approval History Card -->
+                    <div
+                        class="rounded-lg border border-green-200 bg-green-50 p-5"
                     >
-                        <i class="fas fa-sticky-note mr-2 text-blue-600"></i>
-                        Notes
-                    </h4>
-                    <p class="text-sm text-gray-900">
-                        {{ purchaseOrder.notes }}
-                    </p>
+                        <h4
+                            class="mb-3 flex items-center text-sm font-semibold text-green-800"
+                        >
+                            <i class="fas fa-history mr-2 text-green-600"></i>
+                            Approval History
+                        </h4>
+                        <div
+                            v-if="
+                                purchaseOrder?.approver ||
+                                purchaseOrder?.rejector
+                            "
+                            class="space-y-3"
+                        >
+                            <div v-if="purchaseOrder.approver">
+                                <p class="text-xs font-medium text-gray-500">
+                                    Approved By
+                                </p>
+                                <p
+                                    class="mt-1 text-sm font-semibold text-gray-900"
+                                >
+                                    {{ purchaseOrder.approver?.name || "N/A" }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">
+                                    {{ formatDate(purchaseOrder.approved_at) }}
+                                </p>
+                            </div>
+                            <div v-if="purchaseOrder.rejector">
+                                <p class="text-xs font-medium text-gray-500">
+                                    Rejected By
+                                </p>
+                                <p
+                                    class="mt-1 text-sm font-semibold text-gray-900"
+                                >
+                                    {{ purchaseOrder.rejector?.name || "N/A" }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">
+                                    {{ formatDate(purchaseOrder.rejected_at) }}
+                                </p>
+                                <p
+                                    v-if="purchaseOrder.rejection_reason"
+                                    class="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-700"
+                                >
+                                    <strong>Reason:</strong>
+                                    {{ purchaseOrder.rejection_reason }}
+                                </p>
+                            </div>
+                        </div>
+                        <p v-else class="text-xs text-gray-500 italic">
+                            No approval actions yet
+                        </p>
+                    </div>
+
+                    <!-- Audit Trail Card -->
+                    <div
+                        class="rounded-lg border border-purple-200 bg-purple-50 p-5"
+                    >
+                        <h4
+                            class="mb-3 flex items-center text-sm font-semibold text-purple-800"
+                        >
+                            <i class="fas fa-clock mr-2 text-purple-600"></i>
+                            Audit Trail
+                        </h4>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500">
+                                    Created By
+                                </p>
+                                <p
+                                    class="mt-1 text-sm font-semibold text-gray-900"
+                                >
+                                    {{
+                                        purchaseOrder?.creator?.name ||
+                                        "Unknown"
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500">
+                                    Created At
+                                </p>
+                                <p class="mt-1 text-sm text-gray-900">
+                                    {{ formatDate(purchaseOrder?.created_at) }}
+                                </p>
+                            </div>
+                            <div
+                                v-if="
+                                    purchaseOrder?.updated_at &&
+                                    purchaseOrder.updated_at !==
+                                        purchaseOrder.created_at
+                                "
+                            >
+                                <p class="text-xs font-medium text-gray-500">
+                                    Last Updated
+                                </p>
+                                <p class="mt-1 text-sm text-gray-900">
+                                    {{ formatDate(purchaseOrder.updated_at) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes Card -->
+                    <div
+                        class="rounded-lg border border-amber-200 bg-amber-50 p-5"
+                    >
+                        <h4
+                            class="mb-3 flex items-center text-sm font-semibold text-amber-800"
+                        >
+                            <i
+                                class="fas fa-sticky-note mr-2 text-amber-600"
+                            ></i>
+                            Notes
+                        </h4>
+                        <p
+                            v-if="purchaseOrder?.notes"
+                            class="text-sm text-gray-900"
+                        >
+                            {{ purchaseOrder.notes }}
+                        </p>
+                        <p v-else class="text-xs text-gray-500 italic">
+                            No notes added
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Linked Expenses Card -->
@@ -387,96 +540,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Approval History Card (if approved/rejected) -->
-                <div
-                    v-if="
-                        purchaseOrder?.approved_by || purchaseOrder?.rejected_by
-                    "
-                    class="rounded-lg border border-gray-200 bg-white p-6"
-                >
-                    <h4
-                        class="mb-4 flex items-center text-base font-semibold text-gray-900"
-                    >
-                        <i class="fas fa-history mr-2 text-blue-600"></i>
-                        Approval History
-                    </h4>
-                    <div class="space-y-3">
-                        <div v-if="purchaseOrder.approved_by">
-                            <p class="text-xs font-medium text-gray-500">
-                                Approved By
-                            </p>
-                            <p class="mt-1 text-sm text-gray-900">
-                                {{ purchaseOrder.approved_by?.name || "N/A" }}
-                            </p>
-                            <p class="mt-1 text-xs text-gray-600">
-                                {{ formatDate(purchaseOrder.approved_at) }}
-                            </p>
-                        </div>
-                        <div v-if="purchaseOrder.rejected_by">
-                            <p class="text-xs font-medium text-gray-500">
-                                Rejected By
-                            </p>
-                            <p class="mt-1 text-sm text-gray-900">
-                                {{ purchaseOrder.rejected_by?.name || "N/A" }}
-                            </p>
-                            <p class="mt-1 text-xs text-gray-600">
-                                {{ formatDate(purchaseOrder.rejected_at) }}
-                            </p>
-                            <p
-                                v-if="purchaseOrder.rejection_reason"
-                                class="mt-2 rounded-lg bg-red-50 p-2 text-sm text-red-700"
-                            >
-                                <strong>Reason:</strong>
-                                {{ purchaseOrder.rejection_reason }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Audit Trail Card -->
-                <div class="rounded-lg border border-gray-200 bg-white p-6">
-                    <h4
-                        class="mb-4 flex items-center text-base font-semibold text-gray-900"
-                    >
-                        <i class="fas fa-clock mr-2 text-blue-600"></i>
-                        Audit Trail
-                    </h4>
-                    <div class="space-y-3">
-                        <div>
-                            <p class="text-xs font-medium text-gray-500">
-                                Created By
-                            </p>
-                            <p class="mt-1 text-sm text-gray-900">
-                                {{
-                                    purchaseOrder?.created_by?.name || "System"
-                                }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium text-gray-500">
-                                Created At
-                            </p>
-                            <p class="mt-1 text-sm text-gray-900">
-                                {{ formatDate(purchaseOrder?.created_at) }}
-                            </p>
-                        </div>
-                        <div
-                            v-if="
-                                purchaseOrder?.updated_at &&
-                                purchaseOrder.updated_at !==
-                                    purchaseOrder.created_at
-                            "
-                        >
-                            <p class="text-xs font-medium text-gray-500">
-                                Last Updated
-                            </p>
-                            <p class="mt-1 text-sm text-gray-900">
-                                {{ formatDate(purchaseOrder.updated_at) }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Modal Footer with Status-Based Actions -->
@@ -485,14 +548,15 @@
             >
                 <button
                     @click="closeModal"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                    class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                 >
+                    <i class="fas fa-times mr-1.5"></i>
                     Close
                 </button>
 
                 <div class="flex items-center space-x-2">
                     <!-- Draft Status Actions -->
-                    <template v-if="purchaseOrder?.status === 'draft'">
+                    <template v-if="purchaseOrder?.status === 'Draft'">
                         <button
                             @click="handleEdit"
                             class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
@@ -510,7 +574,7 @@
                     </template>
 
                     <!-- Pending Status Actions (Programs Manager only) -->
-                    <template v-if="purchaseOrder?.status === 'pending'">
+                    <template v-if="purchaseOrder?.status === 'Pending'">
                         <button
                             @click="handleReject"
                             class="flex items-center space-x-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
@@ -528,18 +592,38 @@
                     </template>
 
                     <!-- Approved Status Actions -->
-                    <template v-if="purchaseOrder?.status === 'approved'">
+                    <template v-if="purchaseOrder?.status === 'Approved'">
+                        <button
+                            @click="handleMarkPartiallyReceived"
+                            class="flex items-center space-x-2 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-700"
+                        >
+                            <i class="fas fa-boxes-packing"></i>
+                            <span>Mark as Partially Received</span>
+                        </button>
                         <button
                             @click="handleMarkReceived"
                             class="flex items-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
                         >
                             <i class="fas fa-box-check"></i>
-                            <span>Mark as Received</span>
+                            <span>Mark as Fully Received</span>
+                        </button>
+                    </template>
+
+                    <!-- Partially Received Status Actions -->
+                    <template
+                        v-if="purchaseOrder?.status === 'Partially Received'"
+                    >
+                        <button
+                            @click="handleMarkReceived"
+                            class="flex items-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                        >
+                            <i class="fas fa-box-check"></i>
+                            <span>Mark Remaining as Received</span>
                         </button>
                     </template>
 
                     <!-- Received Status Actions -->
-                    <template v-if="purchaseOrder?.status === 'received'">
+                    <template v-if="purchaseOrder?.status === 'Received'">
                         <button
                             @click="handleComplete"
                             class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
@@ -575,6 +659,7 @@ const emit = defineEmits([
     "submit-for-approval",
     "approve",
     "reject",
+    "mark-partially-received",
     "mark-received",
     "complete",
 ]);
@@ -595,6 +680,12 @@ const totalLinkedExpenses = computed(() => {
 const remainingBalance = computed(() => {
     const poTotal = parseFloat(props.purchaseOrder?.total_amount || 0);
     return poTotal - totalLinkedExpenses.value;
+});
+
+const showReceivedColumns = computed(() => {
+    return ["Partially Received", "Received", "Completed"].includes(
+        props.purchaseOrder?.status,
+    );
 });
 
 const closeModal = () => {
@@ -668,6 +759,10 @@ const handleReject = async () => {
     }
 };
 
+const handleMarkPartiallyReceived = () => {
+    emit("mark-partially-received", props.purchaseOrder);
+};
+
 const handleMarkReceived = () => {
     emit("mark-received", props.purchaseOrder);
 };
@@ -708,15 +803,16 @@ const formatDate = (date) => {
 
 const getStatusClass = (status) => {
     const statusClasses = {
-        draft: "bg-gray-100 text-gray-800",
-        pending: "bg-yellow-100 text-yellow-800",
-        approved: "bg-blue-100 text-blue-800",
-        received: "bg-purple-100 text-purple-800",
-        completed: "bg-green-100 text-green-800",
-        rejected: "bg-red-100 text-red-800",
-        cancelled: "bg-gray-100 text-gray-800",
+        Draft: "bg-gray-100 text-gray-800",
+        Pending: "bg-yellow-100 text-yellow-800",
+        Approved: "bg-blue-100 text-blue-800",
+        "Partially Received": "bg-orange-100 text-orange-800",
+        Received: "bg-purple-100 text-purple-800",
+        Completed: "bg-green-100 text-green-800",
+        Rejected: "bg-red-100 text-red-800",
+        Cancelled: "bg-gray-100 text-gray-800",
     };
-    return statusClasses[status?.toLowerCase()] || "bg-gray-100 text-gray-800";
+    return statusClasses[status] || "bg-gray-100 text-gray-800";
 };
 
 const getExpenseStatusClass = (status) => {

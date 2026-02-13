@@ -220,37 +220,80 @@
                                 </p>
                             </div>
 
-                            <!-- Donors Selection -->
+                            <!-- Donors Selection with Funding Amounts -->
                             <div class="md:col-span-2">
                                 <label
                                     class="mb-1.5 block text-sm font-medium text-gray-700"
                                 >
-                                    Select Donors
+                                    Select Donors & Funding Amounts
                                 </label>
-                                <div
-                                    class="grid grid-cols-1 gap-2 md:grid-cols-2"
-                                >
-                                    <label
+                                <div class="space-y-3">
+                                    <div
                                         v-for="donor in donors"
                                         :key="donor.id"
-                                        class="flex items-center gap-2 rounded-lg border border-gray-300 p-3 hover:bg-gray-50 cursor-pointer"
+                                        class="rounded-lg border border-gray-300 p-3"
+                                        :class="{
+                                            'bg-blue-50 border-blue-300':
+                                                isDonorSelected(donor.id),
+                                        }"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            :value="donor.id"
-                                            v-model="form.donor_ids"
-                                            class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span class="text-sm text-gray-700">{{
-                                            donor.name
-                                        }}</span>
-                                    </label>
+                                        <div class="flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                :value="donor.id"
+                                                :checked="
+                                                    isDonorSelected(donor.id)
+                                                "
+                                                @change="toggleDonor(donor.id)"
+                                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span
+                                                class="flex-1 text-sm font-medium text-gray-700"
+                                                >{{ donor.name }}</span
+                                            >
+                                        </div>
+                                        <!-- Funding amount input (shown when donor is selected) -->
+                                        <div
+                                            v-if="isDonorSelected(donor.id)"
+                                            class="mt-3 pl-7"
+                                        >
+                                            <label
+                                                class="block text-xs font-medium text-gray-600 mb-1"
+                                            >
+                                                Funding Amount (USD)
+                                            </label>
+                                            <div class="relative">
+                                                <span
+                                                    class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500"
+                                                    >$</span
+                                                >
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    :value="
+                                                        getDonorFunding(
+                                                            donor.id,
+                                                        )
+                                                    "
+                                                    @input="
+                                                        updateDonorFunding(
+                                                            donor.id,
+                                                            $event.target.value,
+                                                        )
+                                                    "
+                                                    placeholder="0.00"
+                                                    class="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <p
-                                    v-if="errors.donor_ids"
+                                    v-if="errors.donors"
                                     class="mt-1 text-sm text-red-600"
                                 >
-                                    {{ errors.donor_ids[0] }}
+                                    {{ errors.donors[0] }}
                                 </p>
                             </div>
                         </div>
@@ -263,16 +306,23 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                            class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors flex items-center gap-2"
                         >
+                            <i class="fas fa-times"></i>
                             Cancel
                         </button>
                         <button
                             type="submit"
                             :disabled="submitting"
-                            class="rounded-lg bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="rounded-lg bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            <span v-if="!submitting">Update Project</span>
+                            <span
+                                v-if="!submitting"
+                                class="flex items-center gap-2"
+                            >
+                                <i class="fas fa-save"></i>
+                                Update Project
+                            </span>
                             <span v-else class="flex items-center gap-2">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 Updating...
@@ -315,30 +365,101 @@ const form = ref({
     end_date: "",
     location: "",
     description: "",
-    donor_ids: [],
+    donors: [], // Array of { donor_id, funding_amount }
 });
 
 const errors = ref({});
 const submitting = ref(false);
+const loadingProject = ref(false);
+
+// Fetch fresh project data to ensure donors are loaded with pivot data
+const loadProjectData = async (projectId) => {
+    loadingProject.value = true;
+    try {
+        const response = await api.get(`/projects/${projectId}`);
+        if (response.data.success) {
+            return response.data.data;
+        }
+    } catch (error) {
+        console.error("Failed to load project data:", error);
+    } finally {
+        loadingProject.value = false;
+    }
+    return null;
+};
+
+// Populate form with project data
+const populateForm = (projectData) => {
+    form.value = {
+        name: projectData.name || "",
+        code: projectData.code || "",
+        status: projectData.status || "",
+        // Convert ISO datetime to yyyy-MM-dd format for date inputs
+        start_date: projectData.start_date
+            ? projectData.start_date.split("T")[0]
+            : "",
+        end_date: projectData.end_date
+            ? projectData.end_date.split("T")[0]
+            : "",
+        // API returns office_location, frontend uses location
+        location: projectData.office_location || "",
+        description: projectData.description || "",
+        // Map donors with their funding amounts from the pivot table
+        donors:
+            projectData.donors?.map((d) => ({
+                donor_id: d.id,
+                funding_amount: d.pivot?.funding_amount || 0,
+            })) || [],
+    };
+};
 
 watch(
     () => props.project,
-    (newValue) => {
+    async (newValue) => {
         if (newValue) {
-            form.value = {
-                name: newValue.name || "",
-                code: newValue.code || "",
-                status: newValue.status || "",
-                start_date: newValue.start_date || "",
-                end_date: newValue.end_date || "",
-                location: newValue.location || "",
-                description: newValue.description || "",
-                donor_ids: newValue.donors?.map((d) => d.id) || [],
-            };
+            // First, populate with the passed data for immediate display
+            populateForm(newValue);
+
+            // Then fetch fresh data to ensure donors are loaded with pivot data
+            const freshProject = await loadProjectData(newValue.id);
+            if (freshProject) {
+                populateForm(freshProject);
+            }
         }
     },
     { immediate: true },
 );
+
+// Check if a donor is selected
+const isDonorSelected = (donorId) => {
+    return form.value.donors.some((d) => d.donor_id === donorId);
+};
+
+// Toggle donor selection
+const toggleDonor = (donorId) => {
+    const index = form.value.donors.findIndex((d) => d.donor_id === donorId);
+    if (index === -1) {
+        // Add donor with default funding amount of 0
+        form.value.donors.push({ donor_id: donorId, funding_amount: 0 });
+    } else {
+        // Remove donor
+        form.value.donors.splice(index, 1);
+    }
+};
+
+// Get funding amount for a donor
+const getDonorFunding = (donorId) => {
+    const donor = form.value.donors.find((d) => d.donor_id === donorId);
+    return donor ? donor.funding_amount : 0;
+};
+
+// Update funding amount for a donor
+const updateDonorFunding = (donorId, value) => {
+    const donor = form.value.donors.find((d) => d.donor_id === donorId);
+    if (donor) {
+        donor.funding_amount = parseFloat(value) || 0;
+    }
+};
 
 const closeModal = () => {
     if (!submitting.value) {
@@ -358,21 +479,26 @@ const submitForm = async () => {
             form.value,
         );
 
-        if (response.data.status === "success") {
-            showSuccess("Success!", "Project updated successfully.");
+        if (response.data.success) {
+            await showSuccess("Success!", "Project updated successfully.");
             emit("project-updated", response.data.data);
             closeModal();
         }
     } catch (error) {
+        console.error("Failed to update project:", error);
+
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors || {};
-            showError("Validation Error", "Please check the form for errors.");
-        } else {
-            showError(
-                "Error",
-                error.response?.data?.message ||
-                    "Failed to update project. Please try again.",
+            await showError(
+                "Validation Error",
+                "Please check the form for errors.",
             );
+        } else {
+            const errorMessage =
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to update project. Please try again.";
+            await showError("Error", errorMessage);
         }
     } finally {
         submitting.value = false;

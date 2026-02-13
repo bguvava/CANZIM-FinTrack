@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import api from "../api";
+import { useAuthStore } from "./authStore";
 
 export const useProjectStore = defineStore("project", {
     state: () => ({
@@ -87,7 +88,7 @@ export const useProjectStore = defineStore("project", {
                     }
                 });
 
-                const response = await axios.get("/api/v1/projects", {
+                const response = await api.get("/projects", {
                     params,
                 });
 
@@ -117,7 +118,7 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.get(`/api/v1/projects/${id}`);
+                const response = await api.get(`/projects/${id}`);
 
                 if (response.data.success) {
                     this.currentProject = response.data.data;
@@ -139,16 +140,21 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    "/api/v1/projects",
-                    projectData,
-                );
+                const response = await api.post("/projects", projectData);
 
                 if (response.data.success) {
-                    this.projects.unshift(response.data.data);
-                    return response.data.data;
+                    // Add to beginning of projects array for optimistic UI
+                    const newProject = response.data.data;
+                    this.projects.unshift(newProject);
+
+                    // Update pagination total
+                    this.pagination.total += 1;
+
+                    return newProject;
                 }
             } catch (error) {
+                console.error("Error creating project:", error);
+
                 this.error =
                     error.response?.data?.message || "Failed to create project";
 
@@ -171,26 +177,27 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.put(
-                    `/api/v1/projects/${id}`,
-                    projectData,
-                );
+                const response = await api.put(`/projects/${id}`, projectData);
 
                 if (response.data.success) {
-                    // Update in projects list
+                    const updatedProject = response.data.data;
+
+                    // Update in projects list using splice for proper reactivity
                     const index = this.projects.findIndex((p) => p.id === id);
                     if (index !== -1) {
-                        this.projects[index] = response.data.data;
+                        this.projects.splice(index, 1, updatedProject);
                     }
 
                     // Update current project if it's the same
                     if (this.currentProject?.id === id) {
-                        this.currentProject = response.data.data;
+                        this.currentProject = updatedProject;
                     }
 
-                    return response.data.data;
+                    return updatedProject;
                 }
             } catch (error) {
+                console.error("Error updating project:", error);
+
                 this.error =
                     error.response?.data?.message || "Failed to update project";
 
@@ -212,25 +219,38 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/projects/${id}/archive`,
-                );
+                const response = await api.post(`/projects/${id}/archive`);
 
                 if (response.data.success) {
-                    // Update in projects list
+                    const archivedProject = response.data.data;
+
+                    // Update in projects list using splice for proper reactivity
                     const index = this.projects.findIndex((p) => p.id === id);
                     if (index !== -1) {
-                        this.projects[index] = response.data.data;
+                        // If API returned project data, use it; otherwise mark as cancelled
+                        if (archivedProject) {
+                            this.projects.splice(index, 1, archivedProject);
+                        } else {
+                            this.projects.splice(index, 1, {
+                                ...this.projects[index],
+                                status: "cancelled",
+                            });
+                        }
                     }
 
                     // Update current project if it's the same
                     if (this.currentProject?.id === id) {
-                        this.currentProject = response.data.data;
+                        this.currentProject = archivedProject || {
+                            ...this.currentProject,
+                            status: "cancelled",
+                        };
                     }
 
-                    return response.data.data;
+                    return archivedProject;
                 }
             } catch (error) {
+                console.error("Error archiving project:", error);
+
                 this.error =
                     error.response?.data?.message ||
                     "Failed to archive project";
@@ -248,7 +268,7 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.delete(`/api/v1/projects/${id}`);
+                const response = await api.delete(`/projects/${id}`);
 
                 if (response.data.success) {
                     // Remove from projects list
@@ -278,10 +298,10 @@ export const useProjectStore = defineStore("project", {
             this.error = null;
 
             try {
-                const response = await axios.get(
-                    `/api/v1/projects/${id}/report`,
+                const response = await api.post(
+                    `/projects/${id}/report`,
+                    { format },
                     {
-                        params: { format },
                         responseType: "blob", // Important for file download
                     },
                 );
@@ -310,10 +330,16 @@ export const useProjectStore = defineStore("project", {
 
         /**
          * Fetch all donors (for project assignment)
+         * Uses different endpoint for Project Officers (only assigned project donors)
          */
         async fetchDonors() {
             try {
-                const response = await axios.get("/api/v1/donors");
+                const authStore = useAuthStore();
+                // Use my-projects endpoint for Project Officers
+                const endpoint = authStore.isProjectOfficer
+                    ? "/donors/my-projects"
+                    : "/donors";
+                const response = await api.get(endpoint);
                 if (response.data.success) {
                     this.donors = response.data.data.data || response.data.data;
                 }
@@ -327,7 +353,7 @@ export const useProjectStore = defineStore("project", {
          */
         async fetchTeamMembers() {
             try {
-                const response = await axios.get("/api/v1/users", {
+                const response = await api.get("/users", {
                     params: { role: "project-team" },
                 });
                 if (response.data.success) {

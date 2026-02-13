@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
+        Route::post('/verify-password', [AuthController::class, 'verifyPassword'])->name('api.auth.verify-password');
     });
 });
 
@@ -58,6 +59,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
         Route::get('/profile', [AuthController::class, 'profile'])->name('api.auth.profile');
+        Route::post('/extend-session', [AuthController::class, 'extendSession'])->name('api.auth.extend-session');
     });
 
     // User profile endpoint (deprecated - use /auth/profile instead)
@@ -111,6 +113,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // User Management Routes (Module 4)
     Route::prefix('users')->group(function () {
+        // Helper endpoints (must be before {user} wildcard routes)
+        Route::get('/roles/list', [UserController::class, 'roles'])->name('api.users.roles');
+        Route::get('/locations/list', [UserController::class, 'officeLocations'])->name('api.users.locations');
+        Route::get('/search', [UserController::class, 'search'])->name('api.users.search');
+
         // User CRUD operations
         Route::get('/', [UserController::class, 'index'])->name('api.users.index');
         Route::post('/', [UserController::class, 'store'])->name('api.users.store');
@@ -122,13 +129,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('api.users.deactivate');
         Route::post('/{user}/activate', [UserController::class, 'activate'])->name('api.users.activate');
 
-        // Helper endpoints
-        Route::get('/roles/list', [UserController::class, 'roles'])->name('api.users.roles');
-        Route::get('/locations/list', [UserController::class, 'officeLocations'])->name('api.users.locations');
-
         // User activity logs
         Route::get('/{user}/activity', [ActivityLogController::class, 'userActivity'])->name('api.users.activity');
-        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('api.users.activity-logs');
     });
 
     // User Profile Routes
@@ -156,8 +158,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{project}/archive', [ProjectController::class, 'archive'])->name('api.projects.archive');
         Route::post('/{project}/report', [ProjectController::class, 'generateReport'])->name('api.projects.report');
 
+        // Team member management
+        Route::post('/{project}/team-members', [ProjectController::class, 'assignTeamMembers'])->name('api.projects.team-members.assign');
+        Route::get('/{project}/team-members', [ProjectController::class, 'getTeamMembers'])->name('api.projects.team-members.index');
+        Route::delete('/{project}/team-members/{userId}', [ProjectController::class, 'removeTeamMember'])->name('api.projects.team-members.remove');
+
         // Budget routes for a specific project
-        Route::get('/{project}/budgets', [BudgetController::class, 'index'])->name('api.projects.budgets.index');
+        Route::get('/{project}/budgets', [BudgetController::class, 'projectIndex'])->name('api.projects.budgets.index');
     });
 
     // Budget Management Routes (Module 6)
@@ -166,6 +173,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/', [BudgetController::class, 'store'])->name('api.budgets.store');
         Route::get('/categories', [BudgetController::class, 'categories'])->name('api.budgets.categories');
         Route::get('/{budget}', [BudgetController::class, 'show'])->name('api.budgets.show');
+        Route::put('/{budget}', [BudgetController::class, 'update'])->name('api.budgets.update');
         Route::post('/{budget}/approve', [BudgetController::class, 'approve'])->name('api.budgets.approve');
 
         // Budget reallocation routes
@@ -176,6 +184,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Donor Management Routes (Module 9)
     Route::prefix('donors')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\DonorController::class, 'index'])->name('api.donors.index');
+        Route::get('/my-projects', [\App\Http\Controllers\Api\DonorController::class, 'donorsForMyProjects'])->name('api.donors.my-projects');
         Route::post('/', [\App\Http\Controllers\Api\DonorController::class, 'store'])->name('api.donors.store');
         Route::get('/statistics', [\App\Http\Controllers\Api\DonorController::class, 'statistics'])->name('api.donors.statistics');
         Route::get('/chart-data', [\App\Http\Controllers\Api\DonorController::class, 'chartData'])->name('api.donors.chart-data');
@@ -192,13 +201,25 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         // PDF Report generation
         Route::get('/{donor}/report', [\App\Http\Controllers\Api\DonorController::class, 'generateReport'])->name('api.donors.report');
+        Route::post('/{donor}/export-report', [\App\Http\Controllers\Api\DonorController::class, 'exportFinancialReport'])->name('api.donors.export-report');
+
+        // Funding timeline chart
+        Route::get('/{donor}/funding-timeline', [\App\Http\Controllers\Api\DonorController::class, 'getFundingTimeline'])->name('api.donors.funding-timeline');
+
+        // Communications
+        Route::get('/{donor}/communications', [\App\Http\Controllers\Api\DonorController::class, 'getCommunications'])->name('api.donors.communications');
     });
 
     // In-Kind Contributions Routes (Module 9)
     Route::post('/in-kind-contributions', [\App\Http\Controllers\Api\DonorController::class, 'storeInKindContribution'])->name('api.in-kind.store');
 
     // Communications Routes (Module 9)
-    Route::post('/communications', [\App\Http\Controllers\Api\DonorController::class, 'storeCommunication'])->name('api.communications.store');
+    Route::prefix('communications')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\CommunicationController::class, 'index'])->name('api.communications.index');
+        Route::post('/', [\App\Http\Controllers\Api\CommunicationController::class, 'store'])->name('api.communications.store');
+        Route::put('/{communication}', [\App\Http\Controllers\Api\CommunicationController::class, 'update'])->name('api.communications.update');
+        Route::delete('/{communication}', [\App\Http\Controllers\Api\CommunicationController::class, 'destroy'])->name('api.communications.destroy');
+    });
 
     // Expense Management Routes (Module 7)
     Route::prefix('expenses')->group(function () {
@@ -206,6 +227,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/categories', [\App\Http\Controllers\Api\ExpenseController::class, 'categories'])->name('api.expenses.categories');
         Route::get('/pending-review', [\App\Http\Controllers\Api\ExpenseController::class, 'pendingReview'])->name('api.expenses.pending-review');
         Route::get('/pending-approval', [\App\Http\Controllers\Api\ExpenseController::class, 'pendingApproval'])->name('api.expenses.pending-approval');
+
+        // PDF Export endpoints
+        Route::get('/export-list-pdf', [\App\Http\Controllers\Api\ExpenseController::class, 'exportListPDF'])->name('api.expenses.export-list-pdf');
 
         // Resource routes
         Route::get('/', [\App\Http\Controllers\Api\ExpenseController::class, 'index'])->name('api.expenses.index');
@@ -219,6 +243,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{expense}/review', [\App\Http\Controllers\Api\ExpenseController::class, 'review'])->name('api.expenses.review');
         Route::post('/{expense}/approve', [\App\Http\Controllers\Api\ExpenseController::class, 'approve'])->name('api.expenses.approve');
         Route::post('/{expense}/mark-paid', [\App\Http\Controllers\Api\ExpenseController::class, 'markAsPaid'])->name('api.expenses.mark-paid');
+
+        // PDF Export for individual expense
+        Route::get('/{expense}/export-pdf', [\App\Http\Controllers\Api\ExpenseController::class, 'exportPDF'])->name('api.expenses.export-pdf');
 
         // Purchase Order linking routes
         Route::post('/{expense}/link-po', [\App\Http\Controllers\Api\ExpenseController::class, 'linkPurchaseOrder'])->name('api.expenses.link-po');
@@ -309,11 +336,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::prefix('reports')->group(function () {
         // Report generation history
         Route::get('/', [\App\Http\Controllers\Api\ReportController::class, 'index'])->name('api.reports.index');
+        Route::get('/history', [\App\Http\Controllers\Api\ReportController::class, 'index'])->name('api.reports.history');
         Route::get('/{report}', [\App\Http\Controllers\Api\ReportController::class, 'show'])->name('api.reports.show');
         Route::delete('/{report}', [\App\Http\Controllers\Api\ReportController::class, 'destroy'])->name('api.reports.destroy');
 
-        // PDF Download
-        Route::get('/{report}/download', [\App\Http\Controllers\Api\ReportController::class, 'download'])->name('api.reports.download');
+        // PDF Export (renamed from /download to avoid ad blocker detection)
+        Route::get('/{report}/pdf', [\App\Http\Controllers\Api\ReportController::class, 'download'])->name('api.reports.pdf');
 
         // Generate specific report types
         Route::post('/budget-vs-actual', [\App\Http\Controllers\Api\ReportController::class, 'budgetVsActual'])->name('api.reports.budget-vs-actual');
@@ -324,6 +352,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         // Custom report builder
         Route::post('/custom', [\App\Http\Controllers\Api\ReportController::class, 'custom'])->name('api.reports.custom');
+        Route::post('/custom/generate', [\App\Http\Controllers\Api\CustomReportController::class, 'generate'])->name('api.reports.custom.generate');
+        Route::post('/custom/export', [\App\Http\Controllers\Api\CustomReportController::class, 'export'])->name('api.reports.custom.export');
     });
 
     // Comment Management Routes (Module 11)

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ActivityLog;
 use App\Models\Expense;
 use App\Models\ExpenseApproval;
 use App\Models\User;
@@ -16,7 +17,8 @@ class ExpenseService
 {
     public function __construct(
         protected FileUploadService $fileUploadService,
-        protected BudgetService $budgetService
+        protected BudgetService $budgetService,
+        protected CashFlowService $cashFlowService
     ) {}
 
     /**
@@ -43,14 +45,47 @@ class ExpenseService
 
     /**
      * Submit expense for approval.
+     * Handles both initial submission and resubmission of rejected expenses.
      */
     public function submitExpense(Expense $expense, User $user): Expense
     {
-        $expense->update([
+        $updateData = [
             'status' => 'Submitted',
             'submitted_by' => $user->id,
             'submitted_at' => now(),
-        ]);
+        ];
+
+        // If resubmitting a rejected expense, clear previous review/rejection data
+        // but preserve the approval history for audit trail
+        if ($expense->status === 'Rejected') {
+            $updateData = array_merge($updateData, [
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'review_comments' => null,
+                'approved_by' => null,
+                'approved_at' => null,
+                'approval_comments' => null,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+            ]);
+        }
+
+        $expense->update($updateData);
+
+        // Log expense submission activity
+        ActivityLog::log(
+            $user->id,
+            'expense_submitted',
+            'Expense submitted for review: '.($expense->description ?? $expense->expense_number).' ($'.number_format($expense->amount, 2).')',
+            [
+                'expense_id' => $expense->id,
+                'expense_number' => $expense->expense_number,
+                'amount' => $expense->amount,
+                'project_id' => $expense->project_id,
+                'ip_address' => request()->ip(),
+            ]
+        );
 
         // Notify Finance Officers
         $financeOfficers = User::whereHas('role', function ($query) {
@@ -182,11 +217,12 @@ class ExpenseService
     }
 
     /**
-     * Mark expense as paid.
+     * Mark expense as paid and create cash flow record.
      */
     public function markAsPaid(Expense $expense, User $user, array $paymentData): Expense
     {
         return DB::transaction(function () use ($expense, $user, $paymentData) {
+            // Update expense status and payment details
             $expense->update([
                 'status' => 'Paid',
                 'paid_by' => $user->id,
@@ -196,8 +232,18 @@ class ExpenseService
                 'payment_notes' => $paymentData['payment_notes'] ?? null,
             ]);
 
-            // Record cash outflow (will be implemented in cash flow module)
-            // $this->cashFlowService->recordOutflow($expense);
+            // Record cash outflow if bank account is specified
+            if (isset($paymentData['bank_account_id'])) {
+                $this->cashFlowService->recordOutflow([
+                    'bank_account_id' => $paymentData['bank_account_id'],
+                    'project_id' => $expense->project_id,
+                    'expense_id' => $expense->id,
+                    'transaction_date' => now(),
+                    'amount' => $expense->amount,
+                    'description' => "Payment for expense {$expense->expense_number}: {$expense->description}",
+                    'reference' => $paymentData['payment_reference'] ?? null,
+                ]);
+            }
 
             return $expense->fresh();
         });

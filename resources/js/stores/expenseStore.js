@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import api from "../api";
 
 export const useExpenseStore = defineStore("expense", {
     state: () => ({
@@ -92,7 +92,7 @@ export const useExpenseStore = defineStore("expense", {
                     ...this.filters,
                 };
 
-                const response = await axios.get("/api/v1/expenses", {
+                const response = await api.get("/expenses", {
                     params,
                 });
 
@@ -114,7 +114,7 @@ export const useExpenseStore = defineStore("expense", {
 
         async fetchCategories() {
             try {
-                const response = await axios.get("/api/v1/expenses/categories");
+                const response = await api.get("/expenses/categories");
                 this.categories = response.data;
             } catch (error) {
                 console.error("Error fetching categories:", error);
@@ -123,9 +123,7 @@ export const useExpenseStore = defineStore("expense", {
 
         async fetchPendingReview() {
             try {
-                const response = await axios.get(
-                    "/api/v1/expenses/pending-review",
-                );
+                const response = await api.get("/expenses/pending-review");
                 this.pendingReview = response.data;
             } catch (error) {
                 console.error("Error fetching pending review:", error);
@@ -134,9 +132,7 @@ export const useExpenseStore = defineStore("expense", {
 
         async fetchPendingApproval() {
             try {
-                const response = await axios.get(
-                    "/api/v1/expenses/pending-approval",
-                );
+                const response = await api.get("/expenses/pending-approval");
                 this.pendingApproval = response.data;
             } catch (error) {
                 console.error("Error fetching pending approval:", error);
@@ -148,7 +144,7 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                const response = await axios.get(`/api/v1/expenses/${id}`);
+                const response = await api.get(`/expenses/${id}`);
                 this.currentExpense = response.data;
                 return response.data;
             } catch (error) {
@@ -172,13 +168,9 @@ export const useExpenseStore = defineStore("expense", {
                     }
                 });
 
-                const response = await axios.post(
-                    "/api/v1/expenses",
-                    formData,
-                    {
-                        headers: { "Content-Type": "multipart/form-data" },
-                    },
-                );
+                const response = await api.post("/expenses", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
 
                 return response.data.expense;
             } catch (error) {
@@ -203,13 +195,9 @@ export const useExpenseStore = defineStore("expense", {
                     }
                 });
 
-                const response = await axios.post(
-                    `/api/v1/expenses/${id}`,
-                    formData,
-                    {
-                        headers: { "Content-Type": "multipart/form-data" },
-                    },
-                );
+                const response = await api.post(`/expenses/${id}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
 
                 return response.data.expense;
             } catch (error) {
@@ -226,9 +214,7 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/expenses/${id}/submit`,
-                );
+                const response = await api.post(`/expenses/${id}/submit`);
                 await this.fetchExpenses(this.pagination.current_page);
                 return response.data;
             } catch (error) {
@@ -245,13 +231,10 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/expenses/${id}/review`,
-                    {
-                        action,
-                        comments,
-                    },
-                );
+                const response = await api.post(`/expenses/${id}/review`, {
+                    action,
+                    comments,
+                });
 
                 await this.fetchPendingReview();
                 return response.data;
@@ -269,13 +252,10 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/expenses/${id}/approve`,
-                    {
-                        action,
-                        comments,
-                    },
-                );
+                const response = await api.post(`/expenses/${id}/approve`, {
+                    action,
+                    comments,
+                });
 
                 await this.fetchPendingApproval();
                 return response.data;
@@ -293,8 +273,8 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                const response = await axios.post(
-                    `/api/v1/expenses/${id}/mark-paid`,
+                const response = await api.post(
+                    `/expenses/${id}/mark-paid`,
                     paymentData,
                 );
                 await this.fetchExpenses(this.pagination.current_page);
@@ -314,7 +294,7 @@ export const useExpenseStore = defineStore("expense", {
             this.error = null;
 
             try {
-                await axios.delete(`/api/v1/expenses/${id}`);
+                await api.delete(`/expenses/${id}`);
                 await this.fetchExpenses(this.pagination.current_page);
             } catch (error) {
                 this.error =

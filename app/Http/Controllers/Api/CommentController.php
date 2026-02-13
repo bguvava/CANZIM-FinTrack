@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCommentRequest;
-use App\Http\Requests\UpdateCommentRequest;
+use App\Http\Requests\Comment\StoreCommentRequest;
+use App\Http\Requests\Comment\UpdateCommentRequest;
 use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use App\Models\CommentAttachment;
@@ -47,12 +47,10 @@ class CommentController extends Controller
 
             return response()->json([
                 'data' => CommentResource::collection($comments),
-                'meta' => [
-                    'current_page' => $comments->currentPage(),
-                    'last_page' => $comments->lastPage(),
-                    'per_page' => $comments->perPage(),
-                    'total' => $comments->total(),
-                ],
+                'current_page' => $comments->currentPage(),
+                'last_page' => $comments->lastPage(),
+                'per_page' => $comments->perPage(),
+                'total' => $comments->total(),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -85,6 +83,7 @@ class CommentController extends Controller
             $comment = $this->commentService->createComment($data, $request->user());
 
             return response()->json([
+                'success' => true,
                 'message' => 'Comment created successfully',
                 'data' => new CommentResource($comment),
             ], 201);
@@ -129,6 +128,7 @@ class CommentController extends Controller
             $updatedComment = $this->commentService->updateComment($comment, $data);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Comment updated successfully',
                 'data' => new CommentResource($updatedComment),
             ]);
@@ -151,8 +151,9 @@ class CommentController extends Controller
             $this->commentService->deleteComment($comment);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Comment deleted successfully',
-            ], 204);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error deleting comment',

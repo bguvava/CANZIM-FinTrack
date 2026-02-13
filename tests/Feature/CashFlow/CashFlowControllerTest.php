@@ -451,7 +451,7 @@ class CashFlowControllerTest extends TestCase
     }
 
     /** @test */
-    public function expense_id_is_required_for_outflow()
+    public function expense_id_is_optional_for_outflow()
     {
         Sanctum::actingAs($this->financeOfficer);
 
@@ -465,8 +465,9 @@ class CashFlowControllerTest extends TestCase
 
         $response = $this->postJson('/api/v1/cash-flows/outflows', $outflowData);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['expense_id']);
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.type', 'outflow');
+        $this->assertNull($response->json('data.expense_id'));
     }
 
     /** @test */

@@ -3,6 +3,7 @@ import { createPinia } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import ActivityLogs from "./pages/ActivityLogs.vue";
 import { useAuthStore } from "./stores/authStore";
+import SessionLockPlugin from "./plugins/sessionLock";
 
 const pinia = createPinia();
 
@@ -28,6 +29,7 @@ const app = createApp(ActivityLogs);
 
 app.use(pinia);
 app.use(router);
+app.use(SessionLockPlugin);
 app.config.globalProperties.$swal = window.$swal;
 app.config.globalProperties.$toast = window.$toast;
 

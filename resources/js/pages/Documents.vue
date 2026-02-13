@@ -270,24 +270,6 @@
                                             <i class="fas fa-code-branch"></i>
                                         </button>
 
-                                        <!-- Edit -->
-                                        <button
-                                            @click="editDocument(document)"
-                                            class="rounded-lg p-2 text-green-600 transition-colors hover:bg-green-50"
-                                            title="Edit"
-                                        >
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-
-                                        <!-- Replace -->
-                                        <button
-                                            @click="replaceDocument(document)"
-                                            class="rounded-lg p-2 text-orange-600 transition-colors hover:bg-orange-50"
-                                            title="Replace with New Version"
-                                        >
-                                            <i class="fas fa-sync-alt"></i>
-                                        </button>
-
                                         <!-- Delete -->
                                         <button
                                             @click="deleteDocument(document)"
@@ -326,23 +308,6 @@
             @uploaded="onDocumentUploaded"
         />
 
-        <!-- Edit Modal -->
-        <EditDocumentModal
-            v-if="showEditModal"
-            :document="selectedDocument"
-            :categories="categories"
-            @close="showEditModal = false"
-            @updated="onDocumentUpdated"
-        />
-
-        <!-- Replace Modal -->
-        <ReplaceDocumentModal
-            v-if="showReplaceModal"
-            :document="selectedDocument"
-            @close="showReplaceModal = false"
-            @replaced="onDocumentReplaced"
-        />
-
         <!-- Versions Modal -->
         <DocumentVersionsModal
             v-if="showVersionsModal"
@@ -356,18 +321,15 @@
 import { ref, computed, onMounted } from "vue";
 import DashboardLayout from "../layouts/DashboardLayout.vue";
 import UploadDocumentModal from "../components/modals/UploadDocumentModal.vue";
-import EditDocumentModal from "../components/modals/EditDocumentModal.vue";
-import ReplaceDocumentModal from "../components/modals/ReplaceDocumentModal.vue";
 import DocumentVersionsModal from "../components/modals/DocumentVersionsModal.vue";
-import axios from "axios";
+import api from "@/api";
+import { showSuccess, showError, confirmAction } from "../plugins/sweetalert";
 
 export default {
     name: "Documents",
     components: {
         DashboardLayout,
         UploadDocumentModal,
-        EditDocumentModal,
-        ReplaceDocumentModal,
         DocumentVersionsModal,
     },
     setup() {
@@ -375,8 +337,6 @@ export default {
         const categories = ref([]);
         const loading = ref(false);
         const showUploadModal = ref(false);
-        const showEditModal = ref(false);
-        const showReplaceModal = ref(false);
         const showVersionsModal = ref(false);
         const selectedDocument = ref(null);
 
@@ -397,13 +357,14 @@ export default {
                 if (filters.value.file_type)
                     params.file_type = filters.value.file_type;
 
-                const response = await axios.get("/api/v1/documents", {
+                const response = await api.get("/documents", {
                     params,
                 });
                 documents.value = response.data.data || [];
             } catch (error) {
                 console.error("Error loading documents:", error);
-                window.$toast.error(
+                showError(
+                    "Error",
                     "Failed to load documents. Please try again.",
                 );
             } finally {
@@ -414,9 +375,7 @@ export default {
         // Load categories
         const loadCategories = async () => {
             try {
-                const response = await axios.get(
-                    "/api/v1/documents/categories",
-                );
+                const response = await api.get("/documents/categories");
                 categories.value = response.data.data || [];
             } catch (error) {
                 console.error("Error loading categories:", error);
@@ -456,95 +415,65 @@ export default {
             showUploadModal.value = true;
         };
 
-        const editDocument = (document) => {
-            selectedDocument.value = document;
-            showEditModal.value = true;
-        };
-
-        const replaceDocument = (document) => {
-            selectedDocument.value = document;
-            showReplaceModal.value = true;
-        };
-
         const viewVersions = (document) => {
             selectedDocument.value = document;
             showVersionsModal.value = true;
         };
 
         // Download document
-        const downloadDocument = async (document) => {
+        const downloadDocument = async (doc) => {
             try {
-                const response = await axios.get(
-                    `/api/v1/documents/${document.id}/download`,
+                const response = await api.get(
+                    `/documents/${doc.id}/download`,
                     { responseType: "blob" },
                 );
 
                 const url = window.URL.createObjectURL(
                     new Blob([response.data]),
                 );
-                const link = document.createElement("a");
+                const link = window.document.createElement("a");
                 link.href = url;
-                link.setAttribute("download", document.file_name);
-                document.body.appendChild(link);
+                link.setAttribute("download", doc.file_name);
+                window.document.body.appendChild(link);
                 link.click();
                 link.remove();
 
-                window.$toast.success("Document downloaded successfully");
+                showSuccess("Success", "Document downloaded successfully");
             } catch (error) {
                 console.error("Error downloading document:", error);
-                window.$toast.error(
+                showError(
+                    "Error",
                     "Failed to download document. Please try again.",
                 );
             }
         };
 
         // Delete document
-        const deleteDocument = (document) => {
-            window.$swal
-                .fire({
-                    title: "Are you sure?",
-                    text: `This will permanently delete "${document.title}" and all its versions. This action cannot be undone!`,
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    cancelButtonColor: "#3085d6",
-                    confirmButtonText: "Yes, Delete It!",
-                    cancelButtonText: "Cancel",
-                })
-                .then(async (result) => {
-                    if (result.isConfirmed) {
-                        try {
-                            await axios.delete(
-                                `/api/v1/documents/${document.id}`,
-                            );
-                            window.$toast.success(
-                                "Document deleted successfully",
-                            );
-                            loadDocuments();
-                        } catch (error) {
-                            console.error("Error deleting document:", error);
-                            window.$toast.error(
-                                error.response?.data?.message ||
-                                    "Failed to delete document",
-                            );
-                        }
-                    }
-                });
+        const deleteDocument = async (document) => {
+            const confirmed = await confirmAction(
+                "Are you sure?",
+                `This will permanently delete "${document.title}" and all its versions. This action cannot be undone!`,
+            );
+
+            if (confirmed) {
+                try {
+                    await api.delete(`/documents/${document.id}`);
+                    showSuccess("Success", "Document deleted successfully");
+                    loadDocuments();
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    showError(
+                        "Error",
+                        error.response?.data?.message ||
+                            "Failed to delete document",
+                    );
+                }
+            }
         };
 
         // Event handlers
         const onDocumentUploaded = () => {
             showUploadModal.value = false;
-            loadDocuments();
-        };
-
-        const onDocumentUpdated = () => {
-            showEditModal.value = false;
-            loadDocuments();
-        };
-
-        const onDocumentReplaced = () => {
-            showReplaceModal.value = false;
             loadDocuments();
         };
 
@@ -616,8 +545,6 @@ export default {
             loading,
             filters,
             showUploadModal,
-            showEditModal,
-            showReplaceModal,
             showVersionsModal,
             selectedDocument,
             hasActiveFilters,
@@ -625,14 +552,10 @@ export default {
             debouncedSearch,
             clearFilters,
             openUploadModal,
-            editDocument,
-            replaceDocument,
             viewVersions,
             downloadDocument,
             deleteDocument,
             onDocumentUploaded,
-            onDocumentUpdated,
-            onDocumentReplaced,
             getFileIcon,
             getFileTypeLabel,
             getCategoryName,

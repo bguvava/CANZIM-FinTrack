@@ -40,11 +40,15 @@ class HelpersTest extends TestCase
             'xml',
             'ctype',
             'fileinfo',
-            'gd',
         ];
 
         foreach ($requiredExtensions as $extension) {
             $this->assertTrue(extension_loaded($extension), "PHP extension {$extension} is not loaded");
+        }
+
+        // GD is optional for image processing - skip if not available
+        if (! extension_loaded('gd')) {
+            $this->markTestIncomplete('GD extension is not loaded. Image upload tests will be skipped.');
         }
     }
 

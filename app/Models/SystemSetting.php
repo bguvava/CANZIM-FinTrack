@@ -29,11 +29,11 @@ class SystemSetting extends Model
     {
         return Cache::remember("setting.{$key}", 3600, function () use ($key, $default) {
             $setting = self::where('key', $key)->first();
-            
-            if (!$setting) {
+
+            if (! $setting) {
                 return $default;
             }
-            
+
             return self::castValue($setting->value, $setting->type);
         });
     }
@@ -51,7 +51,7 @@ class SystemSetting extends Model
                 'type' => $type,
             ]
         );
-        
+
         Cache::forget("setting.{$key}");
     }
 

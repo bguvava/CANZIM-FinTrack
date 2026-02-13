@@ -3,16 +3,14 @@
         <!-- Header -->
         <div class="mb-8 flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">
-                    Create Budget
-                </h1>
+                <h1 class="text-2xl font-bold text-gray-900">Create Budget</h1>
                 <p class="mt-1 text-sm text-gray-600400">
                     Create a new budget for your project with detailed line
                     items
                 </p>
             </div>
             <button
-                @click="router.visit('/budgets')"
+                @click="router.push('/budgets')"
                 class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2600800300"
             >
                 <i class="fa fa-arrow-left mr-2"></i>
@@ -30,9 +28,7 @@
                     class="fa fa-exclamation-circle mr-3 mt-0.5 text-red-600400"
                 ></i>
                 <div class="flex-1">
-                    <h3
-                        class="text-sm font-medium text-red-800300"
-                    >
+                    <h3 class="text-sm font-medium text-red-800300">
                         Error Creating Budget
                     </h3>
                     <p class="mt-1 text-sm text-red-700400">
@@ -43,15 +39,11 @@
         </div>
 
         <!-- Create Budget Form -->
-        <div
-            class="rounded-lg border border-gray-200 bg-white shadow-sm700800"
-        >
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm700800">
             <form @submit.prevent="handleSubmit">
                 <!-- Project Selection Section -->
                 <div class="border-b border-gray-200 p-6700">
-                    <h2
-                        class="mb-4 text-lg font-semibold text-gray-900"
-                    >
+                    <h2 class="mb-4 text-lg font-semibold text-gray-900">
                         Project Selection
                     </h2>
 
@@ -158,9 +150,7 @@
                 <!-- Budget Line Items Section -->
                 <div class="border-b border-gray-200 p-6700">
                     <div class="mb-4 flex items-center justify-between">
-                        <h2
-                            class="text-lg font-semibold text-gray-900"
-                        >
+                        <h2 class="text-lg font-semibold text-gray-900">
                             Budget Line Items
                         </h2>
                         <button
@@ -346,33 +336,23 @@
                     <div
                         class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4800900/20"
                     >
-                        <h3
-                            class="mb-3 text-sm font-semibold text-blue-900300"
-                        >
+                        <h3 class="mb-3 text-sm font-semibold text-blue-900300">
                             Budget Summary
                         </h3>
                         <div class="grid gap-3 md:grid-cols-3">
                             <div>
-                                <p
-                                    class="text-xs text-blue-700400"
-                                >
+                                <p class="text-xs text-blue-700400">
                                     Line Items
                                 </p>
-                                <p
-                                    class="text-lg font-bold text-blue-900300"
-                                >
+                                <p class="text-lg font-bold text-blue-900300">
                                     {{ lineItems.length }}
                                 </p>
                             </div>
                             <div>
-                                <p
-                                    class="text-xs text-blue-700400"
-                                >
+                                <p class="text-xs text-blue-700400">
                                     Total Budget
                                 </p>
-                                <p
-                                    class="text-lg font-bold text-blue-900300"
-                                >
+                                <p class="text-lg font-bold text-blue-900300">
                                     ${{
                                         budgetTotal.toLocaleString("en-US", {
                                             minimumFractionDigits: 2,
@@ -382,14 +362,10 @@
                                 </p>
                             </div>
                             <div v-if="selectedDonor">
-                                <p
-                                    class="text-xs text-blue-700400"
-                                >
+                                <p class="text-xs text-blue-700400">
                                     Available Funding
                                 </p>
-                                <p
-                                    class="text-lg font-bold text-blue-900300"
-                                >
+                                <p class="text-lg font-bold text-blue-900300">
                                     ${{
                                         parseFloat(
                                             selectedDonor.available_funding,
@@ -415,9 +391,7 @@
                                 <i
                                     class="fa fa-exclamation-triangle mr-2 mt-0.5 text-red-600400"
                                 ></i>
-                                <p
-                                    class="text-xs text-red-800300"
-                                >
+                                <p class="text-xs text-red-800300">
                                     <strong>Warning:</strong> Budget total
                                     exceeds available donor funding by ${{
                                         (
@@ -439,7 +413,7 @@
                     <div class="flex items-center justify-end gap-3">
                         <button
                             type="button"
-                            @click="router.visit('/budgets')"
+                            @click="router.push('/budgets')"
                             class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2600800300"
                         >
                             Cancel
@@ -467,13 +441,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { router } from "@inertiajs/vue3";
+import { useRouter } from "vue-router";
 import { useBudgetStore } from "@/stores/budgetStore";
 import { useProjectStore } from "@/stores/projectStore";
 import Swal from "sweetalert2";
 
 const budgetStore = useBudgetStore();
 const projectStore = useProjectStore();
+const router = useRouter();
 
 // State
 const loading = ref(false);
@@ -586,7 +561,7 @@ const handleSubmit = async () => {
             text: "The budget has been created successfully and submitted for approval.",
             confirmButtonColor: "#3b82f6",
         }).then(() => {
-            router.visit("/budgets");
+            router.push("/budgets");
         });
     } catch (err) {
         console.error("Error creating budget:", err);
@@ -628,4 +603,3 @@ onMounted(async () => {
     }
 });
 </script>
-

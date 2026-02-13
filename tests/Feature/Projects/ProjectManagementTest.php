@@ -288,7 +288,7 @@ class ProjectManagementTest extends TestCase
         $response = $this->actingAs($this->programsManager, 'sanctum')
             ->postJson('/api/v1/budgets', $budgetData);
 
-        $response->assertStatus(500);
+        $response->assertStatus(422);
     }
 
     /** @test */

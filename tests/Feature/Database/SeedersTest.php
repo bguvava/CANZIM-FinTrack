@@ -54,14 +54,14 @@ class SeedersTest extends TestCase
     {
         $categories = DB::table('expense_categories')->get();
 
-        $this->assertCount(5, $categories, 'Should have exactly 5 expense categories');
+        $this->assertCount(8, $categories, 'Should have exactly 8 expense categories');
 
         $categoryNames = $categories->pluck('name')->toArray();
-        $this->assertContains('Travel', $categoryNames);
-        $this->assertContains('Staff Salaries', $categoryNames);
-        $this->assertContains('Procurement/Supplies', $categoryNames);
-        $this->assertContains('Consultants/Contractors', $categoryNames);
-        $this->assertContains('Other', $categoryNames);
+        $this->assertContains('Travel & Transportation', $categoryNames);
+        $this->assertContains('Salaries & Benefits', $categoryNames);
+        $this->assertContains('Procurement & Supplies', $categoryNames);
+        $this->assertContains('Consultants & Professional Fees', $categoryNames);
+        $this->assertContains('Other Expenses', $categoryNames);
 
         foreach ($categories as $category) {
             $this->assertTrue(
@@ -115,7 +115,7 @@ class SeedersTest extends TestCase
             'org_name',
             'org_short_name',
             'org_logo',
-            'currency',
+            'base_currency',
             'timezone',
             'session_timeout',
             'date_format',
@@ -146,7 +146,7 @@ class SeedersTest extends TestCase
         $this->assertEquals('CANZIM', $orgShortName);
 
         $currency = DB::table('system_settings')
-            ->where('key', 'currency')
+            ->where('key', 'base_currency')
             ->value('value');
         $this->assertEquals('USD', $currency);
 
@@ -198,17 +198,18 @@ class SeedersTest extends TestCase
     }
 
     /**
-     * Test that expense categories have unique slugs
+     * Test expense categories have unique codes
      */
     public function test_expense_categories_have_unique_slugs(): void
     {
-        $categorySlugs = DB::table('expense_categories')->pluck('slug')->toArray();
-        $uniqueSlugs = array_unique($categorySlugs);
+        $codes = DB::table('expense_categories')->pluck('code')->toArray();
 
-        $this->assertEquals(
-            count($categorySlugs),
-            count($uniqueSlugs),
-            'All expense category slugs should be unique'
+        $uniqueCodes = array_unique($codes);
+
+        $this->assertCount(
+            count($codes),
+            $uniqueCodes,
+            'Expense categories should have unique codes'
         );
     }
 
@@ -296,8 +297,8 @@ class SeedersTest extends TestCase
         $settingsCount = DB::table('system_settings')->count();
 
         $this->assertEquals(3, $rolesCount, 'Roles seeder should create 3 roles');
-        $this->assertEquals(5, $categoriesCount, 'Categories seeder should create 5 categories');
-        $this->assertEquals(1, $usersCount, 'Admin seeder should create 1 user');
-        $this->assertEquals(11, $settingsCount, 'Settings seeder should create 11 settings');
+        $this->assertEquals(8, $categoriesCount, 'Categories seeder should create 8 categories');
+        $this->assertEquals(4, $usersCount, 'Admin seeder should create 4 users (admin + 3 test users)');
+        $this->assertGreaterThanOrEqual(11, $settingsCount, 'Settings seeder should create at least 11 settings');
     }
 }

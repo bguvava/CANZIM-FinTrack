@@ -145,6 +145,44 @@
                         </div>
                     </div>
 
+                    <!-- Funding Total -->
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Total Funding Commitment
+                            <span class="text-gray-500 text-xs ml-1"
+                                >(Optional - Total pledged amount)</span
+                            >
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-500"
+                                >$</span
+                            >
+                            <input
+                                v-model.number="formData.funding_total"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="w-full px-4 py-2 pl-7 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                :class="{
+                                    'border-red-500': errors.funding_total,
+                                }"
+                            />
+                        </div>
+                        <p
+                            v-if="errors.funding_total"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ errors.funding_total[0] }}
+                        </p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Leave blank if funding will be tracked per-project
+                            only
+                        </p>
+                    </div>
+
                     <!-- Status -->
                     <div>
                         <label
@@ -184,8 +222,9 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                        class="px-4 py-2 border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition"
                     >
+                        <i class="fas fa-times mr-1.5"></i>
                         Cancel
                     </button>
                     <button
@@ -197,6 +236,7 @@
                             v-if="submitting"
                             class="fas fa-spinner fa-spin mr-2"
                         ></i>
+                        <i v-else class="fas fa-save mr-1.5"></i>
                         {{ submitting ? "Updating..." : "Update Donor" }}
                     </button>
                 </div>
@@ -232,6 +272,7 @@ const formData = reactive({
     website: "",
     status: "active",
     notes: "",
+    funding_total: null,
 });
 
 const handleSubmit = async () => {
@@ -267,5 +308,6 @@ onMounted(() => {
     formData.website = props.donor.website || "";
     formData.status = props.donor.status || "active";
     formData.notes = props.donor.notes || "";
+    formData.funding_total = props.donor.funding_total || null;
 });
 </script>

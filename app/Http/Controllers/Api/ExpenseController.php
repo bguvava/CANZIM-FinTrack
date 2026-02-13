@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewExpenseRequest;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
+use App\Models\ActivityLog;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Services\ApprovalService;
+use App\Services\ExpensePDFService;
 use App\Services\ExpenseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +19,8 @@ class ExpenseController extends Controller
 {
     public function __construct(
         protected ExpenseService $expenseService,
-        protected ApprovalService $approvalService
+        protected ApprovalService $approvalService,
+        protected ExpensePDFService $expensePDFService
     ) {
         // Policy-based authorization handled per method
     }
@@ -33,7 +36,11 @@ class ExpenseController extends Controller
         // Role-based filtering
         $user = $request->user();
         if ($user->role->slug === 'project-officer') {
+            // Project officers see only their own expenses (including drafts)
             $query->where('submitted_by', $user->id);
+        } else {
+            // Finance officers and programs managers see only submitted/non-draft expenses
+            $query->where('status', '!=', 'Draft');
         }
 
         // Apply filters (max 5)
@@ -80,6 +87,18 @@ class ExpenseController extends Controller
                 $request->file('receipt')
             );
 
+            // Log activity
+            try {
+                ActivityLog::log(
+                    $request->user()->id,
+                    'expense_created',
+                    'Created expense: '.$expense->description.' ($'.$expense->amount.')',
+                    ['expense_id' => $expense->id, 'amount' => $expense->amount, 'project_id' => $expense->project_id]
+                );
+            } catch (\Throwable $e) {
+                // Don't let logging errors break the main flow
+            }
+
             return response()->json([
                 'message' => 'Expense created successfully',
                 'expense' => $expense->load(['project', 'category', 'budgetItem']),
@@ -108,6 +127,7 @@ class ExpenseController extends Controller
             'rejector',
             'payer',
             'approvals.user',
+            'cashFlow.bankAccount',
         ]);
 
         return response()->json($expense);
@@ -224,6 +244,18 @@ class ExpenseController extends Controller
                     $request->comments
                 );
                 $message = 'Expense approved successfully';
+
+                // Log approval activity
+                try {
+                    ActivityLog::log(
+                        $request->user()->id,
+                        'expense_approved',
+                        'Approved expense: '.$expense->description.' ($'.$expense->amount.')',
+                        ['expense_id' => $expense->id, 'amount' => $expense->amount]
+                    );
+                } catch (\Throwable $e) {
+                    // Don't let logging errors break the main flow
+                }
             } else {
                 $approvedExpense = $this->expenseService->rejectExpense(
                     $expense,
@@ -231,6 +263,18 @@ class ExpenseController extends Controller
                     $request->comments ?? 'Rejected'
                 );
                 $message = 'Expense rejected';
+
+                // Log rejection activity
+                try {
+                    ActivityLog::log(
+                        $request->user()->id,
+                        'expense_rejected',
+                        'Rejected expense: '.$expense->description.' ($'.$expense->amount.')',
+                        ['expense_id' => $expense->id, 'amount' => $expense->amount, 'reason' => $request->comments]
+                    );
+                } catch (\Throwable $e) {
+                    // Don't let logging errors break the main flow
+                }
             }
 
             return response()->json([
@@ -253,10 +297,22 @@ class ExpenseController extends Controller
         $this->authorize('markAsPaid', $expense);
 
         $validated = $request->validate([
+            'bank_account_id' => ['required', 'exists:bank_accounts,id'],
             'payment_reference' => ['nullable', 'string', 'max:100'],
             'payment_method' => ['nullable', 'string', 'max:50'],
             'payment_notes' => ['nullable', 'string', 'max:500'],
         ]);
+
+        // Validate bank account is active
+        $bankAccount = \App\Models\BankAccount::find($validated['bank_account_id']);
+        if (! $bankAccount || ! $bankAccount->is_active) {
+            return response()->json([
+                'message' => 'The selected bank account is not active.',
+                'errors' => [
+                    'bank_account_id' => ['The selected bank account is not active.'],
+                ],
+            ], 422);
+        }
 
         try {
             $paidExpense = $this->expenseService->markAsPaid(
@@ -266,9 +322,14 @@ class ExpenseController extends Controller
             );
 
             return response()->json([
-                'message' => 'Expense marked as paid',
+                'message' => 'Expense marked as paid successfully',
                 'expense' => $paidExpense,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error marking expense as paid',
@@ -376,6 +437,80 @@ class ExpenseController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error unlinking expense from purchase order',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export single expense details as PDF.
+     */
+    public function exportPDF(Expense $expense)
+    {
+        $this->authorize('view', $expense);
+
+        try {
+            return $this->expensePDFService->streamExpenseDetailsPDF($expense);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error generating expense PDF',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export filtered expense list as PDF.
+     */
+    public function exportListPDF(Request $request)
+    {
+        $this->authorize('viewAny', Expense::class);
+
+        try {
+            $query = Expense::with(['project', 'category', 'budgetItem', 'submitter']);
+
+            // Role-based filtering
+            $user = $request->user()->load('role');
+            if ($user->role->slug === 'project-officer') {
+                $query->where('submitted_by', $user->id);
+            }
+
+            // Apply filters
+            $filters = [];
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+                $filters['status'] = $request->status;
+            }
+
+            if ($request->filled('project_id')) {
+                $query->where('project_id', $request->project_id);
+                $filters['project_id'] = $request->project_id;
+            }
+
+            if ($request->filled('expense_category_id')) {
+                $query->where('expense_category_id', $request->expense_category_id);
+                $filters['category_id'] = $request->expense_category_id;
+            }
+
+            if ($request->filled('date_from')) {
+                $query->where('expense_date', '>=', $request->date_from);
+                $filters['date_from'] = $request->date_from;
+            }
+
+            if ($request->filled('date_to')) {
+                $query->where('expense_date', '<=', $request->date_to);
+                $filters['date_to'] = $request->date_to;
+            }
+
+            $expenses = $query->orderBy('expense_date', 'desc')->get();
+
+            return $this->expensePDFService->streamExpenseListPDF($expenses, $filters);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error generating expense list PDF',
                 'error' => $e->getMessage(),
             ], 500);
         }

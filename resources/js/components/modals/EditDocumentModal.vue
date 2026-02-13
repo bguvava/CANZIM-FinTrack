@@ -174,10 +174,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                             :disabled="updating"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -202,7 +202,7 @@
 
 <script>
 import { ref, onMounted } from "vue";
-import axios from "axios";
+import api from "@/api";
 
 export default {
     name: "EditDocumentModal",
@@ -263,7 +263,7 @@ export default {
             errors.value = {};
 
             try {
-                await axios.put(
+                await api.put(
                     `/api/v1/documents/${props.document.id}`,
                     form.value,
                 );

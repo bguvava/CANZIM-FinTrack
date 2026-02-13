@@ -12,7 +12,7 @@ class DonorPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role->name, ['Programs Manager', 'Finance Officer']);
+        return $user->role && in_array($user->role->name, ['Programs Manager', 'Finance Officer']);
     }
 
     /**
@@ -20,7 +20,7 @@ class DonorPolicy
      */
     public function view(User $user, Donor $donor): bool
     {
-        return in_array($user->role->name, ['Programs Manager', 'Finance Officer']);
+        return $user->role && in_array($user->role->name, ['Programs Manager', 'Finance Officer']);
     }
 
     /**
@@ -28,7 +28,7 @@ class DonorPolicy
      */
     public function create(User $user): bool
     {
-        return $user->role->name === 'Programs Manager';
+        return $user->role && $user->role->name === 'Programs Manager';
     }
 
     /**
@@ -36,7 +36,7 @@ class DonorPolicy
      */
     public function update(User $user, Donor $donor): bool
     {
-        return $user->role->name === 'Programs Manager';
+        return $user->role && $user->role->name === 'Programs Manager';
     }
 
     /**
@@ -44,7 +44,7 @@ class DonorPolicy
      */
     public function delete(User $user, Donor $donor): bool
     {
-        return $user->role->name === 'Programs Manager';
+        return $user->role && $user->role->name === 'Programs Manager';
     }
 
     /**

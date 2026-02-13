@@ -144,6 +144,14 @@ class Expense extends Model
     }
 
     /**
+     * Get the cash flow transaction for this expense.
+     */
+    public function cashFlow(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(CashFlow::class);
+    }
+
+    /**
      * Scope a query to only include expenses with a specific status.
      */
     public function scopeStatus($query, string $status): void

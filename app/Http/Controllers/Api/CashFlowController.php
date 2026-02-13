@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInflowRequest;
 use App\Http\Requests\StoreOutflowRequest;
+use App\Models\ActivityLog;
 use App\Models\BankAccount;
 use App\Models\CashFlow;
-use App\Models\Expense;
 use App\Services\CashFlowPDFService;
 use App\Services\CashFlowService;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +28,7 @@ class CashFlowController extends Controller
     {
         $this->authorize('viewAny', CashFlow::class);
 
-        $query = CashFlow::with(['bankAccount', 'project', 'donor', 'expense', 'creator'])
+        $query = CashFlow::with(['bankAccount', 'project', 'donor', 'expense.category', 'creator'])
             ->orderBy('transaction_date', 'desc');
 
         // Filter by type
@@ -91,6 +91,12 @@ class CashFlowController extends Controller
         try {
             $cashFlow = $this->cashFlowService->recordInflow($request->validated());
 
+            ActivityLog::log(auth()->id(), 'cash_inflow_recorded', 'Cash inflow recorded: '.$cashFlow->transaction_number, [
+                'cash_flow_id' => $cashFlow->id,
+                'amount' => $cashFlow->amount,
+                'bank_account_id' => $cashFlow->bank_account_id,
+            ]);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Cash inflow recorded successfully',
@@ -115,10 +121,16 @@ class CashFlowController extends Controller
         try {
             $cashFlow = $this->cashFlowService->recordOutflow($request->validated());
 
+            ActivityLog::log(auth()->id(), 'cash_outflow_recorded', 'Cash outflow recorded: '.$cashFlow->transaction_number, [
+                'cash_flow_id' => $cashFlow->id,
+                'amount' => $cashFlow->amount,
+                'bank_account_id' => $cashFlow->bank_account_id,
+            ]);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Cash outflow recorded successfully',
-                'data' => $cashFlow->load(['bankAccount', 'project', 'expense']),
+                'data' => $cashFlow->load(['bankAccount', 'project', 'expense.category']),
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -142,7 +154,7 @@ class CashFlowController extends Controller
     {
         $this->authorize('view', $cashFlow);
 
-        $cashFlow->load(['bankAccount', 'project', 'donor', 'expense', 'creator', 'reconciler']);
+        $cashFlow->load(['bankAccount', 'project', 'donor', 'expense.category', 'creator', 'reconciler']);
 
         return response()->json([
             'status' => 'success',
@@ -164,6 +176,11 @@ class CashFlowController extends Controller
             ]);
 
             $cashFlow->update($validated);
+
+            ActivityLog::log(auth()->id(), 'cash_flow_updated', 'Cash flow updated: '.$cashFlow->transaction_number, [
+                'cash_flow_id' => $cashFlow->id,
+                'type' => $cashFlow->type,
+            ]);
 
             $message = $cashFlow->type === 'inflow'
                 ? 'Inflow transaction updated successfully'
@@ -249,69 +266,53 @@ class CashFlowController extends Controller
         $this->authorize('viewProjections', CashFlow::class);
 
         $validated = $request->validate([
-            'bank_account_id' => 'nullable|exists:bank_accounts,id',
-            'days' => 'sometimes|integer|min:1|max:365',
+            'bank_account_id' => 'required|exists:bank_accounts,id',
+            'months' => 'sometimes|integer|min:1|max:12',
         ]);
 
         try {
-            $days = (int) ($validated['days'] ?? 30);
-            $bankAccountId = $validated['bank_account_id'] ?? null;
+            $months = (int) ($validated['months'] ?? 3);
+            $bankAccountId = $validated['bank_account_id'];
 
-            // Calculate current balance
-            if ($bankAccountId) {
-                $bankAccount = BankAccount::findOrFail($bankAccountId);
-                $currentBalance = $bankAccount->current_balance;
-            } else {
-                $currentBalance = BankAccount::sum('current_balance');
+            // Use the service to calculate projections based on historical data
+            $projectionData = $this->cashFlowService->calculateProjection($bankAccountId, $months);
+
+            // Transform data for the frontend chart
+            $monthLabels = array_column($projectionData['projections'], 'month');
+            $likelyCase = array_column($projectionData['projections'], 'projected_balance');
+
+            // Calculate best case (20% more inflows, 10% less outflows)
+            $bestCase = [];
+            $worstCase = [];
+            $currentBalance = $projectionData['current_balance'];
+            $avgInflow = $projectionData['avg_monthly_inflow'];
+            $avgOutflow = $projectionData['avg_monthly_outflow'];
+
+            $bestBalance = $currentBalance;
+            $worstBalance = $currentBalance;
+
+            for ($i = 0; $i < $months; $i++) {
+                $bestBalance += ($avgInflow * 1.2) - ($avgOutflow * 0.9);
+                $worstBalance += ($avgInflow * 0.8) - ($avgOutflow * 1.1);
+                $bestCase[] = round($bestBalance, 2);
+                $worstCase[] = round($worstBalance, 2);
             }
 
-            // Get expected inflows (scheduled future cash inflows)
-            $endDate = now()->addDays($days);
-            $expectedInflowsQuery = CashFlow::where('type', 'inflow')
-                ->where('transaction_date', '>', now())
-                ->where('transaction_date', '<=', $endDate);
-
-            if ($bankAccountId) {
-                $expectedInflowsQuery->where('bank_account_id', $bankAccountId);
-            }
-
-            $expectedInflows = $expectedInflowsQuery->get()->map(function ($inflow) {
-                return [
-                    'date' => $inflow->transaction_date->format('Y-m-d'),
-                    'amount' => $inflow->amount,
-                    'description' => $inflow->description ?? 'Cash inflow',
-                ];
-            });
-
-            // Get expected outflows (future expenses)
-            $expectedOutflowsQuery = Expense::where('expense_date', '>', now())
-                ->where('expense_date', '<=', $endDate)
-                ->where('status', '!=', 'rejected');
-
-            $expectedOutflows = $expectedOutflowsQuery->get()->map(function ($expense) {
-                return [
-                    'date' => $expense->expense_date->format('Y-m-d'),
-                    'amount' => $expense->amount,
-                    'description' => $expense->description ?? 'Expense',
-                ];
-            });
-
-            $totalExpectedInflows = $expectedInflows->sum('amount');
-            $totalExpectedOutflows = $expectedOutflows->sum('amount');
-            $projectedBalance = $currentBalance + $totalExpectedInflows - $totalExpectedOutflows;
-
-            $result = [
-                'current_balance' => $currentBalance,
-                'projected_balance' => $projectedBalance,
-                'expected_inflows' => $expectedInflows,
-                'expected_outflows' => $expectedOutflows,
-            ];
-
-            if ($projectedBalance < 0) {
-                $result['warning'] = 'Projected balance will be negative';
-            }
-
-            return response()->json($result);
+            return response()->json([
+                'current_balance' => $projectionData['current_balance'],
+                'avg_monthly_inflow' => $projectionData['avg_monthly_inflow'],
+                'avg_monthly_outflow' => $projectionData['avg_monthly_outflow'],
+                'avg_net_cash_flow' => $projectionData['avg_net_cash_flow'],
+                'historical_months' => 6,
+                'months' => $monthLabels,
+                'best_case' => $bestCase,
+                'likely_case' => $likelyCase,
+                'worst_case' => $worstCase,
+                'best_case_final' => end($bestCase) ?: $currentBalance,
+                'likely_case_final' => end($likelyCase) ?: $currentBalance,
+                'worst_case_final' => end($worstCase) ?: $currentBalance,
+                'projections' => $projectionData['projections'],
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',

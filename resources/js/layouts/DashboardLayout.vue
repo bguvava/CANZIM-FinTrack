@@ -147,20 +147,14 @@
                                     <i class="fas fa-user-circle w-5"></i>
                                     <span>My Profile</span>
                                 </a>
+                                <!-- Settings link removed per requirements -->
                                 <a
-                                    href="/dashboard/settings"
-                                    v-if="authStore.isProgramsManager"
+                                    href="/dashboard/help"
+                                    target="_blank"
                                     class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-gray-700"
                                 >
-                                    <i class="fas fa-cog w-5"></i>
-                                    <span>Settings</span>
-                                </a>
-                                <a
-                                    href="/dashboard/messages"
-                                    class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-gray-700"
-                                >
-                                    <i class="fas fa-envelope w-5"></i>
-                                    <span>Messages</span>
+                                    <i class="fas fa-question-circle w-5"></i>
+                                    <span>Help &amp; Support</span>
                                 </a>
                                 <div
                                     class="border-t border-gray-200 my-2"
@@ -316,23 +310,46 @@ const watchSidebarState = () => {
 
 // Generate breadcrumbs from current path
 const generateBreadcrumbs = () => {
-    const path = window.location.pathname;
-    const segments = path.split("/").filter((segment) => segment !== "");
+    const currentPath = window.location.pathname;
+    const segments = currentPath.split("/").filter((segment) => segment !== "");
 
-    // Remove 'dashboard' from segments
+    // Routes that live under /dashboard/
+    const dashboardRoutes = new Set([
+        "users",
+        "activity-logs",
+        "profile",
+        "reports",
+        "documents",
+        "settings",
+        "audit-trail",
+        "help",
+    ]);
+
+    // Remove 'dashboard' from display segments but preserve proper paths
     const filteredSegments = segments.filter(
         (segment) => segment !== "dashboard",
     );
 
     breadcrumbs.value = filteredSegments.map((segment, index) => {
-        const path =
-            "/dashboard/" + filteredSegments.slice(0, index + 1).join("/");
+        // Build the correct path based on actual route structure
+        const pathSegments = filteredSegments.slice(0, index + 1);
+        const firstSegment = pathSegments[0];
+        let breadcrumbPath;
+
+        if (dashboardRoutes.has(firstSegment)) {
+            // These routes are under /dashboard/
+            breadcrumbPath = "/dashboard/" + pathSegments.join("/");
+        } else {
+            // These routes are at root level (projects, expenses, budgets, etc.)
+            breadcrumbPath = "/" + pathSegments.join("/");
+        }
+
         const label = segment
             .split("-")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
 
-        return { path, label };
+        return { path: breadcrumbPath, label };
     });
 };
 
@@ -347,6 +364,15 @@ const handleKeyboardShortcuts = (event) => {
 
 // Fetch pending PO count
 const fetchPendingPOCount = async () => {
+    // Skip if not authenticated or session is locked
+    if (
+        !authStore.isAuthenticated ||
+        authStore.isSessionLocked ||
+        window.isLoggingOut
+    ) {
+        return;
+    }
+
     try {
         await purchaseOrderStore.fetchPurchaseOrders();
         pendingPOCount.value = purchaseOrderStore.pendingApprovalCount;

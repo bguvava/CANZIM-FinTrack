@@ -87,7 +87,9 @@
                             <p class="mt-2 text-3xl font-bold text-purple-600">
                                 {{
                                     purchaseOrderStore.purchaseOrders?.filter(
-                                        (po) => po.status === "received",
+                                        (po) =>
+                                            po.status?.toLowerCase() ===
+                                            "received",
                                     ).length || 0
                                 }}
                             </p>
@@ -189,7 +191,7 @@
                                 :key="project.id"
                                 :value="project.id"
                             >
-                                {{ project.project_name }}
+                                {{ project.name }}
                             </option>
                         </select>
                     </div>
@@ -310,10 +312,10 @@
                                     {{ po.po_number }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ po.vendor?.vendor_name || "N/A" }}
+                                    {{ po.vendor?.name || "N/A" }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ po.project?.project_name || "N/A" }}
+                                    {{ po.project?.name || "N/A" }}
                                 </td>
                                 <td
                                     class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900"
@@ -345,12 +347,26 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         <button
-                                            v-if="po.status === 'draft'"
+                                            v-if="
+                                                po.status?.toLowerCase() ===
+                                                'draft'
+                                            "
                                             @click="editPO(po)"
                                             class="text-blue-600 transition-colors hover:text-blue-800"
                                             title="Edit Draft"
                                         >
                                             <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button
+                                            v-if="
+                                                po.status?.toLowerCase() ===
+                                                'draft'
+                                            "
+                                            @click="deletePO(po)"
+                                            class="text-red-600 transition-colors hover:text-red-800"
+                                            title="Delete Draft"
+                                        >
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -411,6 +427,7 @@
             :purchase-order="selectedPO"
             @close="modals.edit = false"
             @po-updated="handlePOUpdated"
+            @submit-for-approval="handleSubmitForApproval"
         />
         <ViewPurchaseOrderModal
             :isVisible="modals.view"
@@ -420,12 +437,14 @@
             @submit-for-approval="handleSubmitForApproval"
             @approve="handleApprovePO"
             @reject="handleRejectPO"
+            @mark-partially-received="handleMarkPartiallyReceived"
             @mark-received="handleMarkReceived"
             @complete="handleCompletePO"
         />
         <MarkReceivedModal
             :isVisible="modals.markReceived"
             :purchase-order="selectedPO"
+            :mode="receivingMode"
             @close="modals.markReceived = false"
             @items-received="handleItemsReceived"
         />
@@ -452,6 +471,7 @@ const modals = ref({
 });
 
 const selectedPO = ref(null);
+const receivingMode = ref("full"); // 'partial' or 'full'
 
 const filters = ref({
     search: "",
@@ -514,7 +534,7 @@ const filteredPurchaseOrders = computed(() => {
         orders = orders.filter(
             (po) =>
                 po.po_number?.toLowerCase().includes(searchLower) ||
-                po.vendor?.vendor_name?.toLowerCase().includes(searchLower),
+                po.vendor?.name?.toLowerCase().includes(searchLower),
         );
     }
 
@@ -583,15 +603,16 @@ const formatDate = (date) => {
 
 const getStatusClass = (status) => {
     const statusClasses = {
-        draft: "bg-gray-100 text-gray-800",
-        pending: "bg-yellow-100 text-yellow-800",
-        approved: "bg-blue-100 text-blue-800",
-        received: "bg-purple-100 text-purple-800",
-        completed: "bg-green-100 text-green-800",
-        rejected: "bg-red-100 text-red-800",
-        cancelled: "bg-gray-100 text-gray-800",
+        Draft: "bg-gray-100 text-gray-800",
+        Pending: "bg-yellow-100 text-yellow-800",
+        Approved: "bg-blue-100 text-blue-800",
+        "Partially Received": "bg-orange-100 text-orange-800",
+        Received: "bg-purple-100 text-purple-800",
+        Completed: "bg-green-100 text-green-800",
+        Rejected: "bg-red-100 text-red-800",
+        Cancelled: "bg-gray-100 text-gray-800",
     };
-    return statusClasses[status?.toLowerCase()] || "bg-gray-100 text-gray-800";
+    return statusClasses[status] || "bg-gray-100 text-gray-800";
 };
 
 const viewPO = async (po) => {
@@ -611,6 +632,50 @@ const viewPO = async (po) => {
 const editPO = (po) => {
     selectedPO.value = po;
     modals.value.edit = true;
+};
+
+const deletePO = async (po) => {
+    // Only allow deletion of draft POs
+    if (po.status?.toLowerCase() !== "draft") {
+        Swal.fire({
+            icon: "error",
+            title: "Cannot Delete",
+            text: "Only draft purchase orders can be deleted.",
+        });
+        return;
+    }
+
+    const result = await Swal.fire({
+        icon: "warning",
+        title: "Delete Purchase Order",
+        text: `Are you sure you want to delete PO ${po.po_number}? This action cannot be undone.`,
+        showCancelButton: true,
+        confirmButtonColor: "#DC2626",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await purchaseOrderStore.deletePurchaseOrder(po.id);
+            Swal.fire({
+                icon: "success",
+                title: "Deleted",
+                text: "Purchase order has been deleted.",
+                timer: 2000,
+                showConfirmButton: false,
+            });
+            purchaseOrderStore.fetchPurchaseOrders();
+        } catch (error) {
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text:
+                    error.response?.data?.message ||
+                    "Failed to delete purchase order.",
+            });
+        }
+    }
 };
 
 const handleEditFromView = (po) => {
@@ -698,10 +763,20 @@ const handleRejectPO = async ({ id, reason }) => {
     }
 };
 
+const handleMarkPartiallyReceived = (po) => {
+    modals.value.view = false;
+    setTimeout(() => {
+        selectedPO.value = po;
+        receivingMode.value = "partial";
+        modals.value.markReceived = true;
+    }, 300);
+};
+
 const handleMarkReceived = (po) => {
     modals.value.view = false;
     setTimeout(() => {
         selectedPO.value = po;
+        receivingMode.value = "full";
         modals.value.markReceived = true;
     }, 300);
 };

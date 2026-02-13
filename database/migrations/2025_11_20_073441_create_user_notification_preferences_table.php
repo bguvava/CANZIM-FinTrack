@@ -21,7 +21,7 @@ return new class extends Migration
             $table->boolean('report_generation')->default(true);
             $table->string('email_frequency')->default('instant'); // instant, daily, weekly
             $table->timestamps();
-            
+
             $table->unique('user_id');
         });
     }

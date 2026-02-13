@@ -28,6 +28,7 @@ class StorePurchaseOrderRequest extends FormRequest
             'expected_delivery_date' => ['nullable', 'date', 'after:order_date'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'terms_conditions' => ['nullable', 'string', 'max:2000'],
+            'status' => ['nullable', 'string', 'in:draft,pending,Draft,Pending'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],

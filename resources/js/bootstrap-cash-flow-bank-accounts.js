@@ -2,11 +2,13 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import BankAccounts from "./pages/BankAccounts.vue";
 import { useAuthStore } from "./stores/authStore";
+import SessionLockPlugin from "./plugins/sessionLock";
 
 const pinia = createPinia();
 const app = createApp(BankAccounts);
 
 app.use(pinia);
+app.use(SessionLockPlugin);
 app.config.globalProperties.$swal = window.$swal;
 app.config.globalProperties.$toast = window.$toast;
 

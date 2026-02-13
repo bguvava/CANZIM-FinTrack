@@ -80,7 +80,7 @@ class Document extends Model
         $pow = min($pow, count($units) - 1);
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, 2) . ' ' . $units[$pow];
+        return round($bytes, 2).' '.$units[$pow];
     }
 
     /**

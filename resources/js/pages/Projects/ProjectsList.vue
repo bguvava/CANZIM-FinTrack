@@ -195,11 +195,6 @@
                                 Dates
                             </th>
                             <th
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                            >
-                                Team
-                            </th>
-                            <th
                                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                             >
                                 Actions
@@ -290,32 +285,14 @@
                             </td>
 
                             <!-- Dates -->
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                <div>{{ formatDate(project.start_date) }}</div>
-                                <div class="text-xs">
-                                    to {{ formatDate(project.end_date) }}
+                            <td
+                                class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap"
+                            >
+                                <div>
+                                    {{ formatDateShort(project.start_date) }}
                                 </div>
-                            </td>
-
-                            <!-- Team -->
-                            <td class="px-6 py-4">
-                                <div class="flex -space-x-2">
-                                    <div
-                                        v-for="(
-                                            member, index
-                                        ) in project.team_members?.slice(0, 3)"
-                                        :key="member.id"
-                                        :title="member.name"
-                                        class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-700"
-                                    >
-                                        {{ getInitials(member.name) }}
-                                    </div>
-                                    <div
-                                        v-if="project.team_members?.length > 3"
-                                        class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600"
-                                    >
-                                        +{{ project.team_members.length - 3 }}
-                                    </div>
+                                <div class="text-xs text-gray-400">
+                                    to {{ formatDateShort(project.end_date) }}
                                 </div>
                             </td>
 
@@ -435,6 +412,14 @@
             :project="selectedProject"
             @close="showViewProjectModal = false"
             @edit="handleViewEdit"
+            @manage-team="handleManageTeam"
+        />
+
+        <!-- Manage Team Modal -->
+        <ManageTeamModal
+            :is-open="showManageTeamModal"
+            :project="selectedProject"
+            @close="showManageTeamModal = false"
         />
     </div>
 </template>
@@ -443,9 +428,15 @@
 import { ref, computed, onMounted } from "vue";
 import { useProjectStore } from "../../stores/projectStore";
 import { useAuthStore } from "../../stores/authStore";
+import canzimSwal, {
+    showSuccess,
+    showError,
+    confirmAction,
+} from "../../plugins/sweetalert";
 import AddProjectModal from "../../components/modals/AddProjectModal.vue";
 import EditProjectModal from "../../components/modals/EditProjectModal.vue";
 import ViewProjectModal from "../../components/modals/ViewProjectModal.vue";
+import ManageTeamModal from "../../components/modals/ManageTeamModal.vue";
 
 // Stores
 const projectStore = useProjectStore();
@@ -461,6 +452,7 @@ let searchTimeout = null;
 const showAddProjectModal = ref(false);
 const showEditProjectModal = ref(false);
 const showViewProjectModal = ref(false);
+const showManageTeamModal = ref(false);
 const selectedProject = ref(null);
 
 // Computed properties
@@ -554,42 +546,59 @@ const handleViewEdit = (project) => {
     showEditProjectModal.value = true;
 };
 
+const handleManageTeam = (project) => {
+    selectedProject.value = project;
+    showManageTeamModal.value = true;
+};
+
 const handleProjectCreated = () => {
     showAddProjectModal.value = false;
     loadProjects();
 };
 
-const handleProjectUpdated = () => {
+const handleProjectUpdated = (updatedProject) => {
     showEditProjectModal.value = false;
     selectedProject.value = null;
+
+    // Update the project in the local list immediately for instant UI feedback
+    if (updatedProject) {
+        const index = projectStore.projects.findIndex(
+            (p) => p.id === updatedProject.id,
+        );
+        if (index !== -1) {
+            // Use splice for proper Vue reactivity
+            projectStore.projects.splice(index, 1, updatedProject);
+        }
+    }
+
+    // Also refresh from server to ensure data consistency
     loadProjects();
 };
 
 const handleArchive = async (project) => {
-    const result = await window.$swal.fire({
+    const result = await canzimSwal.fire({
         title: "Archive Project?",
         html: `Are you sure you want to archive <strong>${project.name}</strong>?<br><small>This will set the project status to "Cancelled".</small>`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d97706",
         cancelButtonColor: "#6b7280",
-        confirmButtonText: "Yes, archive it",
-        cancelButtonText: "Cancel",
+        confirmButtonText: '<i class="fas fa-archive mr-2"></i>Yes, archive it',
+        cancelButtonText: '<i class="fas fa-times mr-2"></i>Cancel',
     });
 
     if (result.isConfirmed) {
         try {
             await projectStore.archiveProject(project.id);
-            window.$toast.fire({
-                icon: "success",
-                title: "Project archived successfully",
-            });
+
+            await showSuccess("Success!", "Project archived successfully");
+
+            loadProjects();
         } catch (error) {
-            window.$swal.fire({
-                icon: "error",
-                title: "Archive Failed",
-                text: error.message || "Failed to archive project",
-            });
+            await showError(
+                "Archive Failed",
+                error.message || "Failed to archive project",
+            );
         }
     }
 };
@@ -597,16 +606,13 @@ const handleArchive = async (project) => {
 const handleGenerateReport = async (id) => {
     try {
         await projectStore.generateReport(id, "pdf");
-        window.$toast.fire({
-            icon: "success",
-            title: "Report generated successfully",
-        });
+
+        await showSuccess("Success!", "Report generated successfully");
     } catch (error) {
-        window.$swal.fire({
-            icon: "error",
-            title: "Report Generation Failed",
-            text: error.message || "Failed to generate report",
-        });
+        await showError(
+            "Report Generation Failed",
+            error.message || "Failed to generate report",
+        );
     }
 };
 
@@ -652,6 +658,15 @@ const formatNumber = (num) => {
 };
 
 const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+};
+
+const formatDateShort = (date) => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("en-US", {
         year: "numeric",

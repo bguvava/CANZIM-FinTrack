@@ -22,7 +22,7 @@ class DocumentFactory extends Factory
     {
         $fileTypes = ['pdf', 'docx', 'xlsx', 'jpg', 'png'];
         $fileType = fake()->randomElement($fileTypes);
-        $fileName = Str::slug(fake()->words(3, true)) . '.' . $fileType;
+        $fileName = Str::slug(fake()->words(3, true)).'.'.$fileType;
 
         $categories = [
             'budget-documents',
@@ -39,7 +39,7 @@ class DocumentFactory extends Factory
             'description' => fake()->paragraph(),
             'category' => fake()->randomElement($categories),
             'file_name' => $fileName,
-            'file_path' => 'documents/' . now()->format('Y/m') . '/' . Str::uuid() . '.' . $fileType,
+            'file_path' => 'documents/'.now()->format('Y/m').'/'.Str::uuid().'.'.$fileType,
             'file_type' => $fileType,
             'file_size' => fake()->numberBetween(1024, 5242880), // 1KB to 5MB
             'version_number' => 1,
@@ -53,7 +53,7 @@ class DocumentFactory extends Factory
      */
     public function forEntity(string $type, int $id): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'documentable_type' => $type,
             'documentable_id' => $id,
         ]);
@@ -65,11 +65,11 @@ class DocumentFactory extends Factory
     public function pdf(): static
     {
         return $this->state(function (array $attributes) {
-            $fileName = Str::slug(fake()->words(3, true)) . '.pdf';
+            $fileName = Str::slug(fake()->words(3, true)).'.pdf';
 
             return [
                 'file_name' => $fileName,
-                'file_path' => 'documents/' . now()->format('Y/m') . '/' . Str::uuid() . '.pdf',
+                'file_path' => 'documents/'.now()->format('Y/m').'/'.Str::uuid().'.pdf',
                 'file_type' => 'pdf',
             ];
         });
@@ -80,7 +80,7 @@ class DocumentFactory extends Factory
      */
     public function inCategory(string $category): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'category' => $category,
         ]);
     }
@@ -90,7 +90,7 @@ class DocumentFactory extends Factory
      */
     public function uploadedBy(User $user): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'uploaded_by' => $user->id,
         ]);
     }
@@ -100,7 +100,7 @@ class DocumentFactory extends Factory
      */
     public function version(int $number): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'version_number' => $number,
         ]);
     }

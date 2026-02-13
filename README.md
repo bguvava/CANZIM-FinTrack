@@ -15,37 +15,37 @@ CANZIM FinTrack is a comprehensive web-based Financial Management and Accounting
 
 ### Key Features
 
-- 💰 **Financial Management & Accounting** (Primary Focus)
+- **Financial Management & Accounting** (Primary Focus)
     - Expense tracking and approval workflows
     - Budget allocation and monitoring
     - Cash flow management
     - Purchase order processing
-- 📊 **Project & Budget Management**
+- **Project & Budget Management**
     - Projects as financial containers
     - Multi-project budget tracking
     - Cost allocation across projects
-- 🎯 **Donor & Funding Management**
+- **Donor & Funding Management**
     - Multi-donor support
     - Donor-specific reporting
     - Funding source tracking
-- 📈 **Reporting & Analytics**
+- **Reporting & Analytics**
     - Financial reports (PDF only)
     - Audit trails and activity logs
     - Real-time dashboards
-- 👥 **User Management**
+- **User Management**
     - Role-based access control (3 roles)
     - Session management (5-minute timeout)
     - Secure authentication (Laravel Sanctum)
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 
 - **PHP:** 8.2.12
 - **Laravel:** 12.38.1
-- **MySQL:** 8.0+ (Database: `my_canzimdb`)
+- **MySQL:** 8.0+
 - **Laravel Sanctum:** 4.2.0 (API Authentication)
 - **DomPDF:** 3.1.4 (PDF Generation)
 - **Intervention Image:** 3.11.4 (Image Processing)
@@ -68,7 +68,7 @@ CANZIM FinTrack is a comprehensive web-based Financial Management and Accounting
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -76,39 +76,6 @@ CANZIM FinTrack is a comprehensive web-based Financial Management and Accounting
 - Composer installed
 - Node.js 18+ and NPM installed
 - MySQL 8.0+ running
-- Git installed
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/CANZIM-FinTrack.git
-cd CANZIM-FinTrack
-
-# Install PHP dependencies
-composer install
-
-# Install JavaScript dependencies
-npm install
-
-# Copy environment file
-copy .env.example .env  # On Windows
-# cp .env.example .env  # On macOS/Linux
-
-# Generate application key
-php artisan key:generate
-
-# Configure database in .env
-# DB_DATABASE=my_canzimdb
-# DB_USERNAME=root
-# DB_PASSWORD=
-
-# Run database migrations
-php artisan migrate
-
-# Build frontend assets
-npm run build
-```
 
 ## 🧪 Testing
 
@@ -128,7 +95,81 @@ php artisan test --coverage
 ```
 
 ---
-## 🎨 Key Features
+
+## Screenshots
+
+### Landing Page
+
+![Landing Page](screenshots/landing_page.png)
+_Branded login screen with CANZIM identity_
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+_Role-based financial dashboard with real-time charts and KPIs_
+
+### Project & Budget Management
+
+![Add Project](screenshots/add_project.png)
+_Create and manage projects as financial containers_
+
+![Budget Management](screenshots/budget_management.png)
+_Multi-project budget allocation and monitoring_
+
+### Expense Approval Workflow
+
+![Expenses Approval](screenshots/expenses_approval.png)
+_Multi-step expense tracking and approval workflow_
+
+### Donor & Funding Management
+
+![Donor Management](screenshots/donor_management.png)
+_Multi-donor support with funding source tracking_
+
+### Cash Flow Management
+
+![Cash Flow Management](screenshots/cashflow_management.png)
+_Real-time cash flow tracking with bank account integration_
+
+![Projections](screenshots/projections.png)
+_Cash flow projections and financial forecasting_
+
+### Purchase Orders & Vendors
+
+![Vendor Management](screenshots/vendor_management.png)
+_Vendor management with purchase order processing_
+
+### Document Management
+
+![Documents](screenshots/documents.png)
+_Centralized document storage with version control_
+
+### Reports
+
+![Reports](screenshots/several_reports.png)
+_Financial reports with PDF export functionality_
+
+### Activity Logging & Audit Trail
+
+![Activity Logging](screenshots/activity_logging.png)
+_Comprehensive audit trail and activity logging_
+
+### Session Security
+
+![Session Locking](screenshots/session_locking.png)
+_Session lock screen after 5-minute inactivity timeout_
+
+![Session Expiry](screenshots/session_expiry_lock.png)
+_Session expiry notification with re-authentication_
+
+### User Manual
+
+![User Manual](screenshots/user_manual.png)
+_Built-in user manual and help documentation_
+
+---
+
+## Key Features
 
 ### CANZIM Branding
 
@@ -160,14 +201,14 @@ php artisan test --coverage
 
 ### API-First Architecture
 
-- RESTful API endpoints (`/api/v1/*`)
+- RESTful API endpoints (`/api/v?/*`)
 - Laravel Sanctum token authentication
 - JSON response format
 - CORS configured for SPA
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 - ✅ Laravel Sanctum API authentication
 - ✅ CSRF protection
@@ -180,28 +221,29 @@ php artisan test --coverage
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This is a proprietary project developed for Climate Action Network Zimbabwe. For development questions or issues, contact the developer.
 
 ---
 
-## 👨‍💻 Developer
+## Developer
 
 **Developed with ❤️ by [bguvava](https://bguvava.com)**
 
 - Portfolio: https://bguvava.com
-- Email: contact@bguvava.com
+- Email: guvava.brian@gmail.com
+- Pnone: +263719333660
 
 ---
 
-## 📜 License
+## License
 
-Proprietary - Climate Action Network Zimbabwe © 2025
+Proprietary - Climate Action Network Zimbabwe © 2026
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Client:** Climate Action Network Zimbabwe (CAN Zimbabwe)
 - **Framework:** Laravel (Taylor Otwell and contributors)

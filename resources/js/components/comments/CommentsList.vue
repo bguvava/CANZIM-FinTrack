@@ -35,7 +35,7 @@
         <!-- Comments list -->
         <div v-else class="space-y-4">
             <CommentItem
-                v-for="comment in comments"
+                v-for="comment in validComments"
                 :key="comment.id"
                 :comment="comment"
                 :commentableType="commentableType"
@@ -93,7 +93,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import CommentItem from "./CommentItem.vue";
-import axios from "axios";
+import api from "@/api";
+import canzimSwal, {
+    showError,
+    showSuccess,
+    confirmAction,
+} from "@/plugins/sweetalert";
 
 const props = defineProps({
     commentableType: {
@@ -116,6 +121,11 @@ const comments = ref([]);
 const loading = ref(true);
 const pagination = ref(null);
 const currentPage = ref(1);
+
+// Filter out invalid comments to prevent vnode errors
+const validComments = computed(() => {
+    return comments.value.filter((comment) => comment && comment.id);
+});
 
 const displayedPages = computed(() => {
     if (!pagination.value) return [];
@@ -156,7 +166,7 @@ const fetchComments = async (page = 1) => {
     loading.value = true;
 
     try {
-        const response = await axios.get("/api/v1/comments", {
+        const response = await api.get("/comments", {
             params: {
                 commentable_type: props.commentableType,
                 commentable_id: props.commentableId,
@@ -175,11 +185,28 @@ const fetchComments = async (page = 1) => {
         emit("comment-count", pagination.value.total);
     } catch (error) {
         console.error("Failed to fetch comments:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load comments. Please refresh the page.",
-        });
+
+        if (error.response?.status === 401) {
+            showError(
+                "Authentication Error",
+                "Your session may have expired. Please refresh the page.",
+            );
+        } else {
+            const errorMessage =
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to load comments. Please refresh the page.";
+            showError("Error", errorMessage);
+        }
+
+        // Set empty data on error
+        comments.value = [];
+        pagination.value = {
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+        };
     } finally {
         loading.value = false;
     }
@@ -207,38 +234,30 @@ const handleEdit = (comment) => {
 
 // Handle delete
 const handleDelete = async (commentId) => {
-    const result = await Swal.fire({
-        title: "Delete Comment?",
-        text: "This action cannot be undone.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#1E40AF",
-        cancelButtonColor: "#6B7280",
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "Cancel",
-    });
+    const confirmed = await confirmAction(
+        "Delete Comment?",
+        "This action cannot be undone.",
+        "Yes, delete it",
+        "Cancel",
+    );
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     try {
-        await axios.delete(`/api/v1/comments/${commentId}`);
+        await api.delete(`/comments/${commentId}`);
 
-        Swal.fire({
-            icon: "success",
-            title: "Deleted",
-            text: "Comment deleted successfully",
-            timer: 2000,
-            showConfirmButton: false,
-        });
+        await showSuccess("Deleted", "Comment deleted successfully");
 
         // Refresh comments
-        fetchComments(currentPage.value);
+        await fetchComments(currentPage.value);
     } catch (error) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to delete comment. Please try again.",
-        });
+        console.error("Failed to delete comment:", error);
+
+        const errorMessage =
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to delete comment. Please try again.";
+        await showError("Error", errorMessage);
     }
 };
 

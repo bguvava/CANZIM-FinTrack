@@ -1,28 +1,27 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-@section('title', 'Create Project')
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-@section('content')
-    <div id="add-project-app"></div>
-@endsection
+    <title>{{ config('app.name', 'CANZIM FinTrack') }} - Create Project</title>
 
-@push('scripts')
-    <script type="module">
-        import {
-            createApp
-        } from 'vue';
-        import {
-            createPinia
-        } from 'pinia';
-        import AddProject from '../../js/pages/Projects/AddProject.vue';
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
-        const pinia = createPinia();
-        const app = createApp(AddProject);
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
-        app.use(pinia);
-        app.config.globalProperties.$swal = window.$swal;
-        app.config.globalProperties.$toast = window.$toast;
+    <!-- Styles / Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/bootstrap-projects-create.js'])
+</head>
 
-        app.mount('#add-project-app');
-    </script>
-@endpush
+<body class="font-sans antialiased bg-gray-50">
+    <!-- Projects Vue Component -->
+    <div id="projects-create-app"></div>
+</body>
+
+</html>

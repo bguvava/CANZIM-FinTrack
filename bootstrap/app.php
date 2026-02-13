@@ -14,6 +14,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
 
+        // Exclude public API auth routes from CSRF verification
+        // These routes use API tokens for authentication, not sessions
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'sanctum/csrf-cookie',
+        ]);
+
         // Register middleware aliases
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,

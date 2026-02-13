@@ -5,7 +5,9 @@ import api from "../api";
 export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
     // State
     const purchaseOrders = ref([]);
+    const currentPurchaseOrder = ref(null);
     const vendors = ref([]);
+    const currentVendor = ref(null);
     const statistics = ref(null);
     const loading = ref(false);
     const error = ref(null);
@@ -26,21 +28,29 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         search: "",
     });
 
-    // Getters
+    // Getters - use case-insensitive comparison for status with null guard
     const draftPOs = computed(() =>
-        purchaseOrders.value.filter((po) => po.status === "draft"),
+        purchaseOrders.value.filter(
+            (po) => po && po.status?.toLowerCase() === "draft",
+        ),
     );
 
     const pendingPOs = computed(() =>
-        purchaseOrders.value.filter((po) => po.status === "pending"),
+        purchaseOrders.value.filter(
+            (po) => po && po.status?.toLowerCase() === "pending",
+        ),
     );
 
     const approvedPOs = computed(() =>
-        purchaseOrders.value.filter((po) => po.status === "approved"),
+        purchaseOrders.value.filter(
+            (po) => po && po.status?.toLowerCase() === "approved",
+        ),
     );
 
     const completedPOs = computed(() =>
-        purchaseOrders.value.filter((po) => po.status === "completed"),
+        purchaseOrders.value.filter(
+            (po) => po && po.status?.toLowerCase() === "completed",
+        ),
     );
 
     const activeVendors = computed(() =>
@@ -73,6 +83,23 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
             error.value =
                 err.response?.data?.message || "Error fetching purchase orders";
             console.error("Error fetching purchase orders:", err);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchPurchaseOrder(id) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await api.get(`/purchase-orders/${id}`);
+            currentPurchaseOrder.value = response.data;
+            return response.data;
+        } catch (err) {
+            error.value =
+                err.response?.data?.message || "Error fetching purchase order";
+            console.error("Error fetching purchase order:", err);
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -121,11 +148,15 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         error.value = null;
         try {
             const response = await api.post(`/purchase-orders/${id}/submit`);
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
             if (index !== -1) {
-                purchaseOrders.value[index].status = "pending";
-                purchaseOrders.value[index].submitted_at =
-                    response.data.purchase_order.submitted_at;
+                if (updatedPO) {
+                    purchaseOrders.value[index] = updatedPO;
+                } else {
+                    purchaseOrders.value[index].status = "Pending";
+                }
             }
             return response.data;
         } catch (err) {
@@ -143,9 +174,11 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         error.value = null;
         try {
             const response = await api.post(`/purchase-orders/${id}/approve`);
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
-            if (index !== -1) {
-                purchaseOrders.value[index] = response.data.purchase_order;
+            if (index !== -1 && updatedPO) {
+                purchaseOrders.value[index] = updatedPO;
             }
             return response.data;
         } catch (err) {
@@ -164,9 +197,11 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
             const response = await api.post(`/purchase-orders/${id}/reject`, {
                 rejection_reason: rejectionReason,
             });
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
-            if (index !== -1) {
-                purchaseOrders.value[index] = response.data.purchase_order;
+            if (index !== -1 && updatedPO) {
+                purchaseOrders.value[index] = updatedPO;
             }
             return response.data;
         } catch (err) {
@@ -182,12 +217,15 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await api.post(`/purchase-orders/${id}/receive`, {
-                items: receivedItems,
-            });
+            const response = await api.post(
+                `/purchase-orders/${id}/receive`,
+                receivedItems,
+            );
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
-            if (index !== -1) {
-                purchaseOrders.value[index] = response.data.purchase_order;
+            if (index !== -1 && updatedPO) {
+                purchaseOrders.value[index] = updatedPO;
             }
             return response.data;
         } catch (err) {
@@ -205,9 +243,11 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         error.value = null;
         try {
             const response = await api.post(`/purchase-orders/${id}/complete`);
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
-            if (index !== -1) {
-                purchaseOrders.value[index] = response.data.purchase_order;
+            if (index !== -1 && updatedPO) {
+                purchaseOrders.value[index] = updatedPO;
             }
             return response.data;
         } catch (err) {
@@ -225,11 +265,13 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         error.value = null;
         try {
             const response = await api.post(`/purchase-orders/${id}/cancel`, {
-                reason,
+                cancellation_reason: reason,
             });
+            const updatedPO =
+                response.data.data || response.data.purchase_order;
             const index = purchaseOrders.value.findIndex((po) => po.id === id);
-            if (index !== -1) {
-                purchaseOrders.value[index] = response.data.purchase_order;
+            if (index !== -1 && updatedPO) {
+                purchaseOrders.value[index] = updatedPO;
             }
             return response.data;
         } catch (err) {
@@ -264,12 +306,32 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await api.get("/vendors");
+            const response = await api.get("/vendors", {
+                params: { per_page: 1000, is_active: true },
+            });
             vendors.value = response.data.data || response.data;
         } catch (err) {
             error.value =
                 err.response?.data?.message || "Error fetching vendors";
             console.error("Error fetching vendors:", err);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchVendor(id) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await api.get(`/vendors/${id}`);
+            currentVendor.value =
+                response.data.vendor || response.data.data || response.data;
+            return currentVendor.value;
+        } catch (err) {
+            error.value =
+                err.response?.data?.message || "Error fetching vendor";
+            console.error("Error fetching vendor:", err);
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -378,7 +440,9 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
     return {
         // State
         purchaseOrders,
+        currentPurchaseOrder,
         vendors,
+        currentVendor,
         statistics,
         loading,
         error,
@@ -395,6 +459,7 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
 
         // Purchase Order Actions
         fetchPurchaseOrders,
+        fetchPurchaseOrder,
         createPurchaseOrder,
         updatePurchaseOrder,
         submitForApproval,
@@ -407,6 +472,7 @@ export const usePurchaseOrderStore = defineStore("purchaseOrder", () => {
 
         // Vendor Actions
         fetchVendors,
+        fetchVendor,
         createVendor,
         updateVendor,
         deleteVendor,

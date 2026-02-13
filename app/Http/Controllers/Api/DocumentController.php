@@ -186,7 +186,7 @@ class DocumentController extends Controller
 
         return response()->file($path, [
             'Content-Type' => $document->file_type,
-            'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+            'Content-Disposition' => 'inline; filename="'.$document->file_name.'"',
         ]);
     }
 
@@ -224,7 +224,7 @@ class DocumentController extends Controller
         $this->authorize('replace', $document);
 
         $request->validate([
-            'file' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png', 'max:10240'],
         ]);
 
         $document = $this->documentService->replaceDocument(

@@ -168,13 +168,22 @@ class ExpenseSummaryReportTest extends TestCase
     /** @test */
     public function expense_summary_report_limits_category_filters_to_five(): void
     {
-        $categories = ExpenseCategory::factory()->count(6)->create();
+        // Create 5 additional categories with unique codes (setUp already created 1)
+        // Manually specify codes to avoid unique constraint violations from factory's static $usedCodes
+        $category2 = ExpenseCategory::factory()->create(['code' => 'CAT2-'.uniqid()]);
+        $category3 = ExpenseCategory::factory()->create(['code' => 'CAT3-'.uniqid()]);
+        $category4 = ExpenseCategory::factory()->create(['code' => 'CAT4-'.uniqid()]);
+        $category5 = ExpenseCategory::factory()->create(['code' => 'CAT5-'.uniqid()]);
+        $category6 = ExpenseCategory::factory()->create(['code' => 'CAT6-'.uniqid()]);
+
+        // Collect all 6 category IDs
+        $allCategories = ExpenseCategory::all();
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
             ->postJson('/api/v1/reports/expense-summary', [
                 'start_date' => '2024-01-01',
                 'end_date' => '2024-12-31',
-                'category_ids' => $categories->pluck('id')->toArray(),
+                'category_ids' => $allCategories->pluck('id')->toArray(),
             ]);
 
         $response->assertStatus(422)

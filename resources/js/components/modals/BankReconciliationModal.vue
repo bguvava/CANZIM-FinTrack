@@ -165,8 +165,15 @@
                                 <button
                                     v-if="unreconciledTransactions.length > 0"
                                     @click="toggleSelectAll"
-                                    class="text-sm text-blue-800 hover:text-blue-900 font-medium"
+                                    class="text-sm text-blue-800 hover:text-blue-900 font-medium flex items-center gap-1"
                                 >
+                                    <i
+                                        :class="
+                                            allSelected
+                                                ? 'fas fa-times-circle'
+                                                : 'fas fa-check-double'
+                                        "
+                                    ></i>
                                     {{
                                         allSelected
                                             ? "Deselect All"
@@ -350,10 +357,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             :disabled="submitting"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             @click="handleReconcile"
@@ -363,6 +370,10 @@
                             <i
                                 v-if="submitting"
                                 class="fas fa-spinner fa-spin mr-2"
+                            ></i>
+                            <i
+                                v-if="!submitting"
+                                class="fas fa-check-double mr-1.5"
                             ></i>
                             {{
                                 submitting
@@ -380,7 +391,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useCashFlowStore } from "../../stores/cashFlowStore";
-import { showSuccess, showError, showConfirm } from "../../plugins/sweetalert";
+import { Toast, showError, showConfirm } from "../../plugins/sweetalert";
 
 const props = defineProps({
     isOpen: {
@@ -498,16 +509,23 @@ const handleReconcile = async () => {
 
     submitting.value = true;
     try {
+        const reconciliationDate = new Date().toISOString().split("T")[0];
         // Reconcile each selected transaction
         for (const transactionId of selectedTransactionIds.value) {
-            await cashFlowStore.reconcileCashFlow(transactionId);
+            await cashFlowStore.reconcileCashFlow(
+                transactionId,
+                reconciliationDate,
+            );
         }
 
-        showSuccess(
-            `Successfully reconciled ${selectedTransactionIds.value.length} transaction(s)!`,
-        );
+        const count = selectedTransactionIds.value.length;
+        resetForm();
         emit("reconciled");
         closeModal();
+        Toast.fire({
+            icon: "success",
+            title: `Successfully reconciled ${count} transaction(s)!`,
+        });
     } catch (error) {
         showError("Failed to reconcile transactions. Please try again.");
     } finally {

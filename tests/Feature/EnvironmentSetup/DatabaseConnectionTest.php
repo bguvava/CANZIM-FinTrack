@@ -41,7 +41,11 @@ class DatabaseConnectionTest extends TestCase
     {
         $databaseName = DB::connection()->getDatabaseName();
 
-        $this->assertEquals('my_canzimdb', $databaseName, 'Database name does not match expected value');
+        $this->assertEquals(
+            config('database.connections.mysql.database'),
+            $databaseName,
+            'Database name does not match configured value'
+        );
     }
 
     /**

@@ -527,7 +527,8 @@
             @donor-updated="handleDonorUpdated"
         />
         <ViewDonorModal
-            v-if="showViewModal"
+            v-if="showViewModal && selectedDonor"
+            :key="viewModalKey"
             :donor="selectedDonor"
             @close="closeViewModal"
             @edit="editDonor"
@@ -557,7 +558,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useDonorStore } from "../../stores/donorStore";
 import { useAuthStore } from "../../stores/authStore";
 import Swal from "sweetalert2";
@@ -583,16 +584,25 @@ const showAssignProjectModal = ref(false);
 const showAddInKindModal = ref(false);
 const showLogCommunicationModal = ref(false);
 const selectedDonor = ref(null);
+const viewModalKey = ref(0);
 const showCharts = ref(true); // Charts visible by default
 const chartsRef = ref(null); // Reference to charts component
 let searchTimeout = null;
 
 // Computed
-const donors = computed(() => donorStore.donors);
+const donors = computed(() => donorStore.donors || []);
 const loading = computed(() => donorStore.loading);
 const error = computed(() => donorStore.error);
 const pagination = computed(() => donorStore.pagination);
-const statistics = computed(() => donorStore.statistics);
+const statistics = computed(
+    () =>
+        donorStore.statistics || {
+            total_donors: 0,
+            active_donors: 0,
+            total_funding: 0,
+            average_funding: 0,
+        },
+);
 
 const hasActiveFilters = computed(
     () =>
@@ -715,10 +725,29 @@ const handleDonorUpdated = (donor) => {
 };
 
 const viewDonor = async (donor) => {
-    selectedDonor.value = donor;
-    await donorStore.fetchDonor(donor.id);
-    selectedDonor.value = donorStore.currentDonor;
-    showViewModal.value = true;
+    try {
+        // Ensure modal is closed and donor is cleared before fetching
+        showViewModal.value = false;
+        selectedDonor.value = null;
+        await nextTick();
+
+        await donorStore.fetchDonor(donor.id);
+        const donorData = donorStore.currentDonor;
+        if (donorData) {
+            selectedDonor.value = donorData;
+            // Force new component instance with unique key
+            viewModalKey.value = Date.now();
+            await nextTick();
+            showViewModal.value = true;
+        }
+    } catch (error) {
+        console.error("Failed to load donor details:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load donor details. Please try again.",
+        });
+    }
 };
 
 const closeViewModal = () => {

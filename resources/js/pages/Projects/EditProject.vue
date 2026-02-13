@@ -186,6 +186,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { useProjectStore } from "../../stores/projectStore";
+import { showSuccess, showError } from "../../plugins/sweetalert";
 
 const projectStore = useProjectStore();
 
@@ -218,17 +219,21 @@ const loadProject = async () => {
         if (project.value) {
             formData.name = project.value.name;
             formData.description = project.value.description || "";
-            formData.start_date = project.value.start_date;
-            formData.end_date = project.value.end_date;
+            // Convert ISO datetime to yyyy-MM-dd format for date inputs
+            formData.start_date = project.value.start_date
+                ? project.value.start_date.split("T")[0]
+                : "";
+            formData.end_date = project.value.end_date
+                ? project.value.end_date.split("T")[0]
+                : "";
             formData.status = project.value.status;
             formData.location = project.value.location || "";
         }
     } catch (error) {
-        window.$swal.fire({
-            icon: "error",
-            title: "Failed to Load Project",
-            text: error.message || "Could not load project details",
-        });
+        await showError(
+            "Failed to Load Project",
+            error.message || "Could not load project details",
+        );
     } finally {
         loading.value = false;
     }
@@ -241,25 +246,23 @@ const handleSubmit = async () => {
     try {
         await projectStore.updateProject(projectId, formData);
 
-        window.$toast.fire({
-            icon: "success",
-            title: "Project updated successfully",
-        });
+        await showSuccess("Success!", "Project updated successfully");
 
         // Redirect to project view
         setTimeout(() => {
             window.location.href = `/projects/${projectId}`;
         }, 1000);
     } catch (err) {
+        console.error("Error updating project:", err);
+
         if (typeof err === "object" && err !== null) {
             errors.value = err;
         }
 
-        window.$swal.fire({
-            icon: "error",
-            title: "Failed to Update Project",
-            text: projectStore.error || "Please check the form and try again",
-        });
+        await showError(
+            "Failed to Update Project",
+            projectStore.error || "Please check the form and try again",
+        );
     } finally {
         loading.value = false;
     }

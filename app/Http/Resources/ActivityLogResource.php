@@ -32,6 +32,9 @@ class ActivityLogResource extends JsonResource
                     'email' => $this->resource->user->email,
                 ];
             }),
+            'user_id' => $this->resource->user_id,
+            'user_name' => $this->resource->user?->name,
+            'user_email' => $this->resource->user?->email,
             'activity_type' => $this->resource->activity_type,
             'description' => $this->resource->description,
             'properties' => $this->resource->properties,

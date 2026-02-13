@@ -145,7 +145,7 @@ class ReportManagementTest extends TestCase
         Storage::disk('public')->put($report->file_path, 'PDF content');
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
-            ->get("/api/v1/reports/{$report->id}/download");
+            ->get("/api/v1/reports/{$report->id}/pdf");
 
         $response->assertStatus(200)
             ->assertHeader('Content-Type', 'application/pdf');
@@ -161,7 +161,7 @@ class ReportManagementTest extends TestCase
         Storage::disk('public')->put($report->file_path, 'PDF content');
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
-            ->get("/api/v1/reports/{$report->id}/download");
+            ->get("/api/v1/reports/{$report->id}/pdf");
 
         $response->assertStatus(403);
     }
@@ -174,7 +174,7 @@ class ReportManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->programsManager, 'sanctum')
-            ->get("/api/v1/reports/{$report->id}/download");
+            ->get("/api/v1/reports/{$report->id}/pdf");
 
         $response->assertStatus(404);
     }

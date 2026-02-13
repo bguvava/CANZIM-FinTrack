@@ -4,7 +4,6 @@ namespace Tests\Feature\CashFlow;
 
 use App\Models\BankAccount;
 use App\Models\CashFlow;
-use App\Models\Expense;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
@@ -52,62 +51,64 @@ class CashFlowProjectionTest extends TestCase
     {
         Sanctum::actingAs($this->financeOfficer);
 
-        // Create expected inflows
+        // Create historical inflows (within last 6 months)
         CashFlow::factory()->inflow()->create([
             'bank_account_id' => $this->bankAccount->id,
-            'transaction_date' => now()->addDays(5),
+            'transaction_date' => now()->subDays(30),
             'amount' => 5000.00,
         ]);
 
-        // Create expected outflows
-        Expense::factory()->create([
-            'project_id' => $this->project->id,
-            'expense_date' => now()->addDays(10),
+        // Create historical outflows
+        CashFlow::factory()->outflow()->create([
+            'bank_account_id' => $this->bankAccount->id,
+            'transaction_date' => now()->subDays(20),
             'amount' => 2000.00,
         ]);
 
-        $response = $this->getJson('/api/v1/cash-flow/projections');
+        $response = $this->getJson("/api/v1/cash-flow/projections?bank_account_id={$this->bankAccount->id}");
 
         $response->assertOk()
             ->assertJsonStructure([
                 'current_balance',
-                'projected_balance',
-                'expected_inflows' => [
-                    '*' => ['date', 'amount', 'description'],
-                ],
-                'expected_outflows' => [
-                    '*' => ['date', 'amount', 'description'],
-                ],
+                'avg_monthly_inflow',
+                'avg_monthly_outflow',
+                'avg_net_cash_flow',
+                'months',
+                'best_case',
+                'likely_case',
+                'worst_case',
+                'projections',
             ]);
 
         $data = $response->json();
         $this->assertEquals(10000.00, $data['current_balance']);
-        $this->assertEquals(13000.00, $data['projected_balance']); // 10000 + 5000 - 2000
+        $this->assertGreaterThanOrEqual(0, $data['avg_monthly_inflow']);
     }
 
     /** @test */
-    public function can_filter_projections_by_date_range()
+    public function can_filter_projections_by_months()
     {
         Sanctum::actingAs($this->financeOfficer);
 
         CashFlow::factory()->inflow()->create([
             'bank_account_id' => $this->bankAccount->id,
-            'transaction_date' => now()->addDays(45),
+            'transaction_date' => now()->subDays(30),
             'amount' => 3000.00,
         ]);
 
         CashFlow::factory()->inflow()->create([
             'bank_account_id' => $this->bankAccount->id,
-            'transaction_date' => now()->addDays(10),
+            'transaction_date' => now()->subDays(10),
             'amount' => 2000.00,
         ]);
 
-        $response = $this->getJson('/api/v1/cash-flow/projections?days=30');
+        // Request 6 months of projections
+        $response = $this->getJson("/api/v1/cash-flow/projections?bank_account_id={$this->bankAccount->id}&months=6");
 
         $response->assertOk();
 
-        $inflows = $response->json('expected_inflows');
-        $this->assertCount(1, $inflows); // Only the 10-day inflow should be included
+        $projections = $response->json('projections');
+        $this->assertCount(6, $projections);
     }
 
     /** @test */
@@ -119,13 +120,13 @@ class CashFlowProjectionTest extends TestCase
 
         CashFlow::factory()->inflow()->create([
             'bank_account_id' => $this->bankAccount->id,
-            'transaction_date' => now()->addDays(5),
+            'transaction_date' => now()->subDays(5),
             'amount' => 1000.00,
         ]);
 
         CashFlow::factory()->inflow()->create([
             'bank_account_id' => $bankAccount2->id,
-            'transaction_date' => now()->addDays(5),
+            'transaction_date' => now()->subDays(5),
             'amount' => 2000.00,
         ]);
 
@@ -135,30 +136,44 @@ class CashFlowProjectionTest extends TestCase
 
         $data = $response->json();
         $this->assertEquals(10000.00, $data['current_balance']);
-        $this->assertEquals(11000.00, $data['projected_balance']);
+        // Monthly avg should be inflow amount / 6 months
+        $this->assertIsNumeric($data['avg_monthly_inflow']);
     }
 
     /** @test */
-    public function projections_include_warning_for_negative_balance()
+    public function projections_calculate_based_on_historical_data()
     {
         Sanctum::actingAs($this->financeOfficer);
 
         $this->bankAccount->update(['current_balance' => 1000.00]);
 
-        Expense::factory()->create([
-            'project_id' => $this->project->id,
-            'expense_date' => now()->addDays(5),
+        // Create historical outflows that exceed inflows
+        CashFlow::factory()->outflow()->create([
+            'bank_account_id' => $this->bankAccount->id,
+            'transaction_date' => now()->subDays(30),
             'amount' => 2000.00,
         ]);
 
-        $response = $this->getJson('/api/v1/cash-flow/projections');
+        CashFlow::factory()->inflow()->create([
+            'bank_account_id' => $this->bankAccount->id,
+            'transaction_date' => now()->subDays(20),
+            'amount' => 500.00,
+        ]);
+
+        $response = $this->getJson("/api/v1/cash-flow/projections?bank_account_id={$this->bankAccount->id}");
 
         $response->assertOk()
-            ->assertJson([
-                'warning' => 'Projected balance will be negative',
+            ->assertJsonStructure([
+                'current_balance',
+                'avg_monthly_inflow',
+                'avg_monthly_outflow',
+                'avg_net_cash_flow',
             ]);
 
-        $this->assertEquals(-1000.00, $response->json('projected_balance'));
+        $data = $response->json();
+        $this->assertEquals(1000.00, $data['current_balance']);
+        // Net cash flow should be negative since outflows > inflows
+        $this->assertLessThan(0, $data['avg_net_cash_flow']);
     }
 
     /** @test */

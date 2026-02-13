@@ -40,8 +40,8 @@ const canzimTheme = {
         popup: "animate__animated animate__fadeOut animate__faster",
     },
 
-    // Button styling
-    buttonsStyling: false,
+    // Button styling - keep true for proper SweetAlert2 button styles
+    buttonsStyling: true,
 
     // Animation duration
     timer: null,
@@ -60,7 +60,7 @@ export const canzimSwal = Swal.mixin(canzimTheme);
  */
 export const Toast = Swal.mixin({
     toast: true,
-    position: "bottom-end",
+    position: "top-end",
     showConfirmButton: false,
     timer: 3000,
     timerProgressBar: true,
@@ -182,25 +182,58 @@ export const showLoading = (title = "Processing...") => {
 
 /**
  * Session Timeout Warning
- * Shows warning before auto-logout
+ * Shows warning before auto-logout with countdown
  *
  * @param {number} seconds - Seconds until timeout
- * @returns {Promise<boolean>} - True if user wants to continue
+ * @returns {Promise<string>} - 'continue' if user wants to continue, 'logout' if user chose logout, 'timeout' if timer expired
  */
-export const sessionTimeoutWarning = async (seconds = 60) => {
+export const sessionTimeoutWarning = async (seconds = 30) => {
+    let timerInterval;
+
     const result = await canzimSwal.fire({
-        title: "Session Expiring",
-        text: `Your session will expire in ${seconds} seconds due to inactivity.`,
+        title: "Session Expiring Soon",
+        html: `<div class="text-gray-700">
+            <p class="mb-3">Your session will expire due to inactivity.</p>
+            <p class="text-2xl font-bold text-red-600" id="countdown-timer">${seconds}</p>
+            <p class="text-sm text-gray-500">seconds remaining</p>
+        </div>`,
         icon: "warning",
         showCancelButton: true,
-        confirmButtonText: "Stay Logged In",
-        cancelButtonText: "Logout Now",
+        confirmButtonText:
+            '<i class="fas fa-sign-in-alt mr-2"></i>Stay Logged In',
+        cancelButtonText: '<i class="fas fa-sign-out-alt mr-2"></i>Logout Now',
+        confirmButtonColor: "#1E40AF",
+        cancelButtonColor: "#DC2626",
         reverseButtons: true,
         timer: seconds * 1000,
         timerProgressBar: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            const timerDisplay =
+                Swal.getHtmlContainer().querySelector("#countdown-timer");
+            timerInterval = setInterval(() => {
+                const remaining = Math.ceil(Swal.getTimerLeft() / 1000);
+                timerDisplay.textContent = remaining;
+                if (remaining <= 10) {
+                    timerDisplay.classList.add("animate-pulse");
+                }
+            }, 100);
+        },
+        willClose: () => {
+            clearInterval(timerInterval);
+        },
     });
 
-    return result.isConfirmed;
+    // Return different values based on user action
+    if (result.isConfirmed) {
+        return "continue";
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+        return "logout";
+    } else {
+        // Timer expired or other dismissal - lock the session
+        return "timeout";
+    }
 };
 
 /**
@@ -210,12 +243,20 @@ export const sessionTimeoutWarning = async (seconds = 60) => {
  * @returns {Promise<boolean>} - True if confirmed
  */
 export const confirmLogout = async () => {
-    return await confirmAction(
-        "Confirm Logout",
-        "Are you sure you want to logout?",
-        '<i class="fas fa-sign-out-alt mr-2"></i>Logout',
-        '<i class="fas fa-times mr-2"></i>Cancel',
-    );
+    const result = await canzimSwal.fire({
+        title: "Confirm Logout",
+        text: "Are you sure you want to logout?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-sign-out-alt mr-2"></i>Logout',
+        cancelButtonText: '<i class="fas fa-times mr-2"></i>Cancel',
+        confirmButtonColor: "#DC2626", // Red for logout
+        cancelButtonColor: "#1E40AF", // Blue for cancel
+        reverseButtons: true,
+        focusCancel: true,
+    });
+
+    return result.isConfirmed;
 };
 
 /**

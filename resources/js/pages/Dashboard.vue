@@ -2,7 +2,7 @@
     <DashboardLayout>
         <!-- Loading State -->
         <div
-            v-if="dashboardStore.loading"
+            v-if="dashboardStore.loading && !dashboardStore.error"
             class="flex items-center justify-center py-12"
         >
             <div class="text-center">
@@ -10,6 +10,32 @@
                     class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
                 ></div>
                 <p class="mt-4 text-gray-600">Loading dashboard...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div
+            v-else-if="dashboardStore.error"
+            class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6"
+        >
+            <div class="flex items-start gap-3">
+                <i
+                    class="fas fa-exclamation-circle text-red-600 text-xl mt-1"
+                ></i>
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-red-800 mb-2">
+                        Failed to Load Dashboard
+                    </h3>
+                    <p class="text-red-700 mb-4">
+                        {{ dashboardStore.error }}
+                    </p>
+                    <button
+                        @click="retryLoad"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        <i class="fas fa-redo mr-2"></i>Retry
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -151,10 +177,10 @@
                     />
                     <KPICard
                         title="Pending Expenses"
-                        :value="formatCurrency(kpis.pending_expenses || 0)"
+                        :value="formatCurrency(pendingExpensesAmount)"
                         icon="clock"
                         color="yellow"
-                        description="Awaiting approval"
+                        :description="`${pendingExpensesCount} awaiting approval`"
                     />
                     <KPICard
                         title="Cash Balance"
@@ -165,33 +191,96 @@
                     />
                 </div>
 
-                <!-- Charts -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <ChartCard title="Budget vs Actual">
-                        <BarChart
-                            v-if="hasChartData('budget_vs_actual')"
-                            chartId="budget-vs-actual-chart"
-                            :data="charts.budget_vs_actual"
-                        />
-                        <EmptyState
-                            v-else
-                            icon="chart-bar"
-                            message="No budget comparison data available yet"
-                        />
-                    </ChartCard>
+                <!-- Budget vs Actual Chart + Quick Actions (side by side) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div class="lg:col-span-2">
+                        <ChartCard title="Budget vs Actual">
+                            <BarChart
+                                v-if="hasChartData('budget_vs_actual')"
+                                chartId="budget-vs-actual-chart"
+                                :data="charts.budget_vs_actual"
+                            />
+                            <EmptyState
+                                v-else
+                                icon="chart-bar"
+                                message="No budget comparison data available yet"
+                            />
+                        </ChartCard>
+                    </div>
 
-                    <ChartCard title="Expense Categories">
-                        <PieChart
-                            v-if="hasChartData('expense_categories')"
-                            chartId="expense-categories-chart"
-                            :data="charts.expense_categories"
-                        />
-                        <EmptyState
-                            v-else
-                            icon="chart-pie"
-                            message="No expense category data available yet"
-                        />
-                    </ChartCard>
+                    <!-- FO Quick Actions -->
+                    <div
+                        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                    >
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            Quick Actions
+                        </h3>
+                        <div class="space-y-3">
+                            <button
+                                @click="navigateTo('/expenses/create')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-receipt text-green-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >Submit Expense</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/purchase-orders')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-file-invoice text-blue-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >Purchase Orders</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/dashboard/reports')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-chart-bar text-purple-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >View Reports</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/cash-flow')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-money-bill-wave text-teal-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >Cash Flow</span
+                                >
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -230,10 +319,106 @@
                         description="Finished tasks"
                     />
                 </div>
+
+                <!-- Budget Summary Chart + Quick Actions (side by side) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Budget Summary Bar Chart -->
+                    <div class="lg:col-span-2">
+                        <ChartCard title="Budget Summary">
+                            <BarChart
+                                v-if="poBudgetChartData"
+                                chartId="po-budget-summary-chart"
+                                :data="poBudgetChartData"
+                            />
+                            <EmptyState
+                                v-else
+                                icon="chart-bar"
+                                message="No budget data available yet"
+                            />
+                        </ChartCard>
+                    </div>
+
+                    <!-- PO Quick Actions -->
+                    <div
+                        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                    >
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            Quick Actions
+                        </h3>
+                        <div class="space-y-3">
+                            <button
+                                @click="navigateTo('/expenses/create')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-receipt text-green-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >Submit Expense</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/projects')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-project-diagram text-blue-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >My Projects</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/dashboard/documents')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-folder-open text-purple-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >My Documents</span
+                                >
+                            </button>
+
+                            <button
+                                @click="navigateTo('/dashboard/help')"
+                                class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-amber-50 hover:border-amber-300 transition-colors w-full text-left"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <i
+                                        class="fas fa-question-circle text-amber-600"
+                                    ></i>
+                                </div>
+                                <span class="font-medium text-gray-700"
+                                    >Help & Support</span
+                                >
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Recent Activity & Quick Actions -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Recent Activity & Quick Actions (Programs Manager only) -->
+            <div
+                v-if="authStore.isProgramsManager"
+                class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
                 <!-- Recent Activity -->
                 <div
                     class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6"
@@ -282,10 +467,10 @@
                         Quick Actions
                     </h3>
                     <div class="space-y-3">
-                        <a
+                        <button
                             v-if="canCreateProject"
-                            href="/dashboard/projects/create"
-                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                            @click="navigateTo('/projects/create')"
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors w-full text-left"
                         >
                             <div
                                 class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"
@@ -295,12 +480,12 @@
                             <span class="font-medium text-gray-700"
                                 >Create Project</span
                             >
-                        </a>
+                        </button>
 
-                        <a
+                        <button
                             v-if="canSubmitExpense"
-                            href="/dashboard/expenses/create"
-                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors"
+                            @click="navigateTo('/expenses/create')"
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors w-full text-left"
                         >
                             <div
                                 class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"
@@ -310,12 +495,12 @@
                             <span class="font-medium text-gray-700"
                                 >Submit Expense</span
                             >
-                        </a>
+                        </button>
 
-                        <a
+                        <button
                             v-if="canViewReports"
-                            href="/dashboard/reports"
-                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors"
+                            @click="navigateTo('/dashboard/reports')"
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors w-full text-left"
                         >
                             <div
                                 class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"
@@ -325,11 +510,11 @@
                             <span class="font-medium text-gray-700"
                                 >View Reports</span
                             >
-                        </a>
+                        </button>
 
-                        <a
-                            href="/dashboard/profile"
-                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                        <button
+                            @click="navigateTo('/dashboard/profile')"
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors w-full text-left"
                         >
                             <div
                                 class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"
@@ -339,7 +524,7 @@
                             <span class="font-medium text-gray-700"
                                 >My Profile</span
                             >
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -387,6 +572,45 @@ const kpis = computed(() => dashboardStore.kpis || {});
 const charts = computed(() => dashboardStore.charts || {});
 const recentActivity = computed(() => dashboardStore.recentActivity || []);
 
+// Handle pending_expenses which can be an object with count and total_amount
+const pendingExpensesAmount = computed(() => {
+    const pe = kpis.value?.pending_expenses;
+    if (pe === null || pe === undefined) {
+        return 0;
+    }
+    if (typeof pe === "object" && pe !== null) {
+        const amount = pe.total_amount;
+        // Ensure amount is a valid number before returning
+        if (amount === null || amount === undefined || amount === "") {
+            return 0;
+        }
+        const numAmount = parseFloat(amount);
+        return Number.isFinite(numAmount) ? numAmount : 0;
+    }
+    // Handle case where pe is a direct number or string
+    if (pe === "") {
+        return 0;
+    }
+    const numPe = parseFloat(pe);
+    return Number.isFinite(numPe) ? numPe : 0;
+});
+
+const pendingExpensesCount = computed(() => {
+    const pe = kpis.value?.pending_expenses;
+    if (pe === null || pe === undefined) {
+        return 0;
+    }
+    if (typeof pe === "object" && pe !== null) {
+        const count = pe.count;
+        if (count === null || count === undefined || count === "") {
+            return 0;
+        }
+        const numCount = parseInt(count, 10);
+        return Number.isFinite(numCount) ? numCount : 0;
+    }
+    return 0;
+});
+
 const canCreateProject = computed(
     () => authStore.isProgramsManager || authStore.isFinanceOfficer,
 );
@@ -397,14 +621,56 @@ const canViewReports = computed(
     () => authStore.isProgramsManager || authStore.isFinanceOfficer,
 );
 
+// Budget summary chart data for Project Officer
+const poBudgetChartData = computed(() => {
+    const budget = parseFloat(kpis.value?.project_budget) || 0;
+    const used = parseFloat(kpis.value?.budget_used) || 0;
+    const remaining = parseFloat(kpis.value?.remaining_budget) || 0;
+
+    if (budget === 0 && used === 0 && remaining === 0) {
+        return null;
+    }
+
+    return {
+        labels: ["Budget Allocated", "Budget Used", "Remaining"],
+        datasets: [
+            {
+                label: "Amount (USD)",
+                data: [budget, used, remaining],
+                backgroundColor: [
+                    "rgba(59, 130, 246, 0.7)",
+                    "rgba(239, 68, 68, 0.7)",
+                    "rgba(34, 197, 94, 0.7)",
+                ],
+                borderColor: [
+                    "rgb(59, 130, 246)",
+                    "rgb(239, 68, 68)",
+                    "rgb(34, 197, 94)",
+                ],
+                borderWidth: 1,
+            },
+        ],
+    };
+});
+
 // Helper functions
 const formatCurrency = (value) => {
+    // Handle null, undefined, NaN, empty string, and non-numeric values
+    if (value === null || value === undefined || value === "") {
+        return "$0";
+    }
+    // Use parseFloat for better string-to-number conversion
+    const numValue = typeof value === "number" ? value : parseFloat(value);
+    // Use Number.isFinite to check for valid numbers (excludes NaN, Infinity, -Infinity)
+    if (!Number.isFinite(numValue)) {
+        return "$0";
+    }
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-    }).format(value);
+    }).format(numValue);
 };
 
 const formatTime = (time) => {
@@ -418,9 +684,24 @@ const formatTime = (time) => {
 
 const hasChartData = (chartName) => {
     const chart = charts.value[chartName];
-    if (!chart || !chart.datasets) return false;
+    if (!chart) return false;
+    // Check if chart has labels or datasets with any data
+    if (!chart.datasets || !Array.isArray(chart.datasets)) return false;
+    // Return true if there's any data in any dataset (even if all values are 0)
     return chart.datasets.some(
-        (dataset) => dataset.data && dataset.data.some((value) => value > 0),
+        (dataset) =>
+            dataset.data &&
+            Array.isArray(dataset.data) &&
+            dataset.data.length > 0,
     );
+};
+
+const retryLoad = async () => {
+    await dashboardStore.fetchDashboardData();
+};
+
+// Navigation helper for quick action buttons
+const navigateTo = (path) => {
+    window.location.href = path;
 };
 </script>

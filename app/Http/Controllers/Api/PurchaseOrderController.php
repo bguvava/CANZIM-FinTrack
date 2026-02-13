@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MarkReceivedRequest;
 use App\Http\Requests\StorePurchaseOrderRequest;
 use App\Http\Requests\UpdatePurchaseOrderRequest;
+use App\Models\ActivityLog;
 use App\Models\PurchaseOrder;
 use App\Services\PurchaseOrderPDFService;
 use App\Services\PurchaseOrderService;
@@ -25,12 +26,14 @@ class PurchaseOrderController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = PurchaseOrder::with(['vendor', 'project', 'creator', 'approver', 'expenses'])
+        $query = PurchaseOrder::with(['vendor', 'project', 'items', 'creator', 'approver', 'expenses'])
             ->orderBy('created_at', 'desc');
 
         // Role-based filtering
+        // When a project_id filter is provided, skip created_by restriction
+        // so project officers can see approved POs when creating expenses
         $user = $request->user();
-        if ($user->role->slug === 'project-officer') {
+        if ($user->role->slug === 'project-officer' && ! $request->filled('project_id')) {
             $query->where('created_by', $user->id);
         }
 
@@ -81,6 +84,12 @@ class PurchaseOrderController extends Controller
 
             $purchaseOrder = $this->purchaseOrderService->createPurchaseOrder($data, $items);
 
+            ActivityLog::log(auth()->id(), 'purchase_order_created', 'Purchase order created: '.$purchaseOrder->po_number, [
+                'purchase_order_id' => $purchaseOrder->id,
+                'po_number' => $purchaseOrder->po_number,
+                'total_amount' => $purchaseOrder->total_amount,
+            ]);
+
             return response()->json([
                 'message' => 'Purchase order created successfully',
                 'purchase_order' => $purchaseOrder->load(['vendor', 'project', 'items']),
@@ -128,6 +137,11 @@ class PurchaseOrderController extends Controller
 
             $updatedPO = $this->purchaseOrderService->updatePurchaseOrder($purchaseOrder, $data, $items);
 
+            ActivityLog::log(auth()->id(), 'purchase_order_updated', 'Purchase order updated: '.$updatedPO->po_number, [
+                'purchase_order_id' => $updatedPO->id,
+                'po_number' => $updatedPO->po_number,
+            ]);
+
             return response()->json([
                 'message' => 'Purchase order updated successfully',
                 'purchase_order' => $updatedPO->load(['vendor', 'project', 'items']),
@@ -173,6 +187,11 @@ class PurchaseOrderController extends Controller
         try {
             $approvedPO = $this->purchaseOrderService->approvePurchaseOrder($purchaseOrder);
 
+            ActivityLog::log(auth()->id(), 'purchase_order_approved', 'Purchase order approved: '.$approvedPO->po_number, [
+                'purchase_order_id' => $approvedPO->id,
+                'po_number' => $approvedPO->po_number,
+            ]);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Purchase order approved successfully',
@@ -202,6 +221,12 @@ class PurchaseOrderController extends Controller
                 $purchaseOrder,
                 $validated['rejection_reason']
             );
+
+            ActivityLog::log(auth()->id(), 'purchase_order_rejected', 'Purchase order rejected: '.$rejectedPO->po_number, [
+                'purchase_order_id' => $rejectedPO->id,
+                'po_number' => $rejectedPO->po_number,
+                'rejection_reason' => $validated['rejection_reason'],
+            ]);
 
             return response()->json([
                 'status' => 'success',
@@ -323,10 +348,18 @@ class PurchaseOrderController extends Controller
 
     /**
      * Remove the specified purchase order.
+     * Only draft purchase orders can be deleted.
      */
     public function destroy(PurchaseOrder $purchaseOrder): JsonResponse
     {
         $this->authorize('delete', $purchaseOrder);
+
+        // Only allow deletion of draft purchase orders
+        if (strtolower($purchaseOrder->status) !== 'draft') {
+            return response()->json([
+                'message' => 'Only draft purchase orders can be deleted. Approved or processed orders must be retained for audit purposes.',
+            ], 403);
+        }
 
         try {
             $purchaseOrder->delete();

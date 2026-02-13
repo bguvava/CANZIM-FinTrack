@@ -3,23 +3,23 @@
         <div class="po-pending-approval-container space-y-6">
             <!-- Page Header -->
             <div
-                class="rounded-lg bg-linear-to-r from-yellow-500 to-orange-500 p-6 text-white shadow-lg"
+                class="rounded-lg border border-orange-200 bg-orange-50 p-6 shadow-sm"
             >
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-3xl font-bold">
+                        <h1 class="text-2xl font-bold text-gray-900">
                             Purchase Orders - Pending Approval
                         </h1>
-                        <p class="mt-1 text-yellow-100">
+                        <p class="mt-1 text-sm text-gray-600">
                             Review and approve purchase orders submitted for
                             your approval
                         </p>
                     </div>
                     <div class="text-right">
-                        <div class="text-4xl font-bold">
+                        <div class="text-4xl font-bold text-orange-600">
                             {{ pendingPurchaseOrders.length }}
                         </div>
-                        <div class="text-sm text-yellow-100">
+                        <div class="text-sm text-gray-600">
                             Pending Approval
                         </div>
                     </div>
@@ -32,115 +32,96 @@
                     <i
                         class="fas fa-spinner fa-spin text-4xl text-blue-600"
                     ></i>
-                    <p class="mt-4 text-gray-600 dark:text-gray-400">
-                        Loading purchase orders...
-                    </p>
+                    <p class="mt-4 text-gray-600">Loading purchase orders...</p>
                 </div>
             </div>
 
             <!-- Empty State -->
             <div
                 v-else-if="!loading && pendingPurchaseOrders.length === 0"
-                class="rounded-lg bg-white p-12 text-center shadow-sm dark:bg-gray-800"
+                class="rounded-lg bg-white p-12 text-center shadow-sm"
             >
                 <i class="fas fa-check-circle mb-4 text-6xl text-green-500"></i>
-                <h3
-                    class="mb-2 text-xl font-semibold text-gray-900 dark:text-white"
-                >
+                <h3 class="mb-2 text-xl font-semibold text-gray-900">
                     All Caught Up!
                 </h3>
-                <p class="text-gray-600 dark:text-gray-400">
+                <p class="text-gray-600">
                     There are no purchase orders pending your approval at this
                     time.
                 </p>
             </div>
 
             <!-- Purchase Orders Table -->
-            <div
-                v-else
-                class="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800"
-            >
+            <div v-else class="overflow-hidden rounded-lg bg-white shadow-sm">
                 <div class="overflow-x-auto">
-                    <table
-                        class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-                    >
-                        <thead class="bg-gray-50 dark:bg-gray-700">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     PO Number
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     Vendor
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     Project
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     Total Amount
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     Submitted Date
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                                    class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
                                 >
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-                        <tbody
-                            class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800"
-                        >
+                        <tbody class="divide-y divide-gray-200 bg-white">
                             <tr
                                 v-for="po in pendingPurchaseOrders"
                                 :key="po.id"
-                                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                                class="transition-colors hover:bg-gray-50"
                             >
                                 <td
-                                    class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white"
+                                    class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900"
                                 >
                                     {{ po.po_number }}
                                 </td>
-                                <td
-                                    class="px-6 py-4 text-sm text-gray-900 dark:text-white"
-                                >
+                                <td class="px-6 py-4 text-sm text-gray-900">
                                     <div>
                                         <div class="font-medium">
-                                            {{
-                                                po.vendor?.vendor_name || "N/A"
-                                            }}
+                                            {{ po.vendor?.name || "N/A" }}
                                         </div>
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-400"
-                                        >
+                                        <div class="text-xs text-gray-500">
                                             {{
                                                 po.vendor?.contact_person || ""
                                             }}
                                         </div>
                                     </div>
                                 </td>
-                                <td
-                                    class="px-6 py-4 text-sm text-gray-900 dark:text-white"
-                                >
-                                    {{ po.project?.project_name || "N/A" }}
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    {{ po.project?.name || "N/A" }}
                                 </td>
                                 <td
-                                    class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-white"
+                                    class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900"
                                 >
                                     ${{ formatCurrency(po.total_amount) }}
                                 </td>
                                 <td
-                                    class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-white"
+                                    class="whitespace-nowrap px-6 py-4 text-sm text-gray-900"
                                 >
                                     {{ formatDate(po.submitted_at) }}
                                 </td>
@@ -209,7 +190,7 @@ const modals = ref({
 // Computed properties
 const pendingPurchaseOrders = computed(() => {
     return purchaseOrderStore.purchaseOrders.filter(
-        (po) => po.status === "Pending",
+        (po) => po.status?.toLowerCase() === "pending",
     );
 });
 
@@ -230,9 +211,19 @@ const loadPendingPurchaseOrders = async () => {
     }
 };
 
-const viewPODetails = (po) => {
-    selectedPO.value = po;
-    modals.value.view = true;
+const viewPODetails = async (po) => {
+    try {
+        await purchaseOrderStore.fetchPurchaseOrder(po.id);
+        selectedPO.value = purchaseOrderStore.currentPurchaseOrder;
+        modals.value.view = true;
+    } catch (error) {
+        console.error("Error loading purchase order details:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load purchase order details.",
+        });
+    }
 };
 
 const handleQuickApprove = async (po) => {
@@ -241,7 +232,7 @@ const handleQuickApprove = async (po) => {
         html: `
             <div class="text-left">
                 <p class="mb-2"><strong>PO Number:</strong> ${po.po_number}</p>
-                <p class="mb-2"><strong>Vendor:</strong> ${po.vendor?.vendor_name || "N/A"}</p>
+                <p class="mb-2"><strong>Vendor:</strong> ${po.vendor?.name || "N/A"}</p>
                 <p class="mb-2"><strong>Project:</strong> ${po.project?.project_name || "N/A"}</p>
                 <p class="mb-2"><strong>Amount:</strong> $${formatCurrency(po.total_amount)}</p>
             </div>
@@ -265,7 +256,7 @@ const handleQuickReject = async (po) => {
         html: `
             <div class="text-left mb-4">
                 <p class="mb-2"><strong>PO Number:</strong> ${po.po_number}</p>
-                <p class="mb-2"><strong>Vendor:</strong> ${po.vendor?.vendor_name || "N/A"}</p>
+                <p class="mb-2"><strong>Vendor:</strong> ${po.vendor?.name || "N/A"}</p>
                 <p class="mb-2"><strong>Amount:</strong> $${formatCurrency(po.total_amount)}</p>
             </div>
         `,

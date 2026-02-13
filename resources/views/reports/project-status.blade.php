@@ -1,31 +1,64 @@
-@extends('reports.layouts.pdf')
+<!DOCTYPE html>
+<html>
 
-@section('title', 'Project Status Report')
+<head>
+    <meta charset="utf-8">
+    <title>Project Status Report - CANZIM</title>
+    @include('pdf.partials.styles')
+</head>
 
-@section('report-title', 'Project Status Report')
+<body>
+    @include('pdf.partials.header', [
+        'logoBase64' => $logoBase64,
+        'organizationName' => 'Climate Action Network Zimbabwe',
+        'reportTitle' => 'Project Status Report',
+    ])
 
-@section('content')
-    <h1>Project Status Report</h1>
+    <div class="content">
+        @if (isset($data['project']))
+            <div class="info-box" style="background-color: #EFF6FF; border-left: 4px solid #1E40AF;">
+                <h3 style="color: #1E40AF; margin-top: 0;">Project Information</h3>
+                <table class="summary-table">
+                    <tr>
+                        <td>Project:</td>
+                        <td><strong>{{ $data['project']['name'] ?? 'N/A' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Status:</td>
+                        <td><strong>{{ ucfirst($data['project']['status'] ?? 'N/A') }}</strong></td>
+                    </tr>
+                </table>
+            </div>
 
-    <div class="info-section">
-        <p><strong>Project:</strong> {{ $project['name'] ?? 'N/A' }}</p>
-        <p><strong>Status:</strong> {{ ucfirst($project['status'] ?? 'N/A') }}</p>
-        <p><strong>Generated On:</strong> {{ now()->format('F d, Y H:i:s') }}</p>
+            @if (isset($data['financial_summary']))
+                <h2 style="color: #1E40AF; margin-top: 20px;">Financial Summary</h2>
+                <table class="summary-table">
+                    <tr>
+                        <td>Total Budget:</td>
+                        <td class="currency">${{ number_format($data['financial_summary']['total_budget'] ?? 0, 2) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Total Spent:</td>
+                        <td class="currency">${{ number_format($data['financial_summary']['total_spent'] ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Remaining:</td>
+                        <td class="currency">
+                            ${{ number_format($data['financial_summary']['remaining_budget'] ?? 0, 2) }}</td>
+                    </tr>
+                </table>
+            @endif
+        @endif
     </div>
 
-    <h2>Project Details</h2>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Budget:</td>
-            <td>{{ number_format($project['budget'] ?? 0, 2) }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Expenses:</td>
-            <td>{{ number_format($project['expenses'] ?? 0, 2) }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Remaining:</td>
-            <td>{{ number_format($project['remaining'] ?? 0, 2) }}</td>
-        </tr>
-    </table>
-@endsection
+    @include('pdf.partials.footer', [
+        'generatedBy' => $generatedBy,
+        'userRole' => $userRole,
+        'generatedAt' => $generatedAt,
+        'year' => $year,
+        'organizationName' => 'Climate Action Network Zimbabwe',
+    ])
+</body>
+
+</html>

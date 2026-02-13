@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use Tests\Traits\RequiresGdExtension;
 
 /**
  * Settings Management Test
@@ -35,6 +36,7 @@ use Tests\TestCase;
 class SettingsTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresGdExtension;
 
     protected User $programsManager;
 
@@ -347,6 +349,8 @@ class SettingsTest extends TestCase
      */
     public function test_can_upload_organization_logo(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Sanctum::actingAs($this->programsManager);
 
         Storage::fake('public');
@@ -402,6 +406,8 @@ class SettingsTest extends TestCase
      */
     public function test_logo_upload_rejects_oversized_file(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Sanctum::actingAs($this->programsManager);
 
         Storage::fake('public');
@@ -509,6 +515,8 @@ class SettingsTest extends TestCase
      */
     public function test_finance_officer_cannot_upload_logo(): void
     {
+        $this->skipIfGdNotAvailable();
+
         Sanctum::actingAs($this->financeOfficer);
 
         $file = UploadedFile::fake()->image('logo.png');

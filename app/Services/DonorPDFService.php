@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Storage;
 class DonorPDFService
 {
     /**
-     * Generate Donor Financial Report PDF.
+     * Generate Donor Financial Report PDF with optional filters.
      */
-    public function generateDonorFinancialReport(Donor $donor): string
+    public function generateDonorFinancialReport(Donor $donor, array $filters = []): string
     {
-        $data = $this->prepareDonorFinancialData($donor);
+        $data = $this->prepareDonorFinancialData($donor, $filters);
 
         // Generate PDF
-        $pdf = Pdf::loadView('pdf.donor-financial-report', $data)
+        $pdf = Pdf::loadView('pdf.donors.donor-financial-report', $data)
             ->setPaper('a4', 'portrait')
             ->setOption('margin-top', 10)
             ->setOption('margin-bottom', 10)
@@ -59,47 +59,81 @@ class DonorPDFService
     }
 
     /**
-     * Prepare donor financial data for PDF.
+     * Prepare donor financial data for PDF with optional filters.
      */
-    protected function prepareDonorFinancialData(Donor $donor): array
+    protected function prepareDonorFinancialData(Donor $donor, array $filters = []): array
     {
+        // Build query with filters
+        $projectsQuery = $donor->projects()
+            ->withPivot(['funding_amount', 'funding_period_start', 'funding_period_end', 'is_restricted', 'notes']);
+
+        // Apply date filters to project funding periods
+        if (! empty($filters['date_from'])) {
+            $projectsQuery->where('project_donors.funding_period_start', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $projectsQuery->where('project_donors.funding_period_end', '<=', $filters['date_to']);
+        }
+
+        // Filter by specific projects
+        if (! empty($filters['project_ids']) && is_array($filters['project_ids'])) {
+            $projectsQuery->whereIn('projects.id', $filters['project_ids']);
+        }
+
+        $projects = $projectsQuery->get();
+
+        // Load in-kind contributions with filters
+        $inKindQuery = $donor->inKindContributions()->with('project');
+
+        if (! empty($filters['date_from'])) {
+            $inKindQuery->where('contribution_date', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $inKindQuery->where('contribution_date', '<=', $filters['date_to']);
+        }
+
+        if (! empty($filters['project_ids']) && is_array($filters['project_ids'])) {
+            $inKindQuery->whereIn('project_id', $filters['project_ids']);
+        }
+
+        $inKindContributions = ! empty($filters['include_in_kind']) && $filters['include_in_kind']
+            ? $inKindQuery->get()
+            : collect();
+
+        // Load communications
         $donor->load([
-            'projects' => function ($query) {
-                $query->withPivot(['funding_amount', 'funding_period_start', 'funding_period_end', 'is_restricted', 'notes']);
-            },
-            'projects.budgets',
-            'inKindContributions',
-            'communications' => function ($query) {
-                $query->orderBy('communication_date', 'desc');
-            },
+            'communications' => fn ($query) => $query->orderBy('communication_date', 'desc')->limit(10),
         ]);
 
         // Calculate funding totals
-        $totalFunding = $donor->projects->sum('pivot.funding_amount');
-        $restrictedFunding = $donor->projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount');
+        $totalFunding = $projects->sum('pivot.funding_amount');
+        $restrictedFunding = $projects->where('pivot.is_restricted', true)->sum('pivot.funding_amount');
         $unrestrictedFunding = $totalFunding - $restrictedFunding;
-        $totalInKindValue = $donor->inKindContributions->sum('estimated_value');
+        $totalInKindValue = $inKindContributions->sum('estimated_value');
 
         // Get active projects
-        $activeProjects = $donor->projects->filter(function ($project) {
-            return $project->status !== 'cancelled' && $project->status !== 'completed';
-        });
+        $activeProjects = $projects->filter(fn ($project) => in_array($project->status, ['active', 'planning']));
 
         // Get completed projects
-        $completedProjects = $donor->projects->filter(function ($project) {
-            return $project->status === 'completed';
-        });
+        $completedProjects = $projects->filter(fn ($project) => $project->status === 'completed');
 
         // Group in-kind contributions by category
-        $inKindByCategory = $donor->inKindContributions->groupBy('category')->map(function ($items) {
+        $inKindByCategory = $inKindContributions->groupBy('category')->map(function ($items) {
             return [
                 'count' => $items->count(),
                 'total_value' => $items->sum('estimated_value'),
             ];
         });
 
-        // Recent communications (last 10)
-        $recentCommunications = $donor->communications->take(10);
+        // Get logo as base64
+        $logoPath = public_path('images/canzim-logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = base64_encode(file_get_contents($logoPath));
+            $logoBase64 = 'data:image/png;base64,'.$logoData;
+        }
 
         return [
             'donor' => $donor,
@@ -110,14 +144,20 @@ class DonorPDFService
             'grand_total_contribution' => $totalFunding + $totalInKindValue,
             'active_projects' => $activeProjects,
             'completed_projects' => $completedProjects,
-            'total_projects' => $donor->projects->count(),
+            'total_projects' => $projects->count(),
             'active_projects_count' => $activeProjects->count(),
-            'in_kind_contributions' => $donor->inKindContributions,
+            'in_kind_contributions' => $inKindContributions,
             'in_kind_by_category' => $inKindByCategory,
-            'recent_communications' => $recentCommunications,
-            'total_communications' => $donor->communications->count(),
-            'generated_at' => now()->format('d M Y H:i:s'),
-            'generated_by' => auth()->user(),
+            'recent_communications' => $donor->communications,
+            'total_communications' => $donor->communications()->count(),
+            'filters' => $filters,
+            'reportTitle' => 'Donor Financial Report',
+            'logoBase64' => $logoBase64,
+            'organizationName' => 'Climate Action Network Zimbabwe',
+            'generatedBy' => auth()->user()->name,
+            'userRole' => auth()->user()->role->name ?? 'User',
+            'generatedAt' => now()->format('M d, Y H:i:s'),
+            'year' => now()->year,
         ];
     }
 

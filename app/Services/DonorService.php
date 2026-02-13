@@ -13,10 +13,13 @@ class DonorService
      */
     public function assignToProject(Donor $donor, array $data): void
     {
+        // Get project to use its dates as defaults if funding period not provided
+        $project = Project::findOrFail($data['project_id']);
+
         $donor->projects()->attach($data['project_id'], [
             'funding_amount' => $data['funding_amount'],
-            'funding_period_start' => $data['funding_period_start'] ?? null,
-            'funding_period_end' => $data['funding_period_end'] ?? null,
+            'funding_period_start' => $data['funding_period_start'] ?? $project->start_date,
+            'funding_period_end' => $data['funding_period_end'] ?? $project->end_date,
             'is_restricted' => $data['is_restricted'] ?? false,
             'notes' => $data['notes'] ?? null,
         ]);

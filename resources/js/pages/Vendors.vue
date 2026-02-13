@@ -139,7 +139,7 @@
                                 <td
                                     class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900"
                                 >
-                                    {{ vendor.vendor_name }}
+                                    {{ vendor.name }}
                                 </td>
                                 <td
                                     class="whitespace-nowrap px-6 py-4 text-sm text-gray-900"
@@ -303,7 +303,7 @@ const filteredVendors = computed(() => {
         const searchLower = filters.value.search.toLowerCase();
         vendors = vendors.filter(
             (vendor) =>
-                vendor.vendor_name?.toLowerCase().includes(searchLower) ||
+                vendor.name?.toLowerCase().includes(searchLower) ||
                 vendor.email?.toLowerCase().includes(searchLower) ||
                 vendor.contact_person?.toLowerCase().includes(searchLower),
         );

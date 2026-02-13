@@ -370,6 +370,10 @@
                                 v-if="actionLoading"
                                 class="fas fa-spinner fa-spin mr-2"
                             ></i>
+                            <i
+                                v-if="!actionLoading"
+                                class="fas fa-ban mr-1.5"
+                            ></i>
                             {{
                                 actionLoading
                                     ? "Processing..."
@@ -386,6 +390,10 @@
                                 v-if="actionLoading"
                                 class="fas fa-spinner fa-spin mr-2"
                             ></i>
+                            <i
+                                v-if="!actionLoading"
+                                class="fas fa-check-circle mr-1.5"
+                            ></i>
                             {{
                                 actionLoading
                                     ? "Processing..."
@@ -394,16 +402,10 @@
                         </button>
                         <div class="flex gap-3">
                             <button
-                                @click="handleEdit"
-                                class="px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition"
-                            >
-                                <i class="fas fa-edit mr-2"></i>
-                                Edit Account
-                            </button>
-                            <button
                                 @click="closeModal"
-                                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                                class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                             >
+                                <i class="fas fa-times mr-1.5"></i>
                                 Close
                             </button>
                         </div>

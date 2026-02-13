@@ -19,7 +19,11 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">
-                                Mark Items as Received
+                                {{
+                                    mode === "partial"
+                                        ? "Mark Items as Partially Received"
+                                        : "Mark Items as Received"
+                                }}
                             </h3>
                             <p class="text-sm text-gray-600">
                                 {{ purchaseOrder?.po_number || "N/A" }}
@@ -51,25 +55,118 @@
                                     Receipt Instructions
                                 </p>
                                 <p class="mt-1 text-xs text-blue-600">
-                                    Select the items you've received and enter
-                                    the quantities. You can process partial
-                                    receipts.
+                                    {{
+                                        mode === "partial"
+                                            ? "Select the items you've partially received and enter the received quantities. Remaining quantities can be received later."
+                                            : "Select all items received and confirm the quantities. This will mark the PO as fully received."
+                                    }}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Items Table -->
-                    <div>
-                        <div class="mb-4 flex items-center justify-between">
+                    <!-- Already Received Items (read-only) -->
+                    <div v-if="fullyReceivedItems.length > 0">
+                        <h4 class="mb-3 text-sm font-semibold text-gray-900">
+                            <i
+                                class="fas fa-check-circle mr-1.5 text-green-500"
+                            ></i>
+                            Already Received ({{
+                                fullyReceivedItems.length
+                            }}
+                            item{{ fullyReceivedItems.length > 1 ? "s" : "" }})
+                        </h4>
+                        <div
+                            class="overflow-hidden rounded-lg border border-green-200"
+                        >
+                            <table class="min-w-full divide-y divide-green-200">
+                                <thead class="bg-green-50">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-green-700"
+                                        >
+                                            Description
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-green-700"
+                                        >
+                                            Ordered
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-green-700"
+                                        >
+                                            Received
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-green-700"
+                                        >
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody
+                                    class="divide-y divide-green-100 bg-white"
+                                >
+                                    <tr
+                                        v-for="item in fullyReceivedItems"
+                                        :key="'received-' + item.id"
+                                        class="bg-green-50/30"
+                                    >
+                                        <td
+                                            class="px-4 py-3 text-sm text-gray-900"
+                                        >
+                                            {{ item.description }}
+                                        </td>
+                                        <td
+                                            class="px-4 py-3 text-center text-sm text-gray-900"
+                                        >
+                                            {{ item.quantity }}
+                                        </td>
+                                        <td
+                                            class="px-4 py-3 text-center text-sm font-medium text-green-700"
+                                        >
+                                            {{ item.already_received }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span
+                                                class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800"
+                                            >
+                                                <i
+                                                    class="fas fa-check mr-1"
+                                                ></i>
+                                                Fully Received
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Items to Receive -->
+                    <div v-if="receivableItems.length > 0">
+                        <div class="mb-3 flex items-center justify-between">
                             <h4 class="text-sm font-semibold text-gray-900">
-                                Items to Receive
+                                <i
+                                    class="fas fa-boxes-packing mr-1.5 text-purple-500"
+                                ></i>
+                                Items to Receive ({{
+                                    receivableItems.length
+                                }}
+                                item{{ receivableItems.length > 1 ? "s" : "" }})
                             </h4>
                             <button
                                 type="button"
                                 @click="selectAll"
-                                class="text-sm text-blue-600 hover:text-blue-800"
+                                class="flex items-center gap-1.5 text-sm font-medium text-purple-600 transition-colors hover:text-purple-800"
                             >
+                                <i
+                                    :class="
+                                        allSelected
+                                            ? 'fas fa-times-circle'
+                                            : 'fas fa-check-double'
+                                    "
+                                ></i>
                                 {{
                                     allSelected ? "Deselect All" : "Select All"
                                 }}
@@ -93,14 +190,24 @@
                                             Description
                                         </th>
                                         <th
-                                            class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
                                         >
                                             Ordered
                                         </th>
                                         <th
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
+                                        >
+                                            Previously Received
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
+                                        >
+                                            Remaining
+                                        </th>
+                                        <th
                                             class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                                         >
-                                            Qty Received
+                                            Qty to Receive
                                         </th>
                                     </tr>
                                 </thead>
@@ -108,7 +215,7 @@
                                     class="divide-y divide-gray-200 bg-white"
                                 >
                                     <tr
-                                        v-for="(item, index) in receiptItems"
+                                        v-for="item in receivableItems"
                                         :key="item.id"
                                         :class="
                                             item.selected ? 'bg-purple-50' : ''
@@ -127,18 +234,35 @@
                                             {{ item.description }}
                                         </td>
                                         <td
-                                            class="px-4 py-3 text-sm text-gray-900"
+                                            class="px-4 py-3 text-center text-sm text-gray-900"
                                         >
                                             {{ item.quantity }}
+                                        </td>
+                                        <td
+                                            class="px-4 py-3 text-center text-sm text-gray-500"
+                                        >
+                                            {{
+                                                item.already_received > 0
+                                                    ? item.already_received
+                                                    : "—"
+                                            }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span
+                                                class="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800"
+                                            >
+                                                {{ item.remaining }}
+                                            </span>
                                         </td>
                                         <td class="px-4 py-3">
                                             <input
                                                 v-model.number="
-                                                    item.quantity_received
+                                                    item.quantity_to_receive
                                                 "
                                                 type="number"
                                                 :min="0"
-                                                :max="item.quantity"
+                                                :max="item.remaining"
+                                                step="1"
                                                 :disabled="!item.selected"
                                                 class="block w-24 rounded-lg border px-3 py-2 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:bg-gray-100"
                                                 :class="
@@ -164,6 +288,19 @@
                             }}
                             selected for receipt
                         </div>
+                    </div>
+
+                    <!-- No items to receive -->
+                    <div
+                        v-if="receivableItems.length === 0"
+                        class="rounded-lg border border-green-200 bg-green-50 p-4 text-center"
+                    >
+                        <i
+                            class="fas fa-check-circle text-2xl text-green-500"
+                        ></i>
+                        <p class="mt-2 text-sm font-medium text-green-800">
+                            All items have been fully received
+                        </p>
                     </div>
 
                     <!-- Receipt Date -->
@@ -210,10 +347,10 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                         :disabled="submitting"
                     >
-                        Cancel
+                        <i class="fas fa-times mr-1.5"></i>Cancel
                     </button>
                     <button
                         type="submit"
@@ -245,11 +382,16 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    mode: {
+        type: String,
+        default: "full",
+    },
 });
 
 const emit = defineEmits(["close", "items-received"]);
 
-const receiptItems = ref([]);
+const receivableItems = ref([]);
+const fullyReceivedItems = ref([]);
 const receiptDate = ref("");
 const receiptNotes = ref("");
 const submitting = ref(false);
@@ -259,28 +401,29 @@ const today = computed(() => {
 });
 
 const selectedCount = computed(() => {
-    return receiptItems.value.filter((item) => item.selected).length;
+    return receivableItems.value.filter((item) => item.selected).length;
 });
 
 const allSelected = computed(() => {
     return (
-        receiptItems.value.length > 0 &&
-        receiptItems.value.every((item) => item.selected)
+        receivableItems.value.length > 0 &&
+        receivableItems.value.every((item) => item.selected)
     );
 });
 
 const selectAll = () => {
     const newValue = !allSelected.value;
-    receiptItems.value.forEach((item) => {
+    receivableItems.value.forEach((item) => {
         item.selected = newValue;
-        if (newValue && item.quantity_received === 0) {
-            item.quantity_received = item.quantity;
+        if (newValue && item.quantity_to_receive === 0) {
+            item.quantity_to_receive = item.remaining;
         }
     });
 };
 
 const resetForm = () => {
-    receiptItems.value = [];
+    receivableItems.value = [];
+    fullyReceivedItems.value = [];
     receiptDate.value = today.value;
     receiptNotes.value = "";
     submitting.value = false;
@@ -292,21 +435,21 @@ const closeModal = () => {
 };
 
 const handleSubmit = async () => {
-    const selectedItems = receiptItems.value.filter((item) => item.selected);
+    const selectedItems = receivableItems.value.filter((item) => item.selected);
 
-    // Validate quantities
+    // Validate quantities against remaining (not total ordered)
     const invalidItems = selectedItems.filter(
         (item) =>
-            !item.quantity_received ||
-            item.quantity_received <= 0 ||
-            item.quantity_received > item.quantity,
+            !item.quantity_to_receive ||
+            item.quantity_to_receive <= 0 ||
+            item.quantity_to_receive > item.remaining,
     );
 
     if (invalidItems.length > 0) {
         Swal.fire({
             icon: "error",
             title: "Invalid Quantities",
-            text: "Please enter valid quantities for all selected items (between 1 and ordered quantity).",
+            text: "Please enter valid quantities for all selected items (between 1 and remaining quantity).",
         });
         return;
     }
@@ -319,7 +462,7 @@ const handleSubmit = async () => {
             receipt_notes: receiptNotes.value,
             items: selectedItems.map((item) => ({
                 item_id: item.id,
-                quantity_received: item.quantity_received,
+                quantity_received: item.quantity_to_receive,
             })),
         };
 
@@ -352,11 +495,20 @@ watch(
     () => props.isVisible,
     (newVal) => {
         if (newVal && props.purchaseOrder?.items) {
-            receiptItems.value = props.purchaseOrder.items.map((item) => ({
-                ...item,
-                selected: false,
-                quantity_received: item.quantity,
-            }));
+            const items = props.purchaseOrder.items.map((item) => {
+                const alreadyReceived = parseFloat(item.quantity_received) || 0;
+                const remaining = parseFloat(item.quantity) - alreadyReceived;
+                return {
+                    ...item,
+                    already_received: alreadyReceived,
+                    remaining: Math.max(0, remaining),
+                    selected: props.mode === "full" && remaining > 0,
+                    quantity_to_receive: remaining > 0 ? remaining : 0,
+                };
+            });
+
+            fullyReceivedItems.value = items.filter((i) => i.remaining <= 0);
+            receivableItems.value = items.filter((i) => i.remaining > 0);
             receiptDate.value = today.value;
         } else {
             resetForm();

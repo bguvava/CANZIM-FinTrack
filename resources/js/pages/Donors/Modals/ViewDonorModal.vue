@@ -1,5 +1,6 @@
 <template>
     <div
+        v-if="donor"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
         @click.self="closeModal"
     >
@@ -150,6 +151,30 @@
                                         <span v-else>—</span>
                                     </p>
                                 </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700"
+                                    >
+                                        Total Commitment
+                                        <span class="text-gray-500 text-xs"
+                                            >(Optional)</span
+                                        >
+                                    </label>
+                                    <p
+                                        class="mt-1 text-sm font-semibold text-gray-900"
+                                    >
+                                        <span v-if="donor.funding_total">
+                                            ${{
+                                                formatNumber(
+                                                    donor.funding_total,
+                                                )
+                                            }}
+                                        </span>
+                                        <span v-else class="text-gray-500"
+                                            >—</span
+                                        >
+                                    </p>
+                                </div>
                                 <div class="md:col-span-2">
                                     <label
                                         class="block text-sm font-medium text-gray-700"
@@ -265,22 +290,21 @@
                                         >
                                             ${{
                                                 formatNumber(
-                                                    project.pivot
-                                                        .funding_amount,
+                                                    project.funding_amount,
                                                 )
                                             }}
                                         </td>
                                         <td class="px-4 py-3">
                                             <span
                                                 :class="
-                                                    project.pivot.is_restricted
+                                                    project.is_restricted
                                                         ? 'bg-purple-100 text-purple-800'
                                                         : 'bg-green-100 text-green-800'
                                                 "
                                                 class="px-2 py-1 rounded-full text-xs font-medium"
                                             >
                                                 {{
-                                                    project.pivot.is_restricted
+                                                    project.is_restricted
                                                         ? "Restricted"
                                                         : "Unrestricted"
                                                 }}
@@ -291,15 +315,13 @@
                                         >
                                             {{
                                                 formatDate(
-                                                    project.pivot
-                                                        .funding_start_date,
+                                                    project.funding_period_start,
                                                 )
                                             }}
                                             -
                                             {{
                                                 formatDate(
-                                                    project.pivot
-                                                        .funding_end_date,
+                                                    project.funding_period_end,
                                                 )
                                             }}
                                         </td>
@@ -400,87 +422,47 @@
 
                     <!-- Communications Tab -->
                     <div v-show="activeTab === 'communications'">
+                        <CommunicationHistory
+                            communicable-type="App\Models\Donor"
+                            :communicable-id="donor.id"
+                        />
+                    </div>
+
+                    <!-- Funding Timeline Tab -->
+                    <div v-show="activeTab === 'timeline'">
                         <div
-                            v-if="
-                                donor.communications &&
-                                donor.communications.length > 0
-                            "
-                            class="space-y-4"
+                            class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
                         >
-                            <div
-                                v-for="communication in donor.communications"
-                                :key="communication.id"
-                                class="bg-gray-50 rounded-lg p-4"
+                            <h3
+                                class="text-lg font-semibold text-gray-900 mb-4 flex items-center"
                             >
-                                <div class="flex items-start justify-between">
-                                    <div class="flex-1">
-                                        <div
-                                            class="flex items-center gap-2 mb-2"
-                                        >
-                                            <span
-                                                class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
-                                            >
-                                                {{ communication.type }}
-                                            </span>
-                                            <span class="text-sm text-gray-600">
-                                                {{
-                                                    formatDate(
-                                                        communication.communication_date,
-                                                    )
-                                                }}
-                                            </span>
-                                        </div>
-                                        <h4 class="font-medium text-gray-900">
-                                            {{ communication.subject }}
-                                        </h4>
-                                        <p class="text-sm text-gray-600 mt-1">
-                                            {{ communication.notes }}
-                                        </p>
-                                        <div
-                                            v-if="
-                                                communication.next_action_date
-                                            "
-                                            class="mt-2 text-sm text-orange-600"
-                                        >
-                                            <i
-                                                class="fas fa-calendar-alt mr-1"
-                                            ></i>
-                                            Next action:
-                                            {{
-                                                formatDate(
-                                                    communication.next_action_date,
-                                                )
-                                            }}
-                                            <span
-                                                v-if="
-                                                    communication.next_action_notes
-                                                "
-                                            >
-                                                -
-                                                {{
-                                                    communication.next_action_notes
-                                                }}</span
-                                            >
-                                        </div>
-                                    </div>
-                                    <a
-                                        v-if="communication.attachment_path"
-                                        :href="communication.attachment_path"
-                                        target="_blank"
-                                        class="text-blue-600 hover:text-blue-800 ml-4"
-                                    >
-                                        <i class="fas fa-paperclip"></i>
-                                    </a>
-                                </div>
+                                <i
+                                    class="fas fa-chart-bar mr-2 text-blue-800"
+                                ></i>
+                                Funding Timeline
+                            </h3>
+                            <div
+                                v-if="loadingTimeline"
+                                class="flex justify-center items-center py-12"
+                            >
+                                <i
+                                    class="fas fa-spinner fa-spin text-3xl text-blue-800"
+                                ></i>
                             </div>
-                        </div>
-                        <div v-else class="text-center py-8">
-                            <i
-                                class="fas fa-comments text-4xl text-gray-300 mb-2"
-                            ></i>
-                            <p class="text-gray-500">
-                                No communications logged
-                            </p>
+                            <div v-else-if="timelineData" class="h-96">
+                                <Bar
+                                    :data="timelineData"
+                                    :options="chartOptions"
+                                />
+                            </div>
+                            <div v-else class="text-center py-12">
+                                <i
+                                    class="fas fa-chart-bar text-5xl text-gray-300 mb-4"
+                                ></i>
+                                <p class="text-gray-500">
+                                    No funding data available
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -544,8 +526,9 @@
                 </div>
                 <button
                     @click="closeModal"
-                    class="px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition"
+                    class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition"
                 >
+                    <i class="fas fa-times mr-1.5"></i>
                     Close
                 </button>
             </div>
@@ -554,10 +537,30 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useAuthStore } from "../../../stores/authStore";
 import { useDonorStore } from "../../../stores/donorStore";
 import Swal from "sweetalert2";
+import CommunicationHistory from "../../../components/Communications/CommunicationHistory.vue";
+import { Bar } from "vue-chartjs";
+import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+} from "chart.js";
+
+ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+);
 
 const props = defineProps({
     donor: {
@@ -578,12 +581,67 @@ const donorStore = useDonorStore();
 
 const activeTab = ref("overview");
 const isGeneratingReport = ref(false);
+const loadingTimeline = ref(false);
+const timelineData = ref(null);
+
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: "y",
+    plugins: {
+        legend: {
+            display: true,
+            position: "top",
+        },
+        title: {
+            display: false,
+        },
+    },
+    scales: {
+        x: {
+            beginAtZero: true,
+            ticks: {
+                callback: function (value) {
+                    return "$" + value.toLocaleString();
+                },
+            },
+        },
+    },
+};
+
+// Load funding timeline when tab is active
+watch(activeTab, async (newTab) => {
+    if (newTab === "timeline" && !timelineData.value) {
+        await loadFundingTimeline();
+    }
+});
+
+onMounted(() => {
+    if (activeTab.value === "timeline") {
+        loadFundingTimeline();
+    }
+});
+
+const loadFundingTimeline = async () => {
+    loadingTimeline.value = true;
+    try {
+        const response = await donorStore.fetchFundingTimeline(props.donor.id);
+        if (response.success) {
+            timelineData.value = response.data;
+        }
+    } catch (error) {
+        console.error("Error loading funding timeline:", error);
+    } finally {
+        loadingTimeline.value = false;
+    }
+};
 
 const tabs = [
     { id: "overview", label: "Overview", icon: "fas fa-info-circle" },
     { id: "projects", label: "Projects", icon: "fas fa-project-diagram" },
     { id: "inkind", label: "In-Kind", icon: "fas fa-gift" },
     { id: "communications", label: "Communications", icon: "fas fa-comments" },
+    { id: "timeline", label: "Funding Timeline", icon: "fas fa-chart-bar" },
 ];
 
 const canUpdate = computed(() => authStore.hasPermission("update-donors"));
@@ -613,7 +671,9 @@ const handleGenerateReport = async () => {
     isGeneratingReport.value = true;
 
     try {
-        await donorStore.generateReport(props.donor.id);
+        await donorStore.generateReport(props.donor.id, {
+            include_in_kind: true,
+        });
 
         Swal.fire({
             icon: "success",

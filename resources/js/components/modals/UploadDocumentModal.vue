@@ -188,87 +188,6 @@
                                     {{ errors.category[0] }}
                                 </p>
                             </div>
-
-                            <!-- Attach To Type -->
-                            <div>
-                                <label
-                                    class="mb-1.5 block text-sm font-medium text-gray-700"
-                                >
-                                    Attach To
-                                    <span class="text-red-500">*</span>
-                                </label>
-                                <select
-                                    v-model="form.documentable_type"
-                                    required
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    :class="{
-                                        'border-red-500':
-                                            errors.documentable_type,
-                                    }"
-                                    @change="loadEntities"
-                                >
-                                    <option value="">Select entity type</option>
-                                    <option value="App\Models\Project">
-                                        Project
-                                    </option>
-                                    <option value="App\Models\Budget">
-                                        Budget
-                                    </option>
-                                    <option value="App\Models\Expense">
-                                        Expense
-                                    </option>
-                                    <option value="App\Models\Donor">
-                                        Donor
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="errors.documentable_type"
-                                    class="mt-1 text-sm text-red-600"
-                                >
-                                    {{ errors.documentable_type[0] }}
-                                </p>
-                            </div>
-
-                            <!-- Attach To Entity -->
-                            <div v-if="form.documentable_type">
-                                <label
-                                    class="mb-1.5 block text-sm font-medium text-gray-700"
-                                >
-                                    Select {{ getEntityLabel() }}
-                                    <span class="text-red-500">*</span>
-                                </label>
-                                <select
-                                    v-model="form.documentable_id"
-                                    required
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    :class="{
-                                        'border-red-500':
-                                            errors.documentable_id,
-                                    }"
-                                    :disabled="loadingEntities"
-                                >
-                                    <option value="">
-                                        {{
-                                            loadingEntities
-                                                ? "Loading..."
-                                                : `Select ${getEntityLabel()}`
-                                        }}
-                                    </option>
-                                    <option
-                                        v-for="entity in entities"
-                                        :key="entity.id"
-                                        :value="entity.id"
-                                    >
-                                        {{ getEntityDisplayName(entity) }}
-                                    </option>
-                                </select>
-                                <p
-                                    v-if="errors.documentable_id"
-                                    class="mt-1 text-sm text-red-600"
-                                >
-                                    {{ errors.documentable_id[0] }}
-                                </p>
-                            </div>
                         </div>
                     </div>
 
@@ -279,10 +198,10 @@
                         <button
                             type="button"
                             @click="closeModal"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                             :disabled="uploading"
                         >
-                            Cancel
+                            <i class="fas fa-times mr-1.5"></i>Cancel
                         </button>
                         <button
                             type="submit"
@@ -307,7 +226,8 @@
 
 <script>
 import { ref, computed } from "vue";
-import axios from "axios";
+import api from "@/api";
+import { showSuccess, showError } from "@/plugins/sweetalert";
 
 export default {
     name: "UploadDocumentModal",
@@ -376,20 +296,20 @@ export default {
             loadingEntities.value = true;
             try {
                 const endpoints = {
-                    "App\\Models\\Project": "/api/v1/projects",
-                    "App\\Models\\Budget": "/api/v1/budgets",
-                    "App\\Models\\Expense": "/api/v1/expenses",
-                    "App\\Models\\Donor": "/api/v1/donors",
+                    "App\\Models\\Project": "/projects",
+                    "App\\Models\\Budget": "/budgets",
+                    "App\\Models\\Expense": "/expenses",
+                    "App\\Models\\Donor": "/donors",
                 };
 
                 const endpoint = endpoints[form.value.documentable_type];
                 if (endpoint) {
-                    const response = await axios.get(endpoint);
+                    const response = await api.get(endpoint);
                     entities.value = response.data.data || [];
                 }
             } catch (error) {
                 console.error("Error loading entities:", error);
-                window.$toast.error("Failed to load entities");
+                showError("Error", "Failed to load entities");
             } finally {
                 loadingEntities.value = false;
             }
@@ -412,26 +332,34 @@ export default {
                     formData.append("description", form.value.description);
                 }
                 formData.append("category", form.value.category);
-                formData.append(
-                    "documentable_type",
-                    form.value.documentable_type,
-                );
-                formData.append("documentable_id", form.value.documentable_id);
+                if (form.value.documentable_type) {
+                    formData.append(
+                        "documentable_type",
+                        form.value.documentable_type,
+                    );
+                }
+                if (form.value.documentable_id) {
+                    formData.append(
+                        "documentable_id",
+                        form.value.documentable_id,
+                    );
+                }
 
-                await axios.post("/api/v1/documents", formData, {
+                await api.post("/documents", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
                 });
 
-                window.$toast.success("Document uploaded successfully");
+                showSuccess("Success", "Document uploaded successfully");
                 emit("uploaded");
             } catch (error) {
                 console.error("Upload error:", error);
                 if (error.response?.data?.errors) {
                     errors.value = error.response.data.errors;
                 } else {
-                    window.$toast.error(
+                    showError(
+                        "Error",
                         error.response?.data?.message ||
                             "Failed to upload document",
                     );

@@ -125,13 +125,32 @@
                         ></div>
                     </div>
                     <div class="text-xs text-gray-500">
-                        {{ budget.utilization_percentage }}% utilized
+                        {{
+                            Number(budget.utilization_percentage || 0).toFixed(
+                                1,
+                            )
+                        }}% utilized
                     </div>
                 </div>
 
                 <div v-if="budget.items" class="mt-4 text-sm text-gray-600">
                     <i class="fas fa-list mr-1"></i>
                     {{ budget.items.length }} line items
+                </div>
+
+                <!-- Approval Buttons -->
+                <div
+                    v-if="canApprove(budget)"
+                    class="mt-4 pt-4 border-t border-gray-200 flex gap-2"
+                    @click.stop
+                >
+                    <button
+                        @click="handleApproveBudget(budget)"
+                        class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                    >
+                        <i class="fas fa-check mr-1"></i>
+                        Approve
+                    </button>
                 </div>
             </div>
         </div>
@@ -220,6 +239,7 @@ import { ref, computed, onMounted } from "vue";
 import { useBudgetStore } from "../../stores/budgetStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useAuthStore } from "../../stores/authStore";
+import { confirmAction, showSuccess, showError } from "@/plugins/sweetalert";
 import AddBudgetModal from "../../components/modals/AddBudgetModal.vue";
 import EditBudgetModal from "../../components/modals/EditBudgetModal.vue";
 import ViewBudgetModal from "../../components/modals/ViewBudgetModal.vue";
@@ -237,8 +257,8 @@ const showEditBudgetModal = ref(false);
 const showViewBudgetModal = ref(false);
 const selectedBudget = ref(null);
 
-const budgets = computed(() => budgetStore.budgets);
-const projects = computed(() => projectStore.projects);
+const budgets = computed(() => budgetStore.budgets || []);
+const projects = computed(() => projectStore.projects || []);
 const donors = computed(() => projectStore.donors);
 const loading = computed(() => budgetStore.loading);
 const pagination = computed(() => budgetStore.pagination);
@@ -248,6 +268,37 @@ const hasActiveFilters = computed(
 );
 
 const canCreate = computed(() => authStore.hasPermission("create-budget"));
+
+const canApprove = (budget) => {
+    // Only show approve button for pending budgets
+    // and if user has approval permission
+    return (
+        (budget.status === "pending" || budget.status === "draft") &&
+        authStore.hasPermission("approve-budget")
+    );
+};
+
+const handleApproveBudget = async (budget) => {
+    const confirmed = await confirmAction(
+        "Approve Budget?",
+        `Are you sure you want to approve Budget #${budget.id} for ${budget.project?.name}?`,
+        "Yes, Approve",
+    );
+
+    if (confirmed) {
+        try {
+            await budgetStore.approveBudget(budget.id, "");
+            showSuccess("Budget approved successfully!");
+            // Reload budgets to show updated status
+            await loadBudgets();
+        } catch (error) {
+            console.error("Error approving budget:", error);
+            showError(
+                error.response?.data?.message || "Failed to approve budget",
+            );
+        }
+    }
+};
 
 const handleFilter = () => {
     budgetStore.setStatusFilter(statusFilter.value);
@@ -323,6 +374,18 @@ const formatNumber = (num) => {
 };
 
 onMounted(async () => {
+    // Prevent data fetching if not authenticated or session is locked
+    if (
+        !authStore.isAuthenticated ||
+        authStore.isSessionLocked ||
+        window.isLoggingOut
+    ) {
+        console.warn(
+            "Skipping data load - user not authenticated or session locked",
+        );
+        return;
+    }
+
     await loadBudgets();
     await projectStore.fetchProjects();
     await projectStore.fetchDonors();

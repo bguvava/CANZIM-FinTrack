@@ -12,6 +12,7 @@
                     </p>
                 </div>
                 <button
+                    v-if="canCreateBankAccount"
                     @click="openAddModal"
                     class="flex items-center gap-2 rounded-lg bg-blue-800 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-900"
                 >
@@ -472,6 +473,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useCashFlowStore } from "../stores/cashFlowStore";
+import { useAuthStore } from "../stores/authStore";
 import { showSuccess, showError, showConfirm } from "../plugins/sweetalert";
 import DashboardLayout from "../layouts/DashboardLayout.vue";
 import AddBankAccountModal from "../components/modals/AddBankAccountModal.vue";
@@ -479,6 +481,7 @@ import EditBankAccountModal from "../components/modals/EditBankAccountModal.vue"
 import ViewBankAccountModal from "../components/modals/ViewBankAccountModal.vue";
 
 const cashFlowStore = useCashFlowStore();
+const authStore = useAuthStore();
 
 // Filters
 const searchQuery = ref("");
@@ -496,33 +499,51 @@ const modals = ref({
 const selectedAccount = ref(null);
 
 // Computed
+const canCreateBankAccount = computed(() => {
+    return authStore.user?.role?.slug === "finance-officer";
+});
+
 const hasActiveFilters = computed(() => {
     return searchQuery.value || statusFilter.value || bankFilter.value;
 });
 
 const uniqueBanks = computed(() => {
-    const banks = cashFlowStore.bankAccounts.map((acc) => acc.bank_name);
+    if (!Array.isArray(cashFlowStore.bankAccounts)) return [];
+    const banks = cashFlowStore.bankAccounts
+        .filter(
+            (acc) =>
+                acc != null &&
+                typeof acc === "object" &&
+                "bank_name" in acc &&
+                acc.bank_name,
+        )
+        .map((acc) => acc.bank_name);
     return [...new Set(banks)].sort();
 });
 
 const filteredAccounts = computed(() => {
-    let accounts = cashFlowStore.bankAccounts;
+    if (!Array.isArray(cashFlowStore.bankAccounts)) return [];
+    let accounts = cashFlowStore.bankAccounts.filter(
+        (acc) => acc != null && typeof acc === "object" && "id" in acc,
+    );
 
     // Apply search filter
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
         accounts = accounts.filter(
             (acc) =>
-                acc.account_name.toLowerCase().includes(query) ||
-                acc.bank_name.toLowerCase().includes(query) ||
-                acc.account_number.toLowerCase().includes(query),
+                acc.account_name?.toLowerCase().includes(query) ||
+                acc.bank_name?.toLowerCase().includes(query) ||
+                acc.account_number?.toLowerCase().includes(query),
         );
     }
 
     // Apply status filter
     if (statusFilter.value) {
         const isActive = statusFilter.value === "active";
-        accounts = accounts.filter((acc) => acc.is_active === isActive);
+        accounts = accounts.filter(
+            (acc) => "is_active" in acc && acc.is_active === isActive,
+        );
     }
 
     // Apply bank filter

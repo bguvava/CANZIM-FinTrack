@@ -1,37 +1,27 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-@section('title', 'Purchase Orders - Receiving')
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-@section('content')
-    <div id="receiving-app"></div>
-@endsection
+    <title>{{ config('app.name', 'CANZIM FinTrack') }} - Receiving</title>
 
-@push('scripts')
-    <script type="module">
-        import {
-            createApp
-        } from 'vue';
-        import {
-            createPinia
-        } from 'pinia';
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
-        const pinia = createPinia();
-        const app = createApp({
-            template: `
-                <div class="min-h-screen bg-gray-50">
-                    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                        <div class="px-4 py-6 sm:px-0">
-                            <div class="bg-white shadow-sm rounded-lg p-6">
-                                <h1 class="text-3xl font-bold text-gray-900 mb-4">Item Receiving</h1>
-                                <p class="text-gray-600">Item receiving interface coming soon...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `
-        });
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
-        app.use(pinia);
-        app.mount('#receiving-app');
-    </script>
-@endpush
+    <!-- Styles / Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/bootstrap-purchase-orders.js'])
+</head>
+
+<body class="font-sans antialiased bg-gray-50">
+    <!-- Purchase Orders Vue Component -->
+    <div id="purchase-orders-app"></div>
+</body>
+
+</html>

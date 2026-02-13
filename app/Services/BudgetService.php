@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\BudgetValidationException;
 use App\Models\Budget;
 use App\Models\BudgetItem;
 use App\Models\BudgetReallocation;
@@ -17,15 +18,31 @@ class BudgetService
 {
     /**
      * Create a new budget with line items.
+     *
+     * @throws BudgetValidationException
      */
     public function createBudget(array $data): Budget
     {
-        return DB::transaction(function () use ($data) {
+        // Calculate total amount from items before transaction
+        $totalAmount = 0;
+        if (isset($data['items']) && is_array($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $totalAmount += (float) ($item['allocated_amount'] ?? 0);
+            }
+        }
+
+        // Validate budget total BEFORE creating (fail fast)
+        $this->validateBudgetTotalBeforeCreate(
+            (int) $data['project_id'],
+            $totalAmount
+        );
+
+        return DB::transaction(function () use ($data, $totalAmount) {
             // Create the budget
             $budget = Budget::create([
                 'project_id' => $data['project_id'],
                 'fiscal_year' => $data['fiscal_year'],
-                'total_amount' => 0, // Will be calculated from items
+                'total_amount' => $totalAmount,
                 'status' => 'draft',
                 'created_by' => $data['created_by'],
             ]);
@@ -43,13 +60,6 @@ class BudgetService
                     ]);
                 }
             }
-
-            // Calculate and update total budget
-            $totalAmount = $budget->items()->sum('allocated_amount');
-            $budget->update(['total_amount' => $totalAmount]);
-
-            // Validate against project donor funding
-            $this->validateBudgetTotal($budget);
 
             return $budget->load('items');
         });
@@ -80,6 +90,56 @@ class BudgetService
             Cache::forget("project_{$budget->project_id}_budgets");
 
             return $budget;
+        });
+    }
+
+    /**
+     * Update an existing budget.
+     *
+     * @throws BudgetValidationException
+     */
+    public function updateBudget(Budget $budget, array $data): Budget
+    {
+        // Calculate total amount from items
+        $totalAmount = 0;
+        if (isset($data['items']) && is_array($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $totalAmount += (float) ($item['allocated_amount'] ?? 0);
+            }
+        }
+
+        // Validate budget total BEFORE updating
+        $this->validateBudgetTotalBeforeUpdate($budget, $totalAmount);
+
+        return DB::transaction(function () use ($budget, $data, $totalAmount) {
+            // Update budget
+            $budget->update([
+                'project_id' => $data['project_id'],
+                'fiscal_year' => $data['fiscal_year'],
+                'total_amount' => $totalAmount,
+            ]);
+
+            // Delete old items and create new ones
+            $budget->items()->delete();
+
+            if (isset($data['items']) && is_array($data['items'])) {
+                foreach ($data['items'] as $item) {
+                    $budget->items()->create([
+                        'category' => $item['category'],
+                        'description' => $item['description'] ?? null,
+                        'cost_code' => $item['cost_code'] ?? null,
+                        'allocated_amount' => $item['allocated_amount'],
+                        'spent_amount' => 0,
+                        'remaining_amount' => $item['allocated_amount'],
+                    ]);
+                }
+            }
+
+            // Clear cache
+            Cache::forget("budget_{$budget->id}");
+            Cache::forget("project_{$budget->project_id}_budgets");
+
+            return $budget->load('items');
         });
     }
 
@@ -184,15 +244,120 @@ class BudgetService
     }
 
     /**
+     * Validate budget total against donor funding BEFORE creating.
+     *
+     * This method validates the budget total before the transaction starts
+     * to provide immediate feedback and avoid rolling back transactions.
+     *
+     * @throws BudgetValidationException
+     */
+    protected function validateBudgetTotalBeforeCreate(int $projectId, float $budgetTotal, ?int $excludeBudgetId = null): void
+    {
+        $project = Project::find($projectId);
+
+        if (! $project) {
+            throw new BudgetValidationException('Project not found', [
+                'project_id' => $projectId,
+            ]);
+        }
+
+        // Get total donor funding for the project
+        // Use coalesce to handle NULL values from the sum
+        $totalDonorFunding = (float) ($project->donors()->sum('project_donors.funding_amount') ?? 0);
+
+        // Only validate if there's donor funding set up for the project
+        // Projects without donor funding assigned can still create budgets
+        if ($totalDonorFunding <= 0) {
+            return;
+        }
+
+        // Calculate existing budgets (excluding the specified budget if editing)
+        $existingBudgetsQuery = $project->budgets();
+        if ($excludeBudgetId !== null) {
+            $existingBudgetsQuery->where('id', '!=', $excludeBudgetId);
+        }
+        $existingBudgets = (float) ($existingBudgetsQuery->sum('total_amount') ?? 0);
+
+        $availableFunding = $totalDonorFunding - $existingBudgets;
+
+        if ($budgetTotal > $availableFunding) {
+            throw new BudgetValidationException(
+                sprintf(
+                    'Budget total ($%s) exceeds available donor funding. Total funding: $%s, Already allocated: $%s, Available: $%s',
+                    number_format($budgetTotal, 2),
+                    number_format($totalDonorFunding, 2),
+                    number_format($existingBudgets, 2),
+                    number_format($availableFunding, 2)
+                ),
+                [
+                    'budget_total' => $budgetTotal,
+                    'total_funding' => $totalDonorFunding,
+                    'existing_budgets' => $existingBudgets,
+                    'available_funding' => $availableFunding,
+                ]
+            );
+        }
+    }
+
+    /**
+     * Validate budget total against donor funding BEFORE updating.
+     *
+     * @throws BudgetValidationException
+     */
+    protected function validateBudgetTotalBeforeUpdate(Budget $budget, float $budgetTotal): void
+    {
+        $this->validateBudgetTotalBeforeCreate($budget->project_id, $budgetTotal, $budget->id);
+    }
+
+    /**
      * Validate budget total against donor funding.
+     *
+     * Note: Validation is only performed if the project has donors with funding amounts.
+     * If no donor funding is set up, the budget can still be created.
+     *
+     * @deprecated Use validateBudgetTotalBeforeCreate instead for new budget creation
+     *
+     * @throws BudgetValidationException
      */
     protected function validateBudgetTotal(Budget $budget): void
     {
         $project = $budget->project;
-        $totalDonorFunding = $project->donors()->sum('project_donors.funding_amount');
 
-        if ($budget->total_amount > $totalDonorFunding) {
-            throw new \Exception('Budget total exceeds available donor funding');
+        if (! $project) {
+            throw new BudgetValidationException('Budget has no associated project', [
+                'budget_id' => $budget->id,
+            ]);
+        }
+
+        $totalDonorFunding = (float) ($project->donors()->sum('project_donors.funding_amount') ?? 0);
+
+        // Only validate if there's donor funding set up for the project
+        // Projects without donor funding assigned can still create budgets
+        if ($totalDonorFunding > 0) {
+            // Calculate existing budgets (excluding the current one)
+            $existingBudgets = (float) ($project->budgets()
+                ->where('id', '!=', $budget->id)
+                ->sum('total_amount') ?? 0);
+
+            $availableFunding = $totalDonorFunding - $existingBudgets;
+
+            if ($budget->total_amount > $availableFunding) {
+                throw new BudgetValidationException(
+                    sprintf(
+                        'Budget total ($%s) exceeds available donor funding. Total funding: $%s, Already allocated: $%s, Available: $%s',
+                        number_format($budget->total_amount, 2),
+                        number_format($totalDonorFunding, 2),
+                        number_format($existingBudgets, 2),
+                        number_format($availableFunding, 2)
+                    ),
+                    [
+                        'budget_total' => $budget->total_amount,
+                        'total_funding' => $totalDonorFunding,
+                        'existing_budgets' => $existingBudgets,
+                        'available_funding' => $availableFunding,
+                    ]
+                );
+            }
         }
     }
 

@@ -94,14 +94,14 @@ class DocumentPolicy
     {
         $documentable = $document->documentable;
 
+        // Standalone documents (no parent) are accessible to all authenticated users
         if (! $documentable) {
-            return false;
+            return true;
         }
 
-        // For Project documents - creator or Programs Manager
+        // For Project documents - all roles can access
         if ($document->documentable_type === 'App\\Models\\Project') {
-            return $documentable->created_by === $user->id ||
-                $user->role->slug === 'programs-manager';
+            return true;
         }
 
         // For Budget documents
@@ -115,6 +115,12 @@ class DocumentPolicy
         if ($document->documentable_type === 'App\\Models\\Expense') {
             return $documentable->submitted_by === $user->id ||
                 $user->role->slug === 'programs-manager' ||
+                $user->role->slug === 'finance-officer';
+        }
+
+        // For PurchaseOrder documents - Programs Manager and Finance Officer
+        if ($document->documentable_type === 'App\\Models\\PurchaseOrder') {
+            return $user->role->slug === 'programs-manager' ||
                 $user->role->slug === 'finance-officer';
         }
 

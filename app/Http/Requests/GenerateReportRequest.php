@@ -24,9 +24,22 @@ class GenerateReportRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isProjectStatus = str_contains(request()->path(), 'project-status');
+
         return [
-            'start_date' => ['required', 'date', 'before_or_equal:end_date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date', 'before_or_equal:today'],
+            'start_date' => [
+                Rule::requiredIf(! $isProjectStatus),
+                'nullable',
+                'date',
+                'before_or_equal:end_date',
+            ],
+            'end_date' => [
+                Rule::requiredIf(! $isProjectStatus),
+                'nullable',
+                'date',
+                'after_or_equal:start_date',
+                'before_or_equal:today',
+            ],
             'project_ids' => ['nullable', 'array', 'max:5'],
             'project_ids.*' => ['exists:projects,id'],
             'category_ids' => ['nullable', 'array', 'max:5'],
@@ -36,9 +49,8 @@ class GenerateReportRequest extends FormRequest
             'grouping' => ['nullable', 'string', Rule::in(['month', 'quarter', 'year'])],
             'group_by' => ['nullable', 'string', Rule::in(['category', 'project', 'month'])],
             'project_id' => [
-                Rule::requiredIf(function () {
-                    return str_contains(request()->path(), 'project-status');
-                }),
+                Rule::requiredIf($isProjectStatus),
+                'nullable',
                 'exists:projects,id',
             ],
         ];

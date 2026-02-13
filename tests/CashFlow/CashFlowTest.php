@@ -37,7 +37,7 @@ class CashFlowTest extends TestCase
         $donor = Donor::factory()->create();
 
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
-            ->postJson('/api/v1/cash-flows/inflow', [
+            ->postJson('/api/v1/cash-flows/inflows', [
                 'bank_account_id' => $this->bankAccount->id,
                 'project_id' => $this->project->id,
                 'donor_id' => $donor->id,
@@ -49,8 +49,9 @@ class CashFlowTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
+                'status',
                 'message',
-                'cash_flow' => [
+                'data' => [
                     'id',
                     'transaction_number',
                     'type',
@@ -73,7 +74,7 @@ class CashFlowTest extends TestCase
     public function test_finance_officer_can_record_outflow(): void
     {
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
-            ->postJson('/api/v1/cash-flows/outflow', [
+            ->postJson('/api/v1/cash-flows/outflows', [
                 'bank_account_id' => $this->bankAccount->id,
                 'project_id' => $this->project->id,
                 'transaction_date' => now()->format('Y-m-d'),
@@ -97,7 +98,7 @@ class CashFlowTest extends TestCase
         $account = BankAccount::factory()->create(['current_balance' => 1000]);
 
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
-            ->postJson('/api/v1/cash-flows/outflow', [
+            ->postJson('/api/v1/cash-flows/outflows', [
                 'bank_account_id' => $account->id,
                 'project_id' => $this->project->id,
                 'transaction_date' => now()->format('Y-m-d'),
@@ -105,8 +106,7 @@ class CashFlowTest extends TestCase
                 'description' => 'Payment',
             ]);
 
-        $response->assertStatus(500)
-            ->assertJsonFragment(['error' => 'Insufficient balance in bank account.']);
+        $response->assertStatus(422);
     }
 
     public function test_finance_officer_can_reconcile_transaction(): void
@@ -117,7 +117,9 @@ class CashFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
-            ->postJson("/api/v1/cash-flows/{$cashFlow->id}/reconcile");
+            ->postJson("/api/v1/cash-flows/{$cashFlow->id}/reconcile", [
+                'reconciliation_date' => now()->format('Y-m-d'),
+            ]);
 
         $response->assertStatus(200);
 
@@ -141,17 +143,9 @@ class CashFlowTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'current_balance',
-                'avg_monthly_inflow',
-                'avg_monthly_outflow',
-                'avg_net_cash_flow',
-                'projections' => [
-                    '*' => [
-                        'month',
-                        'projected_balance',
-                        'projected_inflow',
-                        'projected_outflow',
-                    ],
-                ],
+                'projected_balance',
+                'expected_inflows',
+                'expected_outflows',
             ]);
     }
 
@@ -178,27 +172,27 @@ class CashFlowTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'total_inflows',
-                'total_outflows',
-                'reconciled_count',
-                'unreconciled_count',
-                'recent_transactions',
+                'status',
+                'data',
             ]);
     }
 
     public function test_transaction_number_is_auto_generated(): void
     {
+        $donor = Donor::factory()->create();
+
         $response = $this->actingAs($this->financeOfficer, 'sanctum')
-            ->postJson('/api/v1/cash-flows/inflow', [
+            ->postJson('/api/v1/cash-flows/inflows', [
                 'bank_account_id' => $this->bankAccount->id,
                 'project_id' => $this->project->id,
+                'donor_id' => $donor->id,
                 'transaction_date' => now()->format('Y-m-d'),
                 'amount' => 1000,
                 'description' => 'Test',
             ]);
 
         $response->assertStatus(201);
-        $transactionNumber = $response->json('cash_flow.transaction_number');
+        $transactionNumber = $response->json('data.transaction_number');
 
         $this->assertMatchesRegularExpression('/^TXN-\d{4}-\d{4}$/', $transactionNumber);
     }

@@ -8,10 +8,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Traits\RequiresGdExtension;
 
 class AttachmentTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresGdExtension;
 
     protected User $user;
 
@@ -62,6 +64,8 @@ class AttachmentTest extends TestCase
 
     public function test_can_upload_image_attachment(): void
     {
+        $this->skipIfGdNotAvailable();
+
         $imageFile = UploadedFile::fake()->image('photo.jpg', 800, 600);
 
         $commentData = [

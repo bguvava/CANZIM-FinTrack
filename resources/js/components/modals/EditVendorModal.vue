@@ -39,30 +39,27 @@
                     <!-- Vendor Name -->
                     <div>
                         <label
-                            for="vendor_name"
+                            for="name"
                             class="block text-sm font-medium text-gray-700"
                         >
                             Vendor Name
                             <span class="text-red-500">*</span>
                         </label>
                         <input
-                            v-model="form.vendor_name"
+                            v-model="form.name"
                             type="text"
-                            id="vendor_name"
+                            id="name"
                             placeholder="e.g., ABC Supplies Ltd"
                             class="mt-1 block w-full rounded-lg border px-4 py-2.5 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             :class="
-                                errors.vendor_name
+                                errors.name
                                     ? 'border-red-300 bg-red-50'
                                     : 'border-gray-300'
                             "
                             required
                         />
-                        <p
-                            v-if="errors.vendor_name"
-                            class="mt-1 text-sm text-red-600"
-                        >
-                            {{ errors.vendor_name }}
+                        <p v-if="errors.name" class="mt-1 text-sm text-red-600">
+                            {{ errors.name }}
                         </p>
                     </div>
 
@@ -213,10 +210,10 @@
                     <button
                         type="button"
                         @click="closeModal"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
                         :disabled="submitting"
                     >
-                        Cancel
+                        <i class="fas fa-times mr-1.5"></i>Cancel
                     </button>
                     <button
                         type="submit"
@@ -256,7 +253,7 @@ const emit = defineEmits(["close", "vendor-updated"]);
 const purchaseOrderStore = usePurchaseOrderStore();
 
 const form = ref({
-    vendor_name: "",
+    name: "",
     contact_person: "",
     email: "",
     phone: "",
@@ -269,7 +266,7 @@ const submitting = ref(false);
 
 const resetForm = () => {
     form.value = {
-        vendor_name: "",
+        name: "",
         contact_person: "",
         email: "",
         phone: "",
@@ -283,7 +280,7 @@ const resetForm = () => {
 const loadVendorData = () => {
     if (props.vendor) {
         form.value = {
-            vendor_name: props.vendor.vendor_name || "",
+            name: props.vendor.name || "",
             contact_person: props.vendor.contact_person || "",
             email: props.vendor.email || "",
             phone: props.vendor.phone || "",
