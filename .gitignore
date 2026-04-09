@@ -23,8 +23,13 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Exclude docs and .github folders (contain sensitive info)
+# Exclude docs folder and specific .github files (contain sensitive info)
 /docs/
-/.github/
+/.github/deploy/info.txt
+/.github/deploy/vHost Conf
 TEST_USERS.md
 boost.json
+
+# But allow .github/workflows for CI/CD
+!/.github/
+!/.github/workflows/

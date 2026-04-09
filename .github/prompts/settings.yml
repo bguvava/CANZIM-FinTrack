@@ -1,0 +1,268 @@
+# GitHub Copilot Project Settings
+# CANZIM FinTrack - Financial Management & Accounting System
+# Version: 1.0.0
+# Last Updated: November 12, 2025
+
+project:
+  name: "CANZIM FinTrack"
+  full_name: "Climate Action Network Zimbabwe Financial Tracking System"
+  description: "Web-based Financial Management and Accounting ERP System prioritizing financial operations with integrated project management"
+  client: "Climate Action Network Zimbabwe (CAN Zimbabwe)"
+  developer: "bguvava (https://bguvava.com)"
+  website: "https://www.canzimbabwe.org.zw/"
+  version: "1.0.0"
+  license: "Proprietary"
+
+architecture:
+  pattern: "Single Page Application (SPA) with Backend for Frontend (BFF)"
+  rendering: "Client-side rendering with Vue.js"
+  api_approach: "API-first RESTful architecture"
+  state_management: "Pinia for centralized state management"
+  authentication: "Laravel Sanctum token-based authentication"
+  
+database:
+  name: "my_canzimdb"
+  engine: "MySQL"
+  version: "8.0+"
+  charset: "utf8mb4"
+  collation: "utf8mb4_unicode_ci"
+
+technology_stack:
+  frontend:
+    framework: "Vue.js 3.x"
+    styling: "TailwindCSS 3.x (Primary)"
+    micro_interactions: "Alpine.js 3.x"
+    charts: "Chart.js / ApexCharts"
+    icons: "FontAwesome 6.x"
+    alerts: "SweetAlert2"
+    http_client: "Axios"
+    state_management: "Pinia"
+    
+  backend:
+    language: "PHP 8.2+"
+    framework: "Laravel 12.x"
+    database: "MySQL 8.0+"
+    cache: "Redis"
+    authentication: "Laravel Sanctum"
+    pdf_generation: "DomPDF/TCPDF"
+    image_processing: "Intervention Image"
+    
+  development_tools:
+    ide: "Visual Studio Code"
+    version_control: "Git + GitHub"
+    php_dependencies: "Composer"
+    js_dependencies: "NPM/Yarn"
+    bundler: "Laravel Vite"
+    debugging: "Laravel Debugbar"
+    backend_testing: "PHPUnit/Pest"
+    frontend_testing: "Vitest"
+    
+  deployment:
+    environment: "cPanel subdomain"
+    web_server: "Apache with mod_rewrite"
+    ssl: "Let's Encrypt (via cPanel)"
+    cdn: "Cloudflare (Optional)"
+
+project_structure:
+  core_focus: "Financial Management & Accounting (PRIMARY)"
+  supporting_features: "Project tracking as financial containers"
+  user_roles: 3
+  concurrent_projects: "5+"
+  target_users: 25
+  office_locations: "Multiple"
+  currency: "USD (Single Currency)"
+  
+user_roles:
+  - role: "Programs Manager"
+    level: 1
+    authority: "Highest - Full system access"
+    responsibilities:
+      - "Strategic oversight of all projects and programs"
+      - "Final approval authority for budgets and major expenses"
+      - "Donor relationship management and reporting oversight"
+      - "System-wide configuration and user management"
+      
+  - role: "Finance Officer"
+    level: 2
+    authority: "Middle - Financial modules access"
+    responsibilities:
+      - "Day-to-day financial operations and accounting"
+      - "Expense recording, verification, and processing"
+      - "Budget monitoring and variance analysis"
+      - "Financial report preparation and submission"
+      
+  - role: "Project Officer"
+    level: 3
+    authority: "Base - Project-specific access"
+    responsibilities:
+      - "Project implementation and activity coordination"
+      - "Project expense tracking and documentation"
+      - "Progress reporting and milestone tracking"
+      - "Field activity documentation"
+
+core_modules:
+  - name: "Financial Dashboard"
+    priority: "CRITICAL"
+    description: "Role-based dashboards with real-time KPIs and charts"
+    
+  - name: "Project & Budget Management"
+    priority: "CRITICAL"
+    description: "Financial containers for budget tracking and expense allocation"
+    
+  - name: "Financial Management & Accounting"
+    priority: "CRITICAL - CORE MODULE"
+    description: "Expense management, budget tracking, cash flow, purchase orders"
+    
+  - name: "Donor & Funding Management"
+    priority: "HIGH"
+    description: "Track donor funding and generate donor-specific reports"
+    
+  - name: "Reporting & Analytics"
+    priority: "CRITICAL"
+    description: "Financial reports, project reports, audit trails (PDF only)"
+    
+  - name: "User Management"
+    priority: "HIGH"
+    description: "Role-based access control and user administration"
+    
+  - name: "Commenting & Collaboration"
+    priority: "MEDIUM"
+    description: "Team collaboration with @mentions and file attachments"
+    
+  - name: "Document Management"
+    priority: "MEDIUM"
+    description: "Document storage, versioning, and access control"
+
+system_requirements:
+  color_scheme:
+    primary: "#1E40AF"  # Vibrant Blue
+    secondary: "#2563EB"
+    accent: "#60A5FA"
+    dark: "#1E3A8A"
+    
+  performance:
+    page_load: "< 2 seconds"
+    api_response: "< 500ms"
+    uptime: "99.9%"
+    
+  security:
+    session_timeout: "5 minutes of inactivity"
+    password_policy: "Min 8 characters"
+    max_login_attempts: 5
+    csrf_protection: true
+    xss_protection: true
+    sql_injection_prevention: true
+    
+  file_handling:
+    max_file_size:
+      documents: "5MB"
+      receipts: "5MB"
+      attachments: "2MB"
+      avatars: "2MB"
+    accepted_formats:
+      - "PDF"
+      - "DOC"
+      - "DOCX"
+      - "XLS"
+      - "XLSX"
+      - "JPG"
+      - "PNG"
+      
+  exports:
+    format: "PDF only"
+    layout: "Standardized (header: logo + org + title, content, footer: generated by + date + confidentiality + copyright)"
+    
+  constraints:
+    max_search_filters: 5
+    bulk_operations: "Only for activity logs"
+    document_actions: "View (new tab) + Download"
+    
+  testing:
+    coverage_target: "100%"
+    pass_rate: "100% (not 98%)"
+    no_regressions: true
+
+development_principles:
+  - "Secure coding practices (input validation, SQL injection prevention, XSS protection)"
+  - "Scalability and modularity (reusable components, service-oriented architecture)"
+  - "Automated testing (100% test pass rate with no regressions)"
+  - "Cross-browser compatibility (Chrome, Firefox, Safari, Edge)"
+  - "Mobile responsiveness (full functionality on all devices)"
+  - "Performance optimization (< 2s page load, < 500ms API response)"
+  - "Rollback strategy (Git version control with tagged releases)"
+  - "Comprehensive documentation (in /docs/module_name/)"
+  - "Complete testing (in /tests/module_name/ with 100% pass rate)"
+
+coding_standards:
+  php:
+    style: "PSR-12"
+    documentation: "PHPDoc blocks required"
+    type_hints: "Strict type declarations"
+    
+  javascript:
+    style: "ESLint + Prettier"
+    framework: "Vue 3 Composition API"
+    documentation: "JSDoc for complex functions"
+    
+  css:
+    methodology: "TailwindCSS utility-first"
+    naming: "BEM for custom components"
+    
+  database:
+    naming: "Snake_case for tables and columns"
+    migrations: "Descriptive names with timestamps"
+    indexes: "Strategic indexing for performance"
+
+git_workflow:
+  branching_strategy: "Feature branch workflow"
+  commit_format: "Conventional Commits (feat:, fix:, docs:, etc.)"
+  release_tags:
+    - "v0.1-environment"
+    - "v0.2-database"
+    - "v0.3-auth"
+    - "v0.4-users"
+    - "v0.5-dashboard"
+    - "v0.6-projects"
+    - "v0.7-expenses"
+    - "v0.8-cashflow"
+    - "v0.9-donors"
+    - "v0.10-reporting"
+    - "v1.0-production"
+
+documentation_references:
+  laravel: "https://laravel.com/docs/12.x"
+  vue: "https://vuejs.org/guide/introduction"
+  tailwind: "https://tailwindcss.com/docs"
+  pinia: "https://pinia.vuejs.org/"
+  php: "https://www.php.net/docs.php"
+  mysql: "https://dev.mysql.com/doc/"
+  composer: "https://getcomposer.org/doc/"
+  vite: "https://vite.dev/"
+  redis: "https://redis.io/docs/"
+  sanctum: "https://laravel.com/docs/12.x/sanctum"
+  axios: "https://axios-http.com/docs/intro"
+  chartjs: "https://www.chartjs.org/docs/latest/"
+  alpinejs: "https://alpinejs.dev/start-here"
+  fontawesome: "https://fontawesome.com/docs"
+  sweetalert2: "https://sweetalert2.github.io/"
+
+special_instructions:
+  - "FINANCIAL MANAGEMENT IS THE PRIMARY FOCUS - all features support financial operations"
+  - "Project management is SECONDARY - serves as financial containers for cost allocation"
+  - "100% test coverage required - NO 98%, must be 100%"
+  - "PDF exports ONLY - no Excel or CSV exports"
+  - "Standardized PDF layout for ALL reports"
+  - "Maximum 5 search filters to optimize database queries"
+  - "No bulk operations except bulk delete/save for activity logs"
+  - "Document actions: View (new tab) + Download only"
+  - "Session timeout: 5 minutes of inactivity with auto-logout"
+  - "Developer credits mandatory: 'Developed with ❤️ by bguvava (bguvava.com)'"
+  - "Complete each module 100% before moving to next"
+  - "No shortcuts, no compromises in quality"
+
+total_requirements: 740
+total_phases: 14
+estimated_duration: "16 weeks"
+mvp_document: ".github/prompts/mvp.md"
+project_description: ".github/prompts/PROJECT_DESCRIPTION.md"
+brainstorm_file: ".github/brainstorm.txt"
