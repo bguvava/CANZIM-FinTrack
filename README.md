@@ -1,5 +1,3 @@
-## About Laravel
-
 # CANZIM FinTrack - Financial Management & Accounting System
 
 **Version:** 2.0.0  
@@ -248,16 +246,19 @@ Proprietary - Climate Action Network Zimbabwe © 2026
 ### v2.0.0 — Production Deployment Release (May 12, 2026)
 
 **Production Deployment**
+
 - Deployed to https://erp.canzimbabwe.org.zw on cPanel shared hosting
 - GitHub Actions CD pipeline using FTP zip-upload (SSH is firewalled on cPanel)
 - Self-executing post-deploy.php runner handles extraction, migrations, seeding, and cache rebuild — no SSH required
 
 **CI/CD**
+
 - New `cd-erp-production.yml` workflow with build, deploy, and health-check jobs
 - Node.js updated from 20 to 22
 - Frontend assets compiled and bundled before zip upload
 
 **Bug Fixes**
+
 - Fixed `APP_NAME` defaulting to "Laravel" on production
 - Fixed `DB_CONNECTION` defaulting to `sqlite` in `.env.example` instead of `mysql`
 - Fixed missing DB credentials in server `.env` on fresh deployments
@@ -265,10 +266,12 @@ Proprietary - Climate Action Network Zimbabwe © 2026
 - Fixed seeder class-not-found errors by switching to direct PDO seeding
 
 **Security**
+
 - Deployment token injected by GitHub Actions at build time, never stored in repository
 - post-deploy.php self-destructs after each execution
 
 **Database**
+
 - Added `ProductionSeeder` with default roles and initial user accounts
 
 ---
