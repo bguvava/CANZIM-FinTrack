@@ -8,6 +8,9 @@
 .phpunit.result.cache
 /.fleet
 /.idea
+# SSH deploy keys - never commit private keys
+.github/deploy/canzim_deploy_key
+.github/deploy/canzim_deploy_key.pub
 /.nova
 /.phpunit.cache
 /.vscode

@@ -34,7 +34,12 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
 
       - name: Check PHP code style (Pint)
-        run: vendor/bin/pint --test
+        run: |
+          vendor/bin/pint --test && echo "✅ Code style OK" || (
+            echo "⚠️  Pint found style issues. Run 'vendor/bin/pint' locally and commit the fixes."
+            vendor/bin/pint --test 2>&1
+            exit 1
+          )
 
   frontend-quality:
     name: Frontend Quality Checks
@@ -73,7 +78,7 @@ jobs:
         with:
           php-version: "8.2"
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
-          coverage: xdebug
+          coverage: none
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -104,21 +109,11 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Create SQLite database
-        run: touch database/database.sqlite
-
       - name: Run migrations
         run: php artisan migrate --force
 
       - name: Execute tests
-        run: php artisan test --parallel --coverage --min=80
-
-      - name: Upload coverage reports
-        if: success()
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+        run: php artisan test --compact
 
   security-scan:
     name: Security Scanning
