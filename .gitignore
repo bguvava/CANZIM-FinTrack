@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 .env
+/setup-erp-server.php
 .env.backup
 .env.production
 .phpactor.json
