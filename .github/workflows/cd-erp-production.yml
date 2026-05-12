@@ -63,8 +63,11 @@ jobs:
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.ERP_SERVER_IP }} >> ~/.ssh/known_hosts
-          ssh-keyscan -p 22 -H ${{ secrets.ERP_SERVER_IP }} >> ~/.ssh/known_hosts
+          SSH_PORT="${{ secrets.ERP_SSH_PORT }}"
+          [ -z "$SSH_PORT" ] && SSH_PORT="22"
+          # Try both the configured port and common cPanel ports
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -p 2222 -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -90,16 +93,25 @@ jobs:
             .
 
       - name: Upload deployment package to server
+        env:
+          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
-          scp -P ${{ secrets.ERP_SSH_PORT || '22' }} deployment.tar.gz ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/canzim-deployment.tar.gz
+          PORT=${SSH_PORT:-22}
+          scp -P "$PORT" deployment.tar.gz ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/canzim-deployment.tar.gz
 
       - name: Upload deployment script to server
+        env:
+          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
-          scp -P ${{ secrets.ERP_SSH_PORT || '22' }} .github/scripts/deploy-cpanel.sh ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/deploy-cpanel.sh
+          PORT=${SSH_PORT:-22}
+          scp -P "$PORT" .github/scripts/deploy-cpanel.sh ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/deploy-cpanel.sh
 
       - name: Deploy to cPanel production server
+        env:
+          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
-          ssh -p ${{ secrets.ERP_SSH_PORT || '22' }} ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} 'chmod +x /tmp/deploy-cpanel.sh && /tmp/deploy-cpanel.sh && rm -f /tmp/deploy-cpanel.sh'
+          PORT=${SSH_PORT:-22}
+          ssh -p "$PORT" ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} 'chmod +x /tmp/deploy-cpanel.sh && /tmp/deploy-cpanel.sh && rm -f /tmp/deploy-cpanel.sh'
 
       - name: Run post-deployment health check
         run: |
@@ -145,11 +157,17 @@ jobs:
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.ERP_SERVER_IP }} >> ~/.ssh/known_hosts
+          SSH_PORT="${{ secrets.ERP_SSH_PORT }}"
+          [ -z "$SSH_PORT" ] && SSH_PORT="22"
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -p 2222 -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Execute rollback
+        env:
+          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
-          ssh -p ${{ secrets.ERP_SSH_PORT || '22' }} ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} 'bash -s' << 'ENDSSH'
+          PORT=${SSH_PORT:-22}
+          ssh -p "$PORT" ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} 'bash -s' << 'ENDSSH'
             set -e
 
             APP_DIR="/home/canzimba/fintrack_app"
@@ -162,7 +180,7 @@ jobs:
             fi
 
             # Find latest backup
-            LATEST_BACKUP=$(ls -td /home/canzimba/fintrack_app_backup_* 2>/dev/null | head -1)
+            LATEST_BACKUP=$(ls -td /home/canzimba/fintrack_backups/backup_* 2>/dev/null | head -1)
 
             if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
               echo "⏪ Rolling back to $LATEST_BACKUP..."
