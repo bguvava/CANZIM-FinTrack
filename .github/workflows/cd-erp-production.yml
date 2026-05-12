@@ -33,7 +33,7 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
+        run: composer install --prefer-dist --no-progress --optimize-autoloader
 
       - name: Run quick test suite
         run: |
@@ -42,6 +42,9 @@ jobs:
           touch database/database.sqlite
           php artisan migrate --force
           php artisan test --compact
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
 
   deploy-erp-production:
     name: Deploy to cPanel Production (erp.canzimbabwe.org.zw)
