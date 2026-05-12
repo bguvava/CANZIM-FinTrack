@@ -1,7 +1,7 @@
 ﻿name: CD - Deploy to ERP Production (erp.canzimbabwe.org.zw)
 
-# Deploys via FTP (SSH is firewalled on this cPanel shared host).
-# Runs migrations/cache via a PHP runner uploaded with the build.
+# Deploys via FTP by uploading a single zip + PHP runner (no SSH needed).
+# The PHP runner extracts the zip and runs Laravel migrations/cache.
 # Does NOT touch the main website (canzimbabwe.org.zw).
 
 on:
@@ -17,10 +17,10 @@ on:
 
 jobs:
   # ------------------------------------------------------------------
-  # JOB 1: Build & verify the application
+  # JOB 1: Build & package the application
   # ------------------------------------------------------------------
   build:
-    name: Build Application
+    name: Build & Package
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +45,7 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install Composer dependencies (production)
+      - name: Install Composer dependencies (no dev)
         run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
       - name: Build frontend assets
@@ -60,7 +60,7 @@ jobs:
           php artisan config:clear
           echo "Bootstrap OK"
 
-      - name: Inject deploy token into post-deploy runner
+      - name: Prepare post-deploy runner
         env:
           ERP_DEPLOY_TOKEN: ${{ secrets.ERP_DEPLOY_TOKEN }}
         run: |
@@ -68,62 +68,68 @@ jobs:
           sed -i "s/__DEPLOY_TOKEN__/${ERP_DEPLOY_TOKEN}/g" public/post-deploy.php
           echo "Post-deploy runner prepared"
 
-      - name: Upload build artifacts
+      - name: Create deployment zip
+        run: |
+          zip -r deploy.zip . \
+            -x "*.git*" \
+            -x "*/.git/*" \
+            -x "*/node_modules/*" \
+            -x "*/tests/*" \
+            -x "*/docs/*" \
+            -x "*/screenshots/*" \
+            -x "*/.github/*" \
+            -x "*/.env" \
+            -x "*/.env.example" \
+            -x "*/.env.*" \
+            -x "*/storage/logs/*" \
+            -x "*/storage/framework/cache/*" \
+            -x "*/storage/framework/sessions/*" \
+            -x "*/storage/framework/views/*" \
+            -x "*/setup-erp-server.php" \
+            -x "*/add-deploy-key.php" \
+            -x "*/public/post-deploy.php"
+          echo "Zip created: $(du -sh deploy.zip)"
+
+      - name: Prepare FTP staging directory
+        run: |
+          mkdir -p ftp-staging/public
+          mv deploy.zip ftp-staging/deploy.zip
+          cp public/post-deploy.php ftp-staging/public/post-deploy.php
+          echo "FTP staging contents:"
+          find ftp-staging -type f
+
+      - name: Upload staging artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: erp-build
-          path: |
-            .
-            !.git
-            !node_modules
-            !tests
-            !.env
+          name: erp-ftp-staging
+          path: ftp-staging/
           retention-days: 1
 
   # ------------------------------------------------------------------
-  # JOB 2: Deploy to production via FTP
+  # JOB 2: Deploy to production via FTP (2 files only)
   # ------------------------------------------------------------------
   deploy:
     name: Deploy to cPanel (erp.canzimbabwe.org.zw)
     runs-on: ubuntu-latest
     needs: build
-    timeout-minutes: 30
+    timeout-minutes: 15
     environment:
       name: erp-production
       url: https://erp.canzimbabwe.org.zw
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Download staging artifacts
+        uses: actions/download-artifact@v4
         with:
-          php-version: "8.2"
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
+          name: erp-ftp-staging
+          path: ftp-staging/
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install Composer dependencies (production)
-        run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
-
-      - name: Build frontend assets
+      - name: Show files to upload
         run: |
-          npm ci
-          npm run build
+          echo "Files to upload via FTP:"
+          find ftp-staging -type f -ls
 
-      - name: Prepare post-deploy runner
-        env:
-          ERP_DEPLOY_TOKEN: ${{ secrets.ERP_DEPLOY_TOKEN }}
-        run: |
-          cp .github/scripts/post-deploy.php.template public/post-deploy.php
-          sed -i "s/__DEPLOY_TOKEN__/${ERP_DEPLOY_TOKEN}/g" public/post-deploy.php
-
-      - name: Deploy files via FTPS
+      - name: Deploy 2 files via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.ERP_FTP_HOST }}
@@ -132,30 +138,16 @@ jobs:
           protocol: ftps
           port: 21
           server-dir: ./fintrack_app/
-          local-dir: ./
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/tests/**
-            **/.env
-            **/.env.*
-            **/storage/logs/**
-            **/storage/framework/sessions/**
-            **/storage/framework/cache/**
-            **/storage/framework/views/**
-            **/storage/app/public/**
-            **/setup-erp-server.php
-            **/add-deploy-key.php
+          local-dir: ./ftp-staging/
           dangerous-clean-slate: false
           log-level: standard
 
-      - name: Run post-deploy tasks (migrate + cache)
+      - name: Run post-deploy tasks (unzip + migrate + cache)
         run: |
-          echo "Waiting for files to settle..."
+          echo "Waiting for FTP to settle..."
           sleep 10
           echo "Calling post-deploy runner..."
-          RESPONSE=$(curl -sf --max-time 180 \
+          RESPONSE=$(curl -sf --max-time 600 \
             "https://erp.canzimbabwe.org.zw/post-deploy.php?token=${{ secrets.ERP_DEPLOY_TOKEN }}" \
             2>&1) || {
               echo "ERROR: Post-deploy endpoint failed or timed out."
@@ -182,7 +174,7 @@ jobs:
           if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ] || [ "$HTTP_STATUS" = "301" ]; then
             echo "Application is LIVE at https://erp.canzimbabwe.org.zw"
           else
-            echo "WARNING: Unexpected HTTP $HTTP_STATUS - verify manually."
+            echo "WARNING: Unexpected HTTP $HTTP_STATUS — verify manually."
           fi
 
   # ------------------------------------------------------------------
