@@ -33,9 +33,13 @@ DEPLOYMENT_PACKAGE="/tmp/canzim-deployment.tar.gz"
 ENV_FILE="${APP_DIR}/.env"
 MAX_BACKUPS=5
 
-# Detect PHP binary (cPanel EasyApache 4 common locations)
+# Detect PHP binary (cPanel EasyApache 4 common locations, PHP 8.3 / 8.2 / fallback)
 detect_php() {
     for path in \
+        "/opt/cpanel/ea-php83/root/usr/bin/php" \
+        "/usr/local/php83/bin/php" \
+        "/usr/local/bin/php83" \
+        "$(which php8.3 2>/dev/null)" \
         "/opt/cpanel/ea-php82/root/usr/bin/php" \
         "/usr/local/php82/bin/php" \
         "/usr/local/bin/php82" \
@@ -46,7 +50,7 @@ detect_php() {
             return
         fi
     done
-    log_error "PHP 8.2 binary not found. Install it via cPanel EasyApache 4."
+    log_error "PHP binary not found. Install PHP via cPanel EasyApache 4."
     exit 1
 }
 
