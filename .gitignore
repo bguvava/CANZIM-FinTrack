@@ -15,6 +15,10 @@
 /setup-erp-server.php
 /add-deploy-key.php
 /manual-fix.php
+/manual-fix-v3.php
+/manual-fix-v4.php
+/manual-fix-v5.php
+/manual-fix-v6.php
 # Generated during CI deployment — contains injected secret token
 /public/post-deploy.php
 /.nova

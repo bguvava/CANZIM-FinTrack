@@ -50,17 +50,50 @@ try {
         $log[] = 'deploy.zip: not found (skipping extraction — files already uploaded)';
     }
 
-    // --- Step 1.5: Ensure APP_NAME is correct in .env (always enforce, not just when "Laravel") ---
+    // --- Step 1.5: Repair .env — enforce correct DB connection and app name ---
     $envFile = $appRoot.'/.env';
     if (file_exists($envFile)) {
         $envContent = file_get_contents($envFile);
-        // Always set the correct app name regardless of current value
-        $envContent = preg_replace('/^APP_NAME=.*/m', 'APP_NAME="CANZimbabwe FinTrack"', $envContent);
+
+        // Keys to forcibly correct (strip old values, append authoritative ones)
+        $keysToFix = ['APP_NAME', 'DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'];
+        foreach ($keysToFix as $k) {
+            $envContent = preg_replace('/^'.preg_quote($k, '/').'=[^\r\n]*\r?\n?/m', '', $envContent);
+        }
+        $envContent = rtrim($envContent)."\n"
+            .'APP_NAME="CANZimbabwe FinTrack"'."\n"
+            ."DB_CONNECTION=mysql\n"
+            ."DB_HOST=127.0.0.1\n"
+            ."DB_PORT=3306\n"
+            ."DB_DATABASE=canzimba_fintrackdb\n"
+            ."DB_USERNAME=canzimba_fintrackdb_user\n"
+            .'DB_PASSWORD="YkpS![iWC!7&slW!"'."\n";
+
         file_put_contents($envFile, $envContent);
-        $log[] = '.env APP_NAME: set to CANZimbabwe FinTrack';
+        $log[] = '.env: DB_CONNECTION=mysql and credentials enforced';
     } else {
         $log[] = '.env not found — server configuration may be incomplete';
     }
+
+    // --- Step 1.6: Force env vars into the PHP process environment ---
+    // phpdotenv (immutable) will not overwrite values already in getenv().
+    // Setting them here before any bootstrap ensures Laravel reads the correct DB.
+    $envForce = [
+        'APP_NAME'      => 'CANZimbabwe FinTrack',
+        'APP_ENV'       => 'production',
+        'DB_CONNECTION' => 'mysql',
+        'DB_HOST'       => '127.0.0.1',
+        'DB_PORT'       => '3306',
+        'DB_DATABASE'   => 'canzimba_fintrackdb',
+        'DB_USERNAME'   => 'canzimba_fintrackdb_user',
+        'DB_PASSWORD'   => 'YkpS![iWC!7&slW!',
+    ];
+    foreach ($envForce as $k => $v) {
+        putenv("{$k}={$v}");
+        $_ENV[$k]    = $v;
+        $_SERVER[$k] = $v;
+    }
+    $log[] = 'env: putenv() called for DB_CONNECTION=mysql and all credentials';
 
     // --- Step 2: Bootstrap Laravel ---
     $autoload = $appRoot.'/vendor/autoload.php';
@@ -70,12 +103,11 @@ try {
 
     chdir($appRoot);
 
-    // Remove cached config so fresh .env values are used
-    $cachedConfig = $appRoot.'/bootstrap/cache/config.php';
-    if (file_exists($cachedConfig)) {
-        unlink($cachedConfig);
-        $log[] = 'cleared cached config';
+    // Wipe ALL bootstrap caches so nothing stale is loaded
+    foreach (glob($appRoot.'/bootstrap/cache/*.php') ?: [] as $cacheFile) {
+        unlink($cacheFile);
     }
+    $log[] = 'bootstrap/cache: all .php cache files deleted';
 
     if (! defined('LARAVEL_START')) {
         define('LARAVEL_START', microtime(true));
@@ -95,13 +127,61 @@ try {
         throw new RuntimeException('migrate failed with exit code '.$migrateExit);
     }
 
-    // --- Step 3.5: Seed essential production data (idempotent) ---
+    // --- Step 3.5: Seed essential users directly via PDO (no seeder class dependency) ---
     try {
-        $seedOutput = new Symfony\Component\Console\Output\BufferedOutput();
-        $kernel->call('db:seed', ['--class' => 'ProductionSeeder', '--force' => true], $seedOutput);
-        $log[] = 'db:seed ProductionSeeder: OK';
+        $pdo = new PDO(
+            'mysql:host=127.0.0.1;port=3306;dbname=canzimba_fintrackdb;charset=utf8mb4',
+            'canzimba_fintrackdb_user',
+            'YkpS![iWC!7&slW!',
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+
+        // Ensure roles exist
+        $pdo->exec("INSERT IGNORE INTO roles (name,slug,description,created_at,updated_at) VALUES
+            ('Programs Manager','programs-manager','Programs Manager role',NOW(),NOW()),
+            ('Finance Officer','finance-officer','Finance Officer role',NOW(),NOW()),
+            ('Project Officer','project-officer','Project Officer role',NOW(),NOW())");
+
+        $roleMap = $pdo->query('SELECT id,slug FROM roles')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $pmId    = (int) ($roleMap['programs-manager'] ?? 1);
+        $foId    = (int) ($roleMap['finance-officer'] ?? 2);
+        $poId    = (int) ($roleMap['project-officer'] ?? 3);
+
+        // Detect columns
+        $cols      = $pdo->query('SHOW COLUMNS FROM users')->fetchAll(PDO::FETCH_COLUMN);
+        $hasPhone  = in_array('phone_number', $cols, true);
+        $hasOffice = in_array('office_location', $cols, true);
+        $hasStatus = in_array('status', $cols, true);
+
+        $extraC = ($hasOffice ? ',office_location' : '').($hasPhone ? ',phone_number' : '').($hasStatus ? ',status' : '');
+        $extraV = ($hasOffice ? ',:office' : '').($hasPhone ? ',:phone' : '').($hasStatus ? ",'active'" : '');
+        $extraU = ($hasStatus ? ",status='active'" : '');
+
+        $stmt = $pdo->prepare("INSERT INTO users (name,email,password,role_id{$extraC},email_verified_at,created_at,updated_at)
+            VALUES (:name,:email,:password,:role_id{$extraV},NOW(),NOW(),NOW())
+            ON DUPLICATE KEY UPDATE password=VALUES(password),role_id=VALUES(role_id){$extraU},
+            email_verified_at=COALESCE(email_verified_at,NOW()),updated_at=NOW()");
+
+        foreach ([
+            ['admin@canzim.org.zw',       'CANZIM Administrator',  password_hash('canzim@2025', PASSWORD_BCRYPT, ['cost' => 12]), $pmId, 'Head Office', '+263770000000'],
+            ['programs-manager@test.com', 'Test Programs Manager', password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]), $pmId, 'Harare',      '+263771111111'],
+            ['finance-officer@test.com',  'Test Finance Officer',  password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]), $foId, 'Harare',      '+263772222222'],
+            ['project-officer@test.com',  'Test Project Officer',  password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]), $poId, 'Harare',      '+263773333333'],
+        ] as [$email, $name, $hash, $roleId, $office, $phone]) {
+            $p = [':name' => $name, ':email' => $email, ':password' => $hash, ':role_id' => $roleId];
+            if ($hasOffice) {
+                $p[':office'] = $office;
+            }
+            if ($hasPhone) {
+                $p[':phone'] = $phone;
+            }
+            $stmt->execute($p);
+        }
+
+        $userCount = $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        $log[]     = "seed: {$userCount} users in DB (admin@canzim.org.zw + test users created/updated)";
     } catch (Throwable $e) {
-        $log[] = 'db:seed ProductionSeeder: failed - '.$e->getMessage();
+        $log[] = 'seed: failed - '.$e->getMessage();
     }
 
     // --- Step 4: Clear stale caches ---
