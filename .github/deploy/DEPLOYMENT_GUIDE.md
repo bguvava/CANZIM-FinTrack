@@ -1,6 +1,7 @@
 # CI/CD Deployment Guide - CANZIM-FinTrack
 
 ## Overview
+
 This document outlines the Continuous Integration and Continuous Deployment (CI/CD) pipeline for the CANZIM-FinTrack application.
 
 ## Architecture
@@ -55,116 +56,118 @@ This document outlines the Continuous Integration and Continuous Deployment (CI/
 ## Workflows
 
 ### 1. CI Workflow (`ci.yml`)
+
 **Triggers:** Push to any branch, Pull Requests
 
 **Jobs:**
+
 - **Code Quality Checks**
-  - PHP code style (Laravel Pint)
-  - Validate composer.json
-  
+    - PHP code style (Laravel Pint)
+    - Validate composer.json
 - **Frontend Quality Checks**
-  - JavaScript/Vue linting (ESLint)
-  - Build frontend assets
-  
+    - JavaScript/Vue linting (ESLint)
+    - Build frontend assets
 - **Tests**
-  - PHPUnit tests with coverage (min 80%)
-  - Parallel test execution
-  
+    - PHPUnit tests with coverage (min 80%)
+    - Parallel test execution
 - **Security Scanning**
-  - Composer audit for vulnerabilities
-  - Dependency review
+    - Composer audit for vulnerabilities
+    - Dependency review
 
 **Success Criteria:** All jobs must pass
 
 ### 2. Staging Workflow (`staging.yml`)
+
 **Triggers:** Push to `develop` branch
 
 **Purpose:** Automated deployment to staging environment for testing
 
 **Jobs:**
+
 - Run full test suite
 - Build production assets
 - Deploy to staging server (when configured)
 
 ### 3. Production Workflow (`cd-production.yml`)
-**Triggers:** 
+
+**Triggers:**
+
 - Manual workflow dispatch (requires "DEPLOY" confirmation)
 - Push tags matching `v*.*.*` (semantic versioning)
 
 **Jobs:**
+
 1. **Verify Deployment Prerequisites**
-   - Validate deployment confirmation
-   - Run full test suite
-   
+    - Validate deployment confirmation
+    - Run full test suite
 2. **Deploy to Production**
-   - Setup SSH connection
-   - Build frontend assets
-   - Create deployment package
-   - Upload to server
-   - Execute deployment script
-   - Run post-deployment checks
-   
+    - Setup SSH connection
+    - Build frontend assets
+    - Create deployment package
+    - Upload to server
+    - Execute deployment script
+    - Run post-deployment checks
 3. **Post-Deployment**
-   - Verify application health
-   - Send notifications
-   
+    - Verify application health
+    - Send notifications
 4. **Rollback** (on failure)
-   - Restore from backup
-   - Rollback migrations
-   - Notify team
+    - Restore from backup
+    - Rollback migrations
+    - Notify team
 
 ## Deployment Script
 
 The production deployment script (`deploy-production.sh`) performs the following steps:
 
 1. **Pre-deployment Checks**
-   - Verify deployment package exists
-   - Verify application directory exists
+    - Verify deployment package exists
+    - Verify application directory exists
 
 2. **Backup**
-   - Create backup of current version
-   - Backup database (if configured)
+    - Create backup of current version
+    - Backup database (if configured)
 
 3. **Maintenance Mode**
-   - Enable Laravel maintenance mode
-   - Show maintenance page to users
+    - Enable Laravel maintenance mode
+    - Show maintenance page to users
 
 4. **Deployment**
-   - Extract deployment package
-   - Install Composer dependencies (production only)
-   - Run database migrations
-   - Optimize application (config, routes, views)
-   - Set correct file permissions
-   - Restart services (queue workers, etc.)
+    - Extract deployment package
+    - Install Composer dependencies (production only)
+    - Run database migrations
+    - Optimize application (config, routes, views)
+    - Set correct file permissions
+    - Restart services (queue workers, etc.)
 
 5. **Verification**
-   - Check Laravel version
-   - Verify database connectivity
-   - Run health checks
+    - Check Laravel version
+    - Verify database connectivity
+    - Run health checks
 
 6. **Go Live**
-   - Disable maintenance mode
-   - Application is now live
+    - Disable maintenance mode
+    - Application is now live
 
 7. **Cleanup**
-   - Remove deployment package
-   - Clean up temporary files
+    - Remove deployment package
+    - Clean up temporary files
 
 ## Required GitHub Secrets
 
 Configure these secrets in your GitHub repository settings:
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
+| Secret Name       | Description                       | Example                     |
+| ----------------- | --------------------------------- | --------------------------- |
 | `SSH_PRIVATE_KEY` | Private SSH key for server access | Contents of `~/.ssh/id_rsa` |
-| `SSH_USER` | SSH username | `blaxi2540` |
-| `SERVER_IP` | Production server IP address | `158.220.103.133` |
-| `DB_PASSWORD` | Production database password | (secure password) |
-| `APP_KEY` | Laravel application key | `base64:...` |
+| `SSH_USER`        | SSH username                      | `blaxi2540`                 |
+| `SERVER_IP`       | Production server IP address      | `158.220.103.133`           |
+| `DB_PASSWORD`     | Production database password      | (secure password)           |
+| `APP_KEY`         | Laravel application key           | `base64:...`                |
 
 ## Environment Configuration
 
 ### Production `.env` File
+
 Create this on the server at `/home/blaxium.com/canzim.blaxium.com/.env`:
 
 ```bash
@@ -210,6 +213,7 @@ FILESYSTEM_DISK=local
 ### First-Time Setup
 
 1. **Setup SSH Access**
+
 ```bash
 # On your local machine, generate SSH key pair
 ssh-keygen -t ed25519 -C "github-actions-canzim"
@@ -223,10 +227,11 @@ cat ~/.ssh/id_ed25519
 ```
 
 2. **Configure GitHub Secrets**
-   - Go to GitHub repo → Settings → Secrets and variables → Actions
-   - Add all required secrets listed above
+    - Go to GitHub repo → Settings → Secrets and variables → Actions
+    - Add all required secrets listed above
 
 3. **Initial Server Setup**
+
 ```bash
 # SSH to server
 ssh blaxi2540@158.220.103.133
@@ -272,6 +277,7 @@ php artisan optimize
 ### Subsequent Deployments
 
 #### Option 1: Automated (Recommended)
+
 1. Push changes to `main` branch or create a version tag
 2. Go to GitHub Actions
 3. Run "CD - Deploy to Production" workflow
@@ -280,6 +286,7 @@ php artisan optimize
 6. Verify at https://canzim.blaxium.com
 
 #### Option 2: Manual
+
 ```bash
 # SSH to server
 ssh blaxi2540@158.220.103.133
@@ -297,7 +304,9 @@ php artisan up
 ## Rollback Procedure
 
 ### Automatic Rollback
+
 If deployment fails, the CD workflow automatically:
+
 1. Detects failure
 2. Restores from backup
 3. Rolls back last migration
@@ -305,6 +314,7 @@ If deployment fails, the CD workflow automatically:
 5. Brings application back online
 
 ### Manual Rollback
+
 ```bash
 # SSH to server
 ssh blaxi2540@158.220.103.133
@@ -329,6 +339,7 @@ php artisan up
 ## Monitoring and Health Checks
 
 ### Application Health Endpoint
+
 Create a health check endpoint:
 
 ```php
@@ -343,6 +354,7 @@ Route::get('/health', function () {
 ```
 
 ### Monitor These Metrics:
+
 - Application uptime
 - Response time
 - Error rate
@@ -351,6 +363,7 @@ Route::get('/health', function () {
 - Memory usage
 
 ### Logs
+
 ```bash
 # Laravel logs
 tail -f /home/blaxium.com/canzim.blaxium.com/storage/logs/laravel.log
@@ -365,22 +378,26 @@ tail -f /home/blaxium.com/logs/blaxium.com.access_log
 ### Common Issues
 
 **Issue: Deployment fails with SSH connection error**
+
 - Verify SSH key is correctly added to GitHub Secrets
 - Check server firewall allows SSH connections
 - Verify SSH user has correct permissions
 
 **Issue: Migration fails**
+
 - Check database credentials in `.env`
 - Verify database user has migration permissions
 - Check for conflicting migrations
 
 **Issue: 500 Internal Server Error after deployment**
+
 - Check Laravel logs: `storage/logs/laravel.log`
 - Verify `.env` file configuration
 - Run `php artisan config:clear`
 - Check file permissions on `storage/` and `bootstrap/cache/`
 
 **Issue: Assets not loading**
+
 - Verify `npm run build` completed successfully
 - Check `public/build/` directory exists
 - Clear browser cache
@@ -423,6 +440,7 @@ feature/new-feature → develop → main → production
 ## Support
 
 For deployment issues:
+
 1. Check GitHub Actions logs
 2. Check server logs
 3. Review this documentation

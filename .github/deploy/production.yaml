@@ -1,0 +1,51 @@
+# Production Details:
+- Main Domain: https://canzimbabwe.org.zw
+- Subdomain: https://erp.canzimbabwe.org.zw/
+- ssl: Enabled
+
+
+# Server Information
+- Server Name: cloud783
+- cPanel Version: 134.0 (build 25)
+- Apache Version: 2.4.67
+- Database Version: 10.11.16-MariaDB
+- Architecture: x86_64
+- Operating System: linux
+- Shared IP Address: 149.255.62.168
+- Path to Sendmail: /usr/sbin/sendmail
+- Path to Perl: /usr/bin/perl
+- Perl Version: 5.32.1
+- Kernel Version: 5.14.0-611.49.1.el9_7.x86_64
+
+# Filesystem Information
+- Home Directory: /home/canzimba
+- Subdomain Directory: /home/canzimba/erp.canzimbabwe.org.zw/
+- Disk Space Quota: Unlimited
+- Disk Space Used: 1.5 GB
+
+# Current Deployment Status
+- Git Branch: main
+- Github Repository: https://github.com/bguvava/CANZIM-FinTrack
+- Current Deployment Status: Pending (awaiting cPanel setup)
+- Previous Deployment: https://canzim.blaxium.com (Contabo VPS)
+- Target Deployment: https://erp.canzimbabwe.org.zw (cPanel cloud783)
+- Deployed By: bguvava
+
+# GitHub Actions Deployment
+- Workflow File: .github/workflows/cd-erp-production.yml
+- Deploy Script: .github/scripts/deploy-cpanel.sh
+- App Directory on Server: /home/canzimba/fintrack_app
+- Public Directory on Server: /home/canzimba/fintrack_app/public
+- cPanel Subdomain Doc Root must point to: /home/canzimba/fintrack_app/public
+
+# Required GitHub Secrets (Settings > Secrets > Actions)
+- ERP_SSH_PRIVATE_KEY  : SSH private key (PEM format) for canzimba@canzimbabwe.org.zw
+- ERP_SSH_USER         : canzimba
+- ERP_SERVER_IP        : 149.255.62.168
+- ERP_SSH_PORT         : 22  (or check cPanel for custom SSH port)
+
+# Required GitHub Environment
+- Create environment named: erp-production
+- URL: https://erp.canzimbabwe.org.zw
+
+

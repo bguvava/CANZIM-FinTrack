@@ -3,6 +3,7 @@
 ## Pre-Deployment
 
 ### Local Preparation
+
 - [ ] All features tested locally
 - [ ] All tests pass: `php artisan test`
 - [ ] Code style check passes: `vendor/bin/pint --test`
@@ -13,6 +14,7 @@
 - [ ] Git working directory is clean
 
 ### Code Review
+
 - [ ] Pull request created and reviewed
 - [ ] All review comments addressed
 - [ ] CI pipeline passes on GitHub Actions
@@ -20,6 +22,7 @@
 - [ ] Code coverage meets threshold (80%+)
 
 ### Database
+
 - [ ] New migrations reviewed and tested
 - [ ] Migration rollback tested locally
 - [ ] No data loss migrations (backup required if yes)
@@ -29,6 +32,7 @@
 ## GitHub Configuration
 
 ### Secrets Verification
+
 - [ ] SSH_PRIVATE_KEY configured
 - [ ] SSH_USER configured (blaxi2540)
 - [ ] SERVER_IP configured (158.220.103.133)
@@ -37,6 +41,7 @@
 - [ ] MAIL credentials available (if using email)
 
 ### Workflow Files
+
 - [ ] `.github/workflows/ci.yml` present
 - [ ] `.github/workflows/cd-production.yml` present
 - [ ] `.github/workflows/staging.yml` present
@@ -45,12 +50,14 @@
 ## Server Preparation
 
 ### Server Access
+
 - [ ] SSH access to server verified
 - [ ] Deployment user has correct permissions
 - [ ] Application directory exists: `/home/blaxium.com/canzim.blaxium.com`
 - [ ] Web server configuration verified (vHost Conf)
 
 ### Environment Setup
+
 - [ ] Production `.env` file configured
 - [ ] Database created and accessible
 - [ ] Database user has all required privileges
@@ -58,6 +65,7 @@
 - [ ] SSL certificate valid for https://canzim.blaxium.com
 
 ### Dependencies
+
 - [ ] PHP 8.2+ installed with required extensions
 - [ ] Composer 2.x installed
 - [ ] Node.js 20+ installed (if building on server)
@@ -65,6 +73,7 @@
 - [ ] Git installed
 
 ### Services
+
 - [ ] Web server running (LiteSpeed)
 - [ ] Database server running
 - [ ] Queue worker configured (if using queues)
@@ -74,6 +83,7 @@
 ## First Deployment
 
 ### Initial Setup (First Time Only)
+
 - [ ] Repository cloned to server
 - [ ] `.env` file created from template
 - [ ] `APP_KEY` generated: `php artisan key:generate`
@@ -82,6 +92,7 @@
 - [ ] Initial permissions set
 
 ### Testing
+
 - [ ] Application accessible at domain
 - [ ] Home page loads correctly
 - [ ] Login functionality works
@@ -92,6 +103,7 @@
 ## Deployment Execution
 
 ### Pre-Deployment Actions
+
 - [ ] Notify team of deployment window
 - [ ] Current version documented
 - [ ] Backup of current production taken
@@ -99,12 +111,14 @@
 - [ ] Maintenance window scheduled (if needed)
 
 ### Deployment Process
+
 - [ ] Trigger deployment workflow on GitHub Actions
 - [ ] Type "DEPLOY" confirmation
 - [ ] Monitor deployment progress in real-time
 - [ ] Watch for errors in workflow logs
 
 ### Deployment Steps (Automated)
+
 - [ ] Maintenance mode enabled
 - [ ] Backup created
 - [ ] New code deployed
@@ -118,6 +132,7 @@
 ## Post-Deployment
 
 ### Verification
+
 - [ ] Application loads at https://canzim.blaxium.com
 - [ ] No 500/404 errors
 - [ ] Health check endpoint responds
@@ -127,6 +142,7 @@
 - [ ] API endpoints respond correctly (if applicable)
 
 ### Performance
+
 - [ ] Page load time acceptable
 - [ ] No JavaScript errors in console
 - [ ] Images and assets loading
@@ -134,6 +150,7 @@
 - [ ] Caches working correctly
 
 ### Monitoring
+
 - [ ] Error logs checked: `storage/logs/laravel.log`
 - [ ] Web server logs checked
 - [ ] No spike in error rate
@@ -141,6 +158,7 @@
 - [ ] Application metrics stable
 
 ### Communication
+
 - [ ] Team notified of successful deployment
 - [ ] Release notes published (if applicable)
 - [ ] Stakeholders informed
@@ -149,6 +167,7 @@
 ## Rollback Plan
 
 ### When to Rollback
+
 - [ ] Critical bug discovered
 - [ ] Performance degradation
 - [ ] Data integrity issues
@@ -156,6 +175,7 @@
 - [ ] User-reported critical issues
 
 ### Rollback Procedure
+
 - [ ] Automatic rollback triggered (if deployment failed)
 - [ ] Manual rollback steps documented
 - [ ] Backup restoration tested
@@ -166,18 +186,21 @@
 ## Ongoing Monitoring
 
 ### First Hour
+
 - [ ] Monitor error logs continuously
 - [ ] Watch user activity
 - [ ] Check for unusual patterns
 - [ ] Verify all features working
 
 ### First 24 Hours
+
 - [ ] Review error reports
 - [ ] Monitor performance metrics
 - [ ] Check user feedback
 - [ ] Verify scheduled tasks running
 
 ### First Week
+
 - [ ] Analyze usage patterns
 - [ ] Review security logs
 - [ ] Check for memory leaks
@@ -186,6 +209,7 @@
 ## Documentation
 
 ### Updated Documentation
+
 - [ ] Deployment guide updated
 - [ ] API documentation current (if applicable)
 - [ ] User documentation updated
@@ -193,6 +217,7 @@
 - [ ] Runbooks updated
 
 ### Version Control
+
 - [ ] Release tag created: `git tag v1.x.x`
 - [ ] Tag pushed to GitHub
 - [ ] Release notes on GitHub Releases
@@ -201,6 +226,7 @@
 ## Security
 
 ### Security Checks
+
 - [ ] `.env` file not publicly accessible
 - [ ] Debug mode disabled (`APP_DEBUG=false`)
 - [ ] Error reporting appropriate for production
@@ -211,6 +237,7 @@
 - [ ] Rate limiting enabled
 
 ### Credentials
+
 - [ ] No hardcoded credentials in code
 - [ ] Database passwords strong and unique
 - [ ] API keys rotated if needed
@@ -220,6 +247,7 @@
 ## Cleanup
 
 ### Post-Deployment Cleanup
+
 - [ ] Old backups archived or deleted
 - [ ] Temporary files removed
 - [ ] Deployment logs reviewed
@@ -228,36 +256,37 @@
 
 ## Sign-Off
 
-**Deployment Date:** _______________
+**Deployment Date:** ******\_\_\_******
 
-**Deployed By:** _______________
+**Deployed By:** ******\_\_\_******
 
-**Version Deployed:** _______________
+**Version Deployed:** ******\_\_\_******
 
 **Deployment Status:** ✅ Success / ❌ Failed / ⏮️ Rolled Back
 
 **Notes:**
+
 ```
 _______________________________________________________________
 _______________________________________________________________
 _______________________________________________________________
 ```
 
-**Verified By:** _______________
+**Verified By:** ******\_\_\_******
 
-**Sign-Off:** _______________
+**Sign-Off:** ******\_\_\_******
 
 ---
 
 ## Emergency Contacts
 
-**System Administrator:** _______________
+**System Administrator:** ******\_\_\_******
 
-**Development Team Lead:** _______________
+**Development Team Lead:** ******\_\_\_******
 
-**Database Administrator:** _______________
+**Database Administrator:** ******\_\_\_******
 
-**On-Call Support:** _______________
+**On-Call Support:** ******\_\_\_******
 
 ---
 

@@ -26,51 +26,55 @@ This directory contains the Continuous Integration and Continuous Deployment (CI
 ### For Developers
 
 1. **Make Changes**
-   - Create feature branch
-   - Write code and tests
-   - Commit changes
+    - Create feature branch
+    - Write code and tests
+    - Commit changes
 
 2. **Push to GitHub**
-   ```bash
-   git push origin feature/your-feature
-   ```
+
+    ```bash
+    git push origin feature/your-feature
+    ```
 
 3. **CI Runs Automatically**
-   - Code quality checks
-   - Tests execution
-   - Security scanning
+    - Code quality checks
+    - Tests execution
+    - Security scanning
 
 4. **Create Pull Request**
-   - Merge to `develop` for staging
-   - Merge to `main` for production release
+    - Merge to `develop` for staging
+    - Merge to `main` for production release
 
 ### For Deployment
 
 #### First-Time Setup
 
 1. **Configure GitHub Secrets**
-   - Go to: Repository → Settings → Secrets and variables → Actions
-   - Add required secrets (see [DEPLOYMENT_GUIDE.md](deploy/DEPLOYMENT_GUIDE.md))
+    - Go to: Repository → Settings → Secrets and variables → Actions
+    - Add required secrets (see [DEPLOYMENT_GUIDE.md](deploy/DEPLOYMENT_GUIDE.md))
 
 2. **Run Initial Server Setup**
-   ```bash
-   ssh user@server
-   bash < initial-server-setup.sh
-   ```
+
+    ```bash
+    ssh user@server
+    bash < initial-server-setup.sh
+    ```
 
 3. **Configure Production Environment**
-   - Edit `.env` on server
-   - Use `.env.production.template` as reference
+    - Edit `.env` on server
+    - Use `.env.production.template` as reference
 
 #### Deploy to Production
 
 **Option 1: Manual Trigger (Recommended)**
+
 1. Go to GitHub → Actions → "CD - Deploy to Production"
 2. Click "Run workflow"
 3. Type "DEPLOY" in the confirmation field
 4. Click "Run workflow"
 
 **Option 2: Tag-Based (Automated)**
+
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
@@ -79,9 +83,11 @@ git push origin v1.0.0
 ## Workflows
 
 ### CI Workflow (`ci.yml`)
+
 **Triggers:** Every push, every pull request
 
 **What it does:**
+
 - ✅ Checks PHP code style (Laravel Pint)
 - ✅ Checks JavaScript/Vue code style (ESLint)
 - ✅ Runs all tests with coverage
@@ -91,17 +97,21 @@ git push origin v1.0.0
 **Required to pass before deployment**
 
 ### Staging Workflow (`staging.yml`)
+
 **Triggers:** Push to `develop` branch
 
 **What it does:**
+
 - Builds application
 - Runs tests
 - Prepares for staging deployment
 
 ### Production Workflow (`cd-production.yml`)
+
 **Triggers:** Manual or version tags
 
 **What it does:**
+
 - ✅ Runs pre-deployment verification
 - ✅ Creates backup of current version
 - ✅ Deploys new version
@@ -112,13 +122,13 @@ git push origin v1.0.0
 
 ## Required GitHub Secrets
 
-| Secret | Description | How to Get |
-|--------|-------------|------------|
-| `SSH_PRIVATE_KEY` | Private SSH key for server access | `cat ~/.ssh/id_rsa` |
-| `SSH_USER` | SSH username | Server user (e.g., blaxi2540) |
-| `SERVER_IP` | Production server IP | From hosting provider |
-| `DB_PASSWORD` | Production database password | Create secure password |
-| `APP_KEY` | Laravel app key | Run `php artisan key:generate` |
+| Secret            | Description                       | How to Get                     |
+| ----------------- | --------------------------------- | ------------------------------ |
+| `SSH_PRIVATE_KEY` | Private SSH key for server access | `cat ~/.ssh/id_rsa`            |
+| `SSH_USER`        | SSH username                      | Server user (e.g., blaxi2540)  |
+| `SERVER_IP`       | Production server IP              | From hosting provider          |
+| `DB_PASSWORD`     | Production database password      | Create secure password         |
+| `APP_KEY`         | Laravel app key                   | Run `php artisan key:generate` |
 
 ## Documentation
 
@@ -129,7 +139,9 @@ git push origin v1.0.0
 ## Scripts
 
 ### `deploy-production.sh`
+
 Production deployment script that handles:
+
 - Backup creation
 - Code deployment
 - Dependency installation
@@ -139,7 +151,9 @@ Production deployment script that handles:
 - Verification checks
 
 ### `initial-server-setup.sh`
+
 First-time server setup script for:
+
 - Cloning repository
 - Installing dependencies
 - Configuring environment
@@ -149,11 +163,13 @@ First-time server setup script for:
 ## Monitoring
 
 ### Check Deployment Status
+
 1. Go to GitHub → Actions
 2. View workflow run details
 3. Check logs for any errors
 
 ### Application Health
+
 ```bash
 # SSH to server
 ssh user@158.220.103.133
@@ -170,13 +186,16 @@ php artisan migrate:status
 ## Rollback
 
 ### Automatic Rollback
+
 If deployment fails, the workflow automatically:
+
 1. Detects the failure
 2. Restores from backup
 3. Rolls back migrations
 4. Brings application back online
 
 ### Manual Rollback
+
 ```bash
 ssh user@server
 cd /home/blaxium.com
@@ -190,6 +209,7 @@ php artisan up
 ## Troubleshooting
 
 ### Deployment Fails
+
 1. Check GitHub Actions logs
 2. Review server logs
 3. Verify SSH access
@@ -197,12 +217,14 @@ php artisan up
 5. Verify database connection
 
 ### Tests Fail in CI
+
 1. Run tests locally: `php artisan test`
 2. Check test logs in GitHub Actions
 3. Fix failing tests
 4. Push fix
 
 ### Assets Not Loading
+
 1. Verify build completed: Check CI logs
 2. Clear browser cache
 3. Check file permissions on server
@@ -223,6 +245,7 @@ php artisan up
 ## Support
 
 For issues or questions:
+
 1. Check [DEPLOYMENT_GUIDE.md](deploy/DEPLOYMENT_GUIDE.md)
 2. Review GitHub Actions logs
 3. Check server logs

@@ -35,35 +35,35 @@ log_error() {
 
 check_prerequisites() {
     log_info "Checking prerequisites..."
-    
+
     if [ ! -f "$DEPLOYMENT_PACKAGE" ]; then
         log_error "Deployment package not found at $DEPLOYMENT_PACKAGE"
         exit 1
     fi
-    
+
     if [ ! -d "$APP_DIR" ]; then
         log_error "Application directory not found at $APP_DIR"
         exit 1
     fi
-    
+
     log_info "Prerequisites check passed ✓"
 }
 
 backup_current_version() {
     log_info "Creating backup of current version..."
-    
+
     # Remove old backup if exists
     if [ -d "$BACKUP_DIR" ]; then
         rm -rf "$BACKUP_DIR"
     fi
-    
+
     # Create new backup
     cp -r "$APP_DIR" "$BACKUP_DIR"
-    
+
     # Backup database
     cd "$APP_DIR"
     $PHP_BIN artisan db:backup 2>/dev/null || log_warning "Database backup failed or not configured"
-    
+
     log_info "Backup created successfully ✓"
 }
 
@@ -83,119 +83,119 @@ disable_maintenance_mode() {
 
 extract_deployment() {
     log_info "Extracting deployment package..."
-    
+
     cd "$APP_DIR"
-    
+
     # Extract new files
     tar -xzf "$DEPLOYMENT_PACKAGE"
-    
+
     log_info "Deployment package extracted ✓"
 }
 
 install_dependencies() {
     log_info "Installing Composer dependencies..."
-    
+
     cd "$APP_DIR"
-    
+
     # Install production dependencies
     $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction
-    
+
     log_info "Dependencies installed ✓"
 }
 
 run_migrations() {
     log_info "Running database migrations..."
-    
+
     cd "$APP_DIR"
-    
+
     # Run migrations
     $PHP_BIN artisan migrate --force
-    
+
     log_info "Migrations completed ✓"
 }
 
 optimize_application() {
     log_info "Optimizing application..."
-    
+
     cd "$APP_DIR"
-    
+
     # Clear all caches
     $PHP_BIN artisan config:clear
     $PHP_BIN artisan route:clear
     $PHP_BIN artisan view:clear
     $PHP_BIN artisan cache:clear
-    
+
     # Optimize for production
     $PHP_BIN artisan config:cache
     $PHP_BIN artisan route:cache
     $PHP_BIN artisan view:cache
     $PHP_BIN artisan event:cache
-    
+
     # Run general optimization
     $PHP_BIN artisan optimize
-    
+
     log_info "Application optimized ✓"
 }
 
 set_permissions() {
     log_info "Setting correct permissions..."
-    
+
     cd "$APP_DIR"
-    
+
     # Set ownership (adjust user:group as needed for CyberPanel)
     # chown -R blaxi2540:blaxi2540 .
-    
+
     # Set directory permissions
     find . -type d -exec chmod 755 {} \;
-    
+
     # Set file permissions
     find . -type f -exec chmod 644 {} \;
-    
+
     # Storage and cache directories need write permissions
     chmod -R 775 storage bootstrap/cache
-    
+
     log_info "Permissions set ✓"
 }
 
 restart_services() {
     log_info "Restarting services..."
-    
+
     # Restart queue workers
     cd "$APP_DIR"
     $PHP_BIN artisan queue:restart
-    
+
     # Restart PHP-FPM/LiteSpeed (if needed)
     # systemctl restart lsws || true
-    
+
     log_info "Services restarted ✓"
 }
 
 verify_deployment() {
     log_info "Verifying deployment..."
-    
+
     cd "$APP_DIR"
-    
+
     # Check Laravel version
     $PHP_BIN artisan --version
-    
+
     # Check database connectivity
     $PHP_BIN artisan migrate:status
-    
+
     # Run a quick health check
     $PHP_BIN artisan tinker --execute="echo 'Database connection: OK';" || log_warning "Database check warning"
-    
+
     log_info "Deployment verification completed ✓"
 }
 
 cleanup() {
     log_info "Cleaning up..."
-    
+
     # Remove deployment package
     rm -f "$DEPLOYMENT_PACKAGE"
-    
+
     # Remove old backups (keep last 3)
     # Add logic here if needed
-    
+
     log_info "Cleanup completed ✓"
 }
 
@@ -203,7 +203,7 @@ cleanup() {
 main() {
     log_info "🚀 Starting CANZIM-FinTrack production deployment..."
     echo "================================================"
-    
+
     check_prerequisites
     enable_maintenance_mode
     backup_current_version
@@ -216,7 +216,7 @@ main() {
     verify_deployment
     disable_maintenance_mode
     cleanup
-    
+
     echo "================================================"
     log_info "✅ Deployment completed successfully!"
     log_info "🌐 Application is live at: https://canzim.blaxium.com"

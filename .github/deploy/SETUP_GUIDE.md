@@ -41,6 +41,7 @@ exit
 ```
 
 Test the connection:
+
 ```bash
 ssh -i ~/.ssh/canzim-deploy blaxi2540@158.220.103.133
 ```
@@ -56,24 +57,30 @@ ssh -i ~/.ssh/canzim-deploy blaxi2540@158.220.103.133
 ### Required Secrets:
 
 #### SSH_PRIVATE_KEY
+
 ```bash
 # Get the private key content
 cat ~/.ssh/canzim-deploy
 # Copy the ENTIRE output including -----BEGIN and -----END lines
 ```
+
 - Value: Paste the entire private key
 
 #### SSH_USER
+
 - Value: `blaxi2540`
 
 #### SERVER_IP
+
 - Value: `158.220.103.133`
 
 #### DB_PASSWORD
+
 - Value: Your production database password (create a strong one)
 - Example: `C@nz1m#Prod2026!Secure`
 
 #### APP_KEY (Generate on server later)
+
 - Value: Will be generated - leave empty for now
 
 ## Step 4: Initial Server Setup
@@ -92,6 +99,7 @@ bash initial-server-setup.sh
 ```
 
 The script will:
+
 - Create application directory
 - Clone repository
 - Install dependencies
@@ -108,6 +116,7 @@ nano /home/blaxium.com/canzim.blaxium.com/.env
 ```
 
 Update these critical values:
+
 ```env
 APP_ENV=production
 APP_DEBUG=false
@@ -133,6 +142,7 @@ mysql -u root -p
 ```
 
 In MySQL:
+
 ```sql
 CREATE DATABASE canzim_fintrack CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'canzim_user'@'localhost' IDENTIFIED BY 'your_secure_password_here';
@@ -142,6 +152,7 @@ EXIT;
 ```
 
 Run migrations:
+
 ```bash
 cd /home/blaxium.com/canzim.blaxium.com
 php artisan migrate --force
@@ -182,6 +193,7 @@ The CI pipeline should run automatically on push. Check:
 4. All checks should pass ✅
 
 If any checks fail:
+
 - Review the error logs in GitHub Actions
 - Fix issues locally
 - Push fixes and repeat
@@ -211,25 +223,27 @@ git push origin v1.0.0
 After deployment completes:
 
 1. **Check Application**
-   - Visit: https://canzim.blaxium.com
-   - Should see the login page
+    - Visit: https://canzim.blaxium.com
+    - Should see the login page
 
 2. **Check Health Endpoint**
-   ```bash
-   curl https://canzim.blaxium.com/api/v1/health
-   # Should return: {"status":"success",...}
-   ```
+
+    ```bash
+    curl https://canzim.blaxium.com/api/v1/health
+    # Should return: {"status":"success",...}
+    ```
 
 3. **Check Logs on Server**
-   ```bash
-   ssh blaxi2540@158.220.103.133
-   tail -f /home/blaxium.com/canzim.blaxium.com/storage/logs/laravel.log
-   ```
+
+    ```bash
+    ssh blaxi2540@158.220.103.133
+    tail -f /home/blaxium.com/canzim.blaxium.com/storage/logs/laravel.log
+    ```
 
 4. **Test Login**
-   - Try logging in with admin credentials
-   - Verify dashboard loads
-   - Check key features work
+    - Try logging in with admin credentials
+    - Verify dashboard loads
+    - Check key features work
 
 ---
 
@@ -279,10 +293,12 @@ git push origin hotfix/critical-bug
 If something goes wrong after deployment:
 
 ### Automatic Rollback
+
 - If deployment fails, workflow automatically rolls back
 - Check GitHub Actions logs for details
 
 ### Manual Rollback
+
 ```bash
 ssh blaxi2540@158.220.103.133
 cd /home/blaxium.com
@@ -298,16 +314,19 @@ php artisan up
 ## Monitoring and Maintenance
 
 ### Daily Checks:
+
 - Monitor error logs
 - Check application uptime
 - Review GitHub Actions for failed builds
 
 ### Weekly Tasks:
+
 - Review deployment logs
 - Check for security updates
 - Test backup restoration
 
 ### Monthly Tasks:
+
 - Update dependencies
 - Review and optimize database
 - Audit security configurations
@@ -317,7 +336,9 @@ php artisan up
 ## Troubleshooting
 
 ### Issue: SSH Connection Fails
+
 **Solution:**
+
 ```bash
 # Test SSH connection
 ssh -i ~/.ssh/canzim-deploy -v blaxi2540@158.220.103.133
@@ -327,13 +348,17 @@ ssh -i ~/.ssh/canzim-deploy -v blaxi2540@158.220.103.133
 ```
 
 ### Issue: GitHub Actions Can't Connect to Server
+
 **Solution:**
+
 - Verify SSH_PRIVATE_KEY secret is set correctly
 - Check SERVER_IP is correct
 - Ensure server firewall allows GitHub IPs
 
 ### Issue: Deployment Script Fails
+
 **Solution:**
+
 ```bash
 # SSH to server and check logs
 ssh blaxi2540@158.220.103.133
@@ -341,7 +366,9 @@ tail -f /home/blaxium.com/canzim.blaxium.com/storage/logs/laravel.log
 ```
 
 ### Issue: Application Shows 500 Error
+
 **Solution:**
+
 ```bash
 # Check Laravel logs
 ssh blaxi2540@158.220.103.133
@@ -370,6 +397,7 @@ chmod -R 775 storage bootstrap/cache
 ## Security Reminders
 
 ✅ **DO:**
+
 - Use strong passwords
 - Keep secrets secure
 - Monitor logs regularly
@@ -377,6 +405,7 @@ chmod -R 775 storage bootstrap/cache
 - Test before deploying
 
 ❌ **DON'T:**
+
 - Commit `.env` files
 - Use DEBUG=true in production
 - Share SSH private keys
