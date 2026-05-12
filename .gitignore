@@ -1,19 +1,19 @@
 *.log
 .DS_Store
 .env
-/setup-erp-server.php
 .env.backup
 .env.production
 .phpactor.json
 .phpunit.result.cache
 /.fleet
 /.idea
-# SSH deploy keys - never commit private keys
+# SSH deploy keys and sensitive deploy files - never commit
 .github/deploy/canzim_deploy_key
 .github/deploy/canzim_deploy_key.pub
-# One-time server setup helpers — never commit these
-/setup-erp-server.php
-/add-deploy-key.php
+.github/deploy/canzim_deploy/
+# One-time server setup helpers - never commit these
+/scripts/setup-erp-server.php
+/scripts/add-deploy-key.php
 /manual-fix.php
 /manual-fix-v3.php
 /manual-fix-v4.php

@@ -2,7 +2,7 @@
 
 # CANZIM FinTrack - Financial Management & Accounting System
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Client:** Climate Action Network Zimbabwe (CAN Zimbabwe)  
 **Website:** [www.canzimbabwe.org.zw](https://www.canzimbabwe.org.zw/)  
 **Developer:** [bguvava](https://bguvava.com) ❤️
@@ -240,6 +240,55 @@ This is a proprietary project developed for Climate Action Network Zimbabwe. For
 ## License
 
 Proprietary - Climate Action Network Zimbabwe © 2026
+
+---
+
+## Changelog
+
+### v2.0.0 — Production Deployment Release (May 12, 2026)
+
+**Production Deployment**
+- Deployed to https://erp.canzimbabwe.org.zw on cPanel shared hosting
+- GitHub Actions CD pipeline using FTP zip-upload (SSH is firewalled on cPanel)
+- Self-executing post-deploy.php runner handles extraction, migrations, seeding, and cache rebuild — no SSH required
+
+**CI/CD**
+- New `cd-erp-production.yml` workflow with build, deploy, and health-check jobs
+- Node.js updated from 20 to 22
+- Frontend assets compiled and bundled before zip upload
+
+**Bug Fixes**
+- Fixed `APP_NAME` defaulting to "Laravel" on production
+- Fixed `DB_CONNECTION` defaulting to `sqlite` in `.env.example` instead of `mysql`
+- Fixed missing DB credentials in server `.env` on fresh deployments
+- Fixed silent migration failures by capturing output and checking exit codes
+- Fixed seeder class-not-found errors by switching to direct PDO seeding
+
+**Security**
+- Deployment token injected by GitHub Actions at build time, never stored in repository
+- post-deploy.php self-destructs after each execution
+
+**Database**
+- Added `ProductionSeeder` with default roles and initial user accounts
+
+---
+
+### v1.0.0 — Initial Release (November 2025)
+
+- Complete ERP system for Climate Action Network Zimbabwe
+- Financial Dashboard with role-based views and Chart.js analytics
+- Project and Budget Management with multi-project allocation
+- Expense Tracking with multi-step approval workflow
+- Cash Flow Management with bank account integration
+- Purchase Order processing with partial and full receiving
+- Donor and Funding Management with multi-donor reporting
+- Document Management with version control
+- Financial Reports with PDF export (DomPDF)
+- System Settings, Audit Trail, and Activity Logging
+- Role-based user management (3 roles)
+- Laravel 12 + Vue 3 + Pinia + TailwindCSS v4
+- Laravel Sanctum API authentication with 5-minute session timeout
+- 686 tests, 2957 assertions (100% pass rate)
 
 ---
 
