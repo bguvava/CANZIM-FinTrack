@@ -70,6 +70,13 @@ try {
 
     chdir($appRoot);
 
+    // Remove cached config so fresh .env values are used
+    $cachedConfig = $appRoot.'/bootstrap/cache/config.php';
+    if (file_exists($cachedConfig)) {
+        unlink($cachedConfig);
+        $log[] = 'cleared cached config';
+    }
+
     if (! defined('LARAVEL_START')) {
         define('LARAVEL_START', microtime(true));
     }
@@ -79,13 +86,19 @@ try {
     $app    = require_once $appRoot.'/bootstrap/app.php';
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
-    // --- Step 3: Migrate ---
-    $kernel->call('migrate', ['--force' => true]);
-    $log[] = 'migrate: OK';
+    // --- Step 3: Migrate (capture output to detect silent failures) ---
+    $migrateOutput = new Symfony\Component\Console\Output\BufferedOutput();
+    $migrateExit   = $kernel->call('migrate', ['--force' => true], $migrateOutput);
+    $migrateText   = trim($migrateOutput->fetch());
+    $log[]         = 'migrate exit='.$migrateExit.($migrateText ? ': '.$migrateText : ': OK');
+    if ($migrateExit !== 0) {
+        throw new RuntimeException('migrate failed with exit code '.$migrateExit);
+    }
 
     // --- Step 3.5: Seed essential production data (idempotent) ---
     try {
-        $kernel->call('db:seed', ['--class' => 'ProductionSeeder', '--force' => true]);
+        $seedOutput = new Symfony\Component\Console\Output\BufferedOutput();
+        $kernel->call('db:seed', ['--class' => 'ProductionSeeder', '--force' => true], $seedOutput);
         $log[] = 'db:seed ProductionSeeder: OK';
     } catch (Throwable $e) {
         $log[] = 'db:seed ProductionSeeder: failed - '.$e->getMessage();
