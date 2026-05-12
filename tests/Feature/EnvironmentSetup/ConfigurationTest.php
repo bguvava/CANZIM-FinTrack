@@ -22,7 +22,7 @@ class ConfigurationTest extends TestCase
     {
         $appName = config('app.name');
 
-        $this->assertEquals('CANZIM FinTrack', $appName);
+        $this->assertEquals('CANZimbabwe FinTrack', $appName);
     }
 
     /**

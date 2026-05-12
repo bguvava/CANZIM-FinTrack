@@ -42,7 +42,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install Composer dependencies (no dev)
@@ -70,24 +70,30 @@ jobs:
 
       - name: Create deployment zip
         run: |
+          # Remove the temporary dev .env created during bootstrap verification
+          # so it doesn't overwrite the server's production .env
+          rm -f .env
           zip -r deploy.zip . \
-            -x "*.git*" \
-            -x "*/.git/*" \
-            -x "*/node_modules/*" \
-            -x "*/tests/*" \
-            -x "*/docs/*" \
-            -x "*/screenshots/*" \
-            -x "*/.github/*" \
+            -x ".env" \
             -x "*/.env" \
-            -x "*/.env.example" \
+            -x ".env.*" \
             -x "*/.env.*" \
-            -x "*/storage/logs/*" \
-            -x "*/storage/framework/cache/*" \
-            -x "*/storage/framework/sessions/*" \
-            -x "*/storage/framework/views/*" \
-            -x "*/setup-erp-server.php" \
-            -x "*/add-deploy-key.php" \
-            -x "*/public/post-deploy.php"
+            -x ".git" \
+            -x ".git/*" \
+            -x "*/.git/*" \
+            -x "node_modules/*" \
+            -x "*/node_modules/*" \
+            -x "tests/*" \
+            -x "docs/*" \
+            -x "screenshots/*" \
+            -x ".github/*" \
+            -x "storage/logs/*" \
+            -x "storage/framework/cache/*" \
+            -x "storage/framework/sessions/*" \
+            -x "storage/framework/views/*" \
+            -x "setup-erp-server.php" \
+            -x "add-deploy-key.php" \
+            -x "public/post-deploy.php"
           echo "Zip created: $(du -sh deploy.zip)"
 
       - name: Prepare FTP staging directory

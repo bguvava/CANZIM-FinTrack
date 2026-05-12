@@ -50,6 +50,17 @@ try {
         $log[] = 'deploy.zip: not found (skipping extraction — files already uploaded)';
     }
 
+    // --- Step 1.5: Fix APP_NAME in .env if it was overwritten with default ---
+    $envFile = $appRoot.'/.env';
+    if (file_exists($envFile)) {
+        $envContent = file_get_contents($envFile);
+        if (str_contains($envContent, 'APP_NAME=Laravel') || str_contains($envContent, "APP_NAME=\"Laravel\"")) {
+            $envContent = preg_replace('/^APP_NAME=.*/m', 'APP_NAME="CANZimbabwe FinTrack"', $envContent);
+            file_put_contents($envFile, $envContent);
+            $log[] = '.env APP_NAME: fixed (was Laravel)';
+        }
+    }
+
     // --- Step 2: Bootstrap Laravel ---
     $autoload = $appRoot.'/vendor/autoload.php';
     if (! file_exists($autoload)) {
@@ -70,6 +81,14 @@ try {
     // --- Step 3: Migrate ---
     $kernel->call('migrate', ['--force' => true]);
     $log[] = 'migrate: OK';
+
+    // --- Step 3.5: Seed essential production data (idempotent) ---
+    try {
+        $kernel->call('db:seed', ['--class' => 'ProductionSeeder', '--force' => true]);
+        $log[] = 'db:seed ProductionSeeder: OK';
+    } catch (Throwable $e) {
+        $log[] = 'db:seed ProductionSeeder: failed - '.$e->getMessage();
+    }
 
     // --- Step 4: Clear stale caches ---
     foreach (['config:clear', 'route:clear', 'view:clear', 'cache:clear', 'event:clear'] as $cmd) {
