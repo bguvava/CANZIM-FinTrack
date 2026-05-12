@@ -65,19 +65,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ssh-private-key: ${{ secrets.ERP_SSH_PRIVATE_KEY }}
+          node-version: "20"
+          cache: "npm"
 
-      - name: Add server to known hosts
+      - name: Build frontend assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ERP_SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
           mkdir -p ~/.ssh
-          SSH_PORT="${{ secrets.ERP_SSH_PORT }}"
-          [ -z "$SSH_PORT" ] && SSH_PORT="22"
-          # Try both the configured port and common cPanel ports
-          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
-          ssh-keyscan -p 2222 -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          PORT=${SSH_PORT:-22}
+          # Scan known hosts so SSH doesn't prompt
+          ssh-keyscan -p "$PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "Host erp-server
+            HostName ${{ secrets.ERP_SERVER_IP }}
+            User ${{ secrets.ERP_SSH_USER }}
+            Port $PORT
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+            ConnectTimeout 30" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+          # Verify key works
+          ssh erp-server "echo 'SSH connection OK'"
 
       - name: Prepare deployment package
         run: |
@@ -89,49 +109,31 @@ jobs:
             --exclude='storage/*.key' \
             --exclude='vendor' \
             --exclude='*.sqlite' \
+            --exclude='add-deploy-key.php' \
+            --exclude='setup-erp-server.php' \
             .
 
-      - name: Upload deployment package to server
-        env:
-          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
+      - name: Upload and deploy to server
         run: |
-          PORT=${SSH_PORT:-22}
-          scp -P "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            deployment.tar.gz \
-            ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/canzim-deployment.tar.gz
-
-      - name: Upload deployment script to server
-        env:
-          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
-        run: |
-          PORT=${SSH_PORT:-22}
-          scp -P "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            .github/scripts/deploy-cpanel.sh \
-            ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }}:/tmp/deploy-cpanel.sh
-
-      - name: Deploy to cPanel production server
-        env:
-          SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
-        run: |
-          PORT=${SSH_PORT:-22}
-          ssh -p "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} \
-            'chmod +x /tmp/deploy-cpanel.sh && /tmp/deploy-cpanel.sh && rm -f /tmp/deploy-cpanel.sh'
+          scp deployment.tar.gz erp-server:/tmp/canzim-deployment.tar.gz
+          scp .github/scripts/deploy-cpanel.sh erp-server:/tmp/deploy-cpanel.sh
+          ssh erp-server 'chmod +x /tmp/deploy-cpanel.sh && /tmp/deploy-cpanel.sh && rm -f /tmp/deploy-cpanel.sh /tmp/canzim-deployment.tar.gz'
 
       - name: Run post-deployment health check
         run: |
-          sleep 15
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://erp.canzimbabwe.org.zw/ || echo "000")
+          sleep 10
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 30 https://erp.canzimbabwe.org.zw/ || echo "000")
           echo "Health check HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ]; then
-            echo "✅ Application is responding correctly."
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "302" ] || [ "$HTTP_STATUS" = "301" ]; then
+            echo "Application is responding correctly."
           else
-            echo "⚠️ Unexpected HTTP status: $HTTP_STATUS - Please verify deployment manually."
+            echo "WARNING: HTTP status $HTTP_STATUS - verify deployment manually at https://erp.canzimbabwe.org.zw"
           fi
 
-      - name: Cleanup local artifacts
+      - name: Cleanup
         if: always()
-        run: rm -f deployment.tar.gz
+        run: |
+          rm -f deployment.tar.gz ~/.ssh/deploy_key
 
   post-deployment:
     name: Post-Deployment Summary
@@ -154,49 +156,41 @@ jobs:
     if: failure()
 
     steps:
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.ERP_SSH_PRIVATE_KEY }}
-
-      - name: Add server to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          SSH_PORT="${{ secrets.ERP_SSH_PORT }}"
-          [ -z "$SSH_PORT" ] && SSH_PORT="22"
-          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
-          ssh-keyscan -p 2222 -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
-
-      - name: Execute rollback
+      - name: Setup SSH key
         env:
+          SSH_PRIVATE_KEY: ${{ secrets.ERP_SSH_PRIVATE_KEY }}
           SSH_PORT: ${{ secrets.ERP_SSH_PORT }}
         run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
           PORT=${SSH_PORT:-22}
-          ssh -p "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            ${{ secrets.ERP_SSH_USER }}@${{ secrets.ERP_SERVER_IP }} 'bash -s' << 'ENDSSH'
+          ssh-keyscan -p "$PORT" -H "${{ secrets.ERP_SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "Host erp-server
+            HostName ${{ secrets.ERP_SERVER_IP }}
+            User ${{ secrets.ERP_SSH_USER }}
+            Port $PORT
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+            ConnectTimeout 30" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Execute rollback
+        run: |
+          ssh erp-server 'bash -s' << 'ENDSSH'
             set -e
-
             APP_DIR="/home/canzimba/fintrack_app"
-
-            # Detect PHP
-            if command -v /opt/cpanel/ea-php82/root/usr/bin/php &>/dev/null; then
-              PHP_BIN="/opt/cpanel/ea-php82/root/usr/bin/php"
-            else
-              PHP_BIN="php"
-            fi
-
-            # Find latest backup
+            PHP_BIN=$(which php8.3 2>/dev/null || which php8.2 2>/dev/null || which php)
             LATEST_BACKUP=$(ls -td /home/canzimba/fintrack_backups/backup_* 2>/dev/null | head -1)
-
             if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
-              echo "⏪ Rolling back to $LATEST_BACKUP..."
-              rsync -av --delete "$LATEST_BACKUP/" "$APP_DIR/"
-              $PHP_BIN "$APP_DIR/artisan" migrate:rollback --step=1 || true
+              echo "Rolling back to $LATEST_BACKUP..."
+              rsync -a --delete "$LATEST_BACKUP/" "$APP_DIR/"
               $PHP_BIN "$APP_DIR/artisan" optimize
               $PHP_BIN "$APP_DIR/artisan" up
-              echo "✅ Rollback completed"
+              echo "Rollback completed"
             else
-              echo "❌ No backup found for rollback"
+              echo "No backup found for rollback"
               $PHP_BIN "$APP_DIR/artisan" up || true
               exit 1
             fi

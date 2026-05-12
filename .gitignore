@@ -11,6 +11,9 @@
 # SSH deploy keys - never commit private keys
 .github/deploy/canzim_deploy_key
 .github/deploy/canzim_deploy_key.pub
+# One-time server setup helpers
+/setup-erp-server.php
+/add-deploy-key.php
 /.nova
 /.phpunit.cache
 /.vscode
