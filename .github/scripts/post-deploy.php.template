@@ -50,15 +50,16 @@ try {
         $log[] = 'deploy.zip: not found (skipping extraction — files already uploaded)';
     }
 
-    // --- Step 1.5: Fix APP_NAME in .env if it was overwritten with default ---
+    // --- Step 1.5: Ensure APP_NAME is correct in .env (always enforce, not just when "Laravel") ---
     $envFile = $appRoot.'/.env';
     if (file_exists($envFile)) {
         $envContent = file_get_contents($envFile);
-        if (str_contains($envContent, 'APP_NAME=Laravel') || str_contains($envContent, "APP_NAME=\"Laravel\"")) {
-            $envContent = preg_replace('/^APP_NAME=.*/m', 'APP_NAME="CANZimbabwe FinTrack"', $envContent);
-            file_put_contents($envFile, $envContent);
-            $log[] = '.env APP_NAME: fixed (was Laravel)';
-        }
+        // Always set the correct app name regardless of current value
+        $envContent = preg_replace('/^APP_NAME=.*/m', 'APP_NAME="CANZimbabwe FinTrack"', $envContent);
+        file_put_contents($envFile, $envContent);
+        $log[] = '.env APP_NAME: set to CANZimbabwe FinTrack';
+    } else {
+        $log[] = '.env not found — server configuration may be incomplete';
     }
 
     // --- Step 2: Bootstrap Laravel ---

@@ -14,6 +14,7 @@
 # One-time server setup helpers — never commit these
 /setup-erp-server.php
 /add-deploy-key.php
+/manual-fix.php
 # Generated during CI deployment — contains injected secret token
 /public/post-deploy.php
 /.nova
